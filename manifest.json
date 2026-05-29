@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "AI Web Editor",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Click any element on a webpage and use AI to modify its content or style in real-time.",
   "permissions": [
     "activeTab",
@@ -13,18 +13,22 @@
     "<all_urls>"
   ],
   "background": {
-    "service_worker": "background/background.js"
+    "service_worker": "background.js"
   },
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["content-script/content.js"],
-      "css": ["content/content.css"],
-      "run_at": "document_idle"
+      "js": ["content-script.js"],
+      "css": ["content.css"],
+      "run_at": "document_idle",
+      "exclude_matches": [
+        "*://chrome.google.com/*",
+        "*://chromewebstore.google.com/*"
+      ]
     }
   ],
   "action": {
-    "default_popup": "popup/popup.html",
+    "default_popup": "popup.html",
     "default_icon": {
       "16": "icons/icon16.png",
       "48": "icons/icon48.png",
@@ -37,6 +41,15 @@
     "128": "icons/icon128.png"
   },
   "content_security_policy": {
-    "extension_pages": "script-src 'self'; object-src 'self'; connect-src https://*.openai.com https://api.openai.com;"
+    "extension_pages": "script-src 'self'; object-src 'self'; connect-src https://api.openai.com https://*.openai.com https://api.together.xyz https://*.together.xyz;"
+  },
+  "commands": {
+    "_execute_action": {
+      "suggested_key": {
+        "default": "Alt+Shift+E",
+        "mac": "Alt+Shift+E"
+      },
+      "description": "Open AI Web Editor panel"
+    }
   }
 }

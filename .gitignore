@@ -1,0 +1,18 @@
+# Environment
+.env
+*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Generated icons (regenerate from SVG)
+icons/icon16.png
+icons/icon48.png
+icons/icon128.png
