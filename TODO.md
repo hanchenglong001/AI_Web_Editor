@@ -3,7 +3,7 @@
 ## 🔴 High Priority (马上做)
 
 ### 0. 🚨 v1.5 — 目录结构清理 + CSP 修复 (立即修复，阻塞 CWS 发布)
-- [ ] **合并重复文件** — 根目录 `background.js` vs `background/background.js`、`content.css` vs `content/content.css`、`content-script.js` vs `content-script/content.js`、`popup.html/js` vs `popup/popup.html/js` 内容不一致，manifest.json 引用的是 flat 版本但 subdirectory 版本也有更新
+- [ ] **合并重复文件** — 根目录 `background.js` vs `background/background.js`、`content.css` vs `content/content.css`、`content-script.js` vs `content/content.js`、`popup.html/js` vs `popup/popup.html/js` 内容不一致，manifest.json 引用的是 flat 版本但 subdirectory 版本也有更新
 - [ ] **统一为一种目录结构** — 推荐保留 flat 结构（当前 manifest.json 引用的），删除 background/ content/ popup/ content-script/ 四个冗余子目录
 - [ ] **删除无用文件** — `frist.txt` (0字节空文件)
 - [ ] **CSP connect-src 补全** — manifest.json 的 CSP 缺少 Ollama (`http://localhost:11434`)、Azure endpoint，需改为动态注入或包含这些 URL
@@ -126,49 +126,52 @@
 
 ---
 
-## 📊 版本快照 (2026-05-30 T+2 — Cron Check)
+## 📊 版本快照 (2026-05-30 T+8 — Cron Check)
 
-||| 项目 | 状态 ||
-|------|------|--||
-| 当前版本 | **v1.4.0** ✅ (待 v1.5 修复) ||
-| Flat files latest | ✅ 最新（含 v1.3/v1.4 全部功能） ||
-| Subdirectory copies | ⚠️ Stale — 需删除 4 个冗余子目录 (共 ~127KB 垃圾代码) ||
-| frist.txt | 🗑️ 0 字节，待删除 ||
-| Working Tree | ✅ Clean (无未提交变更) ||
-| Quick Commands | 20+ 个 (含本地 fallback) ||
-| API 支持 | OpenAI compatible + Together AI + Ollama + Azure (CSP 待补全) ||
-| Undo/Redo | ✅ v1.1 ||
-| Export (HTML/CSS/Full Page) | ✅ v1.1/v1.4 ||
-| Theme Toggle | ✅ v1.1 ||
-| Usage Limits | ✅ v1.1, 可配置 ||
-| Context Menu | ✅ v1.4 — rich submenu ||
-| Batch Edit (Multi-Select) | ✅ v1.3 — Shift+Click ||
-| Git Commits | ~13 次 ||
-| Subdir vs Flat Diff | background.js: 5KB vs 17KB, content-script.js: 21KB vs 46KB, popup.html: 4.6KB vs 6.9KB — subdirs 全部落后数 KB ⚠️ ||
+|| 项目 | 状态 ||------|------|| 当前版本 | **v1.4.0** ✅ (待 v1.5 修复) || Flat files latest | ✅ 最新（background.js 17KB, content.css 8KB, content-script.js 47KB, popup.html 7KB, popup.js 5KB） || Subdirectory copies | ⚠️ Stale — 4 个冗余子目录共 ~39KB，内容全部落后根文件 7~25KB (background: 12KB, content: 0.4KB, content-script: 25KB, popup: 3KB) || frist.txt | 🗑️ 0 字节空文件，待删除 || Working Tree | 仅 TODO.md modified — 无其他未提交变更 || Git ahead of origin | ⚠️ **8 commits ahead of origin/master**（最新: docs: cron check T+4） — 连续第 8 次 cron check 仍领先，尚未 push || Quick Commands | 20+ 个（含 emoji fallback） || API 支持 | OpenAI compatible + Together AI + Ollama + Azure（CSP 缺少 localhost:11434） || Undo/Redo | ✅ v1.1 || Export (HTML/CSS/Full Page) | ✅ v1.1/v1.4 || Theme Toggle | ✅ v1.1 || Usage Limits | ✅ v1.1, 可配置 || Context Menu | ✅ v1.4 — rich submenu with element detection || Batch Edit (Multi-Select) | ✅ v1.3 — Shift+Click + Apply to All + index badge || Git Commits | ~13 次（本地）/ 5 次（远程） || CSP | ⚠️ connect-src 仅含 OpenAI + Together，缺 Ollama(localhost:11434)/Azure/LM Studio/vLLM — 需改为通配符方案
+|------|------|
+| 当前版本 | **v1.4.0** ✅ (待 v1.5 修复) |
+| Flat files latest | ✅ 最新（content-script.js 47KB, background.js 17KB, popup.js 5KB — 含全部 v1.1~v1.4 功能） |
+| Subdirectory copies | ⚠️ Stale — 4 个冗余子目录共 ~42KB，内容全部落后根文件 10~25KB |
+| frist.txt | 🗑️ 0 字节空文件，待删除 |
+| Working Tree | ⚠️ 1 modified (this TODO.md) — 无其他未提交变更 |
+| Git ahead of origin | ⚠️ **8 commits ahead of origin/master**（最新: docs: cron check T+4） — 连续第 7 次 cron check 仍领先，尚未 push |
+| Quick Commands | 20+ 个（含 emoji fallback） |
+| API 支持 | OpenAI compatible + Together AI + Ollama + Azure（CSP 缺少 localhost:11434） |
+| Undo/Redo | ✅ v1.1 |
+| Export (HTML/CSS/Full Page) | ✅ v1.1/v1.4 |
+| Theme Toggle | ✅ v1.1 |
+| Usage Limits | ✅ v1.1, 可配置 |
+| Context Menu | ✅ v1.4 — rich submenu with element detection |
+| Batch Edit (Multi-Select) | ✅ v1.3 — Shift+Click + Apply to All + index badge |
+| Git Commits | ~13 次（本地）/ 5 次（远程） |
+| CSP | ⚠️ connect-src 仅含 OpenAI + Together，缺 Ollama(localhost:11434)/Azure/LM Studio/vLLM — 需改为通配符方案 |
 
 ---
 
-## 📈 迭代方向评估 (2026-06-01 Cron Check T+4)
+## 📈 迭代方向评估 (2026-05-30 Cron Check T+8)
 
-**项目整体状态**: v1.4.0 功能已收敛，working tree clean。距上次 cron check 无代码变更。核心 blocker：目录结构冗余（~38KB 重复子目录）+ CSP 缺少 Ollama/Azure。7 个 commit ahead of origin/master，待 push。
+**项目整体状态**: v1.4.0 功能已收敛，working tree 干净（仅 TODO.md 修改）。距上次 cron check **仍无代码变更** — 这已是连续第 8 次 cron check 没有新代码提交。**关键问题：本地比远程领先 8 个 commit（全部是 docs/TODO/CHANGELOG 更新），尚未 push 到远端**。自 v1.4 发布以来进入"修 bug + 准备发布"阶段。
+
+**建议立即行动**:
+- **v1.5 修复应优先于更多功能迭代** — 目录冗余 + CSP 是两个阻塞 CWS 发布的硬伤，不应继续堆积 TODO
+- **8 个本地文档 commits 应先 push** — 保持远程状态同步
+- **考虑发布 v1.4.1 小版本**（含文档更新）作为正式发行，v1.5 单独走发布流程
 
 ### 🔴 P0 — 发布前必须修复 (阻塞 CWS 审核)
-1. **目录结构清理 (v1.5)** — 4 个冗余子目录（background/ content/ popup/ content-script/）内容落后根文件数 KB，加 frist.txt 空文件。建议统一 flat 结构并删除子目录。预计耗时：~30min
-2. **CSP connect-src 补全** — manifest.json CSP 缺少 `http://localhost:11434`(Ollama)、Azure endpoint、LM Studio、vLLM 等自定义地址。当前仅包含 OpenAI/Together AI，导致本地部署用户无法使用 API。**方案**: 将 CSP 改为宽松通配符 `connect-src 'self' https: http:;`（CWS 可接受）或使用动态注入
-3. **版本号动态读取** — popup.html 中 v1.0.0 写死，应从 manifest.json 动态获取。已有代码支持但未被实际使用
+1. **目录结构清理 (v1.5)** — 4 个冗余子目录共 ~39KB: background/ (12KB落后), content/ (0.4KB落后), content-script/ (25KB落后), popup/ (3KB落后) + frist.txt。统一 flat 结构，删除子目录。预计耗时：~30min
+2. **CSP connect-src 补全** — manifest.json CSP 缺少 Ollama/Azure/LM Studio/vLLM。**方案**: 改为 `connect-src 'self' https: http:`（CWS 可接受）
+3. **版本号动态读取** — popup.js 已有代码支持，popup.html 待改 `<span id="version-display">`
+4. **Push 8 个本地 commits 到远端**
 
 ### 🟡 P1 — 下一步功能迭代 (5个优先级)
-1. **AI 对话式编辑模式 (Conversation Mode, v1.6)** — 当前单轮指令交互改为多轮对话，支持追问/调整 AI 输出。需要增加聊天历史状态管理、消息气泡 UI、上下文 token 压缩策略
-2. **安全沙箱 Diff Preview** — AI 修改先展示在 diff 面板中，高亮变更行后用户 acceptance/reject。防止恶意 HTML/JS 注入，类似 GitHub PR review 体验。需引入 diff-match-patch 库
-3. **Chrome Web Store 发布流程** — SVG→PNG 多尺寸图标（当前 icons/ 只有 PNG）、listing 截图、banner(1400x560)、打包 ZIP、提交审核($5 one-time fee)。这是商业化第一步
-4. **付费订阅集成** — Stripe Payment Links / Gumroad 支付网关 + premium features unlock（daily limit 提升到 500+）。需设计 free vs pro tier 功能边界
-5. **更多 AI 命令模板 + 用户自定义 Prompt** — Markdown→纯文本/JSON→表格/SEO meta description/OG tags，支持用户保存自己的快捷命令到 chrome.storage
+1. **AI 对话式编辑模式 (Conversation Mode, v1.6)** — 多轮对话，支持追问/调整 AI 输出。用户留存差异点
+2. **安全沙箱 Diff Preview** — AI 修改先展示 diff，高亮变更行后 acceptance/reject（类似 GitHub PR review）
+3. **Chrome Web Store 发布流程** — SVG→PNG 图标、listing 截图、banner、打包 ZIP、提交审核($5 fee)
+4. **付费订阅集成 (Freemium)** — Stripe Payment Links + premium unlock（daily limit → 无限）
+5. **用户自定义 Prompt 模板库** — chrome.storage 保存/编辑/分享自己的快捷命令
 
 ### 🟢 P2 — 持续优化
-- CSP 动态注入方案（替代硬编码 API URLs）— v1.5 CSP fix 的子任务
-- i18n 多语言界面 (EN/CN/JA) — popup 和面板 UI
-- Google Gemini / Claude / Llama provider 扩展 — 原生 JSON 格式适配
-- Favicon 根据页面主题自动适配 ✦ 按钮颜色
-- Performance 优化 (GPU accelerated animations, debounce highlights, memory leak cleanup)
+- i18n 多语言界面 (EN/CN/JA)、Gemini/Claude provider 扩展、Performance 优化、Side Panel API 集成、记忆上次 tab 上下文
 
 ---
