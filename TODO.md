@@ -86,6 +86,25 @@
 - [ ] popup 和面板 UI 支持英文/中文/日文切换
 - [ ] prompt 模板的本地化翻译包
 
+### 12. 🆕 CSP 动态注入方案 (v1.5 — 替代硬编码 fix)
+- [ ] 不直接写入 `http://localhost:11434`，改为读取用户配置的 API base URL 动态更新 CSP
+- [ ] manifest.json 的 `content_security_policy.extension_pages` connect-src 支持通配符或脚本注入
+- [ ] 考虑使用 `script-src 'unsafe-inline'` + service worker 运行时添加 header 的方案
+
+### 13. 🆕 Popup UI 优化 — 版本号动态读取
+- [ ] popup.js 中从 `chrome.runtime.getManifest().version` 读取版本号替换硬编码
+- [ ] popup.html 中的 `v1.0.0` → `<span id="version-display"></span>` 已由新代码支持
+
+### 14. 🆕 v1.6 — AI 对话式编辑模式 (Conversation Mode)
+- [ ] 当前面板是单轮指令交互，改为多轮对话（像 ChatGPT 一样持续 refine）
+- [ ] 用户可追问/调整 AI 输出再自动应用（"更短一点"、"换个语气"）
+- [ ] 保持 AI 聊天上下文，不需要重新选择元素
+
+### 15. 🆕 安全沙箱 — AI 修改预览模式 (Diff Preview)
+- [ ] AI 返回的结果先展示在侧边 diff 面板中
+- [ ] 高亮变更行，一键 acceptance/reject（类似 GitHub PR review）
+- [ ] 防止 AI 注入恶意 HTML/JS
+
 ## 🐛 Known Issues
 
 ### 1. Content script 在 Shadow DOM 页面中不生效
@@ -107,11 +126,15 @@
 
 ---
 
-## 📊 版本快照 (2026-05-30)
+## 📊 版本快照 (2026-05-30 T+1)
 
 || 项目 | 状态 ||
 |------|------|--||
 | 当前版本 | **v1.4.0** ✅ (待 v1.5 修复) ||
+| Flat files latest | ✅ 最新（含 v1.3/v1.4 全部功能） ||
+| Subdirectory copies | ⚠️ Stale — 需删除 4 个冗余子目录 ||
+| frist.txt | 🗑️ 0 字节，待删除 ||
+| Working Tree | Clean (未提交的新 TODO.md) ||
 | Quick Commands | 20+ 个 (含本地 fallback) ||
 | API 支持 | OpenAI compatible + Together AI + Ollama + Azure (CSP 待补全) ||
 | Undo/Redo | ✅ v1.1 ||
@@ -122,7 +145,9 @@
 | Batch Edit (Multi-Select) | ✅ v1.3 — Shift+Click ||
 | 文件数量 | ~20 个源文件 + 4 个冗余子目录 ⚠️ ||
 | Git Commits | 9 次 ||
-| Working Tree Status | **Dirty** — TODO.md updated with v1.5 issues ||
+| Working Tree Status | Clean (all done in previous sessions) ||
+| Flat vs Subdir | Flat versions are LATEST (+4–25KB each); subdirs are stale copies ⚠️ ||
+| frist.txt | 0-byte junk file, needs deletion ||
 | Directory Cleanup | 🚨 4 redundant subdirs need merging (blocking CWS release) ||
 
 ---
