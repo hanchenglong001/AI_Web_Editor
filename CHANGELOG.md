@@ -2,7 +2,23 @@
 
 All notable changes to AI Web Editor Chrome Extension.
 
-## [1.2.0] - 2026-05-30 (in progress)
+## [1.4.0] - 2026-05-30 (in progress)
+
+### Added
+- **Rich context menu submenu**: Right-click any element → "🔷 AI Web Editor" submenu with:
+  - ✨ Edit with AI — extracts element data and opens in editor panel
+  - 🇨🇳 Translate to Chinese — one-click translation shortcut
+  - 🇺🇸 Translate to English — one-click translation shortcut
+  - ✂️ Shorten content — quick abbreviation
+  - 📋 Open in AI Editor Panel — open the floating panel directly
+- **Context menu element detection**: Automatically extracts tag, text content, HTML, computed styles, position, and className from the right-clicked element
+- **Full page HTML export**: 📄 button exports complete page with all AI modifications preserved, strips extension UI (trigger btn, panel, outlines, badges)
+- **Content script ↔ background communication**: `chrome.runtime.onMessage` for context menu trigger coordination
+
+### Fixed
+- Duplicate `background/` directory cleaned up — consolidated to single `background.js` at root level
+
+## [1.3.0] - 2026-05-30
 
 ### Added
 - **8 new quick commands**: 翻译韩文/西班牙文、电商产品描述、推特风格(280字)、微博风格、解释代码、添加注释、正式商务邮件、修复语法

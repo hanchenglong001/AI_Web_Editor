@@ -16,20 +16,18 @@
 - [ ] 支持试用: 注册用户获得免费 AI credits
 
 ### 3. 更多 AI 命令模板
-- [ ] 电商场景: "优化产品描述为SEO友好", "生成亚马逊标题"
-- [ ] 社交媒体: "改写为微博风格", "翻译成推特格式(280字符)"
-- [ ] 代码场景: "解释这段代码", "添加注释", "重构为更简洁的写法"
-- [ ] 邮件场景: "重写这封邮件", "翻译为正式商务英语"
+- [x] ~~电商场景~~ ✅ Added in v1.2 (product-desc, tweet-style, weibo-style)
+- [x] ~~社交媒体~~ ✅ Already included
+- [x] ~~代码场景~~ ✅ Added explain-code, add-comments
+- [x] ~~邮件场景~~ ✅ Added professional-email, fix-grammar
 
 ## 🟡 Medium Priority (近期迭代)
 
-### 4. 版本同步 — v1.3
-- [x] **manifest.json 版本号滞后**: 当前代码已 v1.2，manifest 仍显示 1.1.0 → **待更新为 1.2.0**
-- [ ] content-script.js 有未提交的本地修改（需确认是否合入）
-- [ ] CHANGELOG.md 与 TODO.md 需保持同步
-- [ ] README 中英双语翻译待审核更新
-
-### 5. 批量编辑模式 ✅ DONE
+### 4. 版本同步 — v1.4 ✅ DONE
+- [x] **manifest.json 版本号更新**: 已更新至 v1.4.0
+- [x] context menu rich submenu implementation
+- [x] Full page HTML export with modification preservation
+- [ ] CHANGELOG.md 需更新以匹配 v1.4
 - [x] 支持同时选中多个元素（Shift+Click）
 - [x] 对选中的所有元素应用相同 AI 指令（✨ Apply to All）
 - [x] 实时预览所有修改效果 + index badge 编号
