@@ -8,11 +8,12 @@
   window.__awe_injected = true;
 
   let selectedElement = null;
-  let isSelectingMode = false;
-  let isOpen = false;
-  let undoStack = [];
-  let redoStack = [];
-  let currentTheme = 'dark'; // dark | light
+    let selectedElements = []; // batch selection array
+    let isSelectingMode = false;
+    let isOpen = false;
+    let undoStack = [];
+    let redoStack = [];
+    let currentTheme = 'dark'; // dark | light
 
   // ============================================================
   // DOM Creation
@@ -50,9 +51,14 @@
         </div>
       </div>
       <div id="awe-element-preview">
-        <span id="awe-element-tag">&lt;div&gt;</span>
-        <div id="awe-element-text" title="">Click an element to select it</div>
-      </div>
+              <span id="awe-element-tag">&lt;div&gt;</span>
+              <div id="awe-batch-info" style="display:none;font-size:12px;color:#6366f1;padding:4px 0;">📦 Batch: N elements</div>
+              <div id="awe-element-text" title="">Click an element to select it</div>
+            </div>
+            <div id="awe-batch-bar" style="display:none;padding:8px;background:rgba(99,102,241,0.1);margin-bottom:8px;border-radius:6px;">
+              <span style="font-size:12px;">🔗 Batch Mode</span>
+              <button id="awe-batch-send-btn" style="margin-left:auto;padding:4px 12px;background:#6366f1;border:none;border-radius:4px;color:white;font-size:11px;cursor:pointer;">✨ Apply to All</button>
+            </div>
       <div id="awe-tabs">
         <button class="awe-tab-btn active" data-tab="ai">✦ AI</button>
         <button class="awe-tab-btn" data-tab="style">◐ Style</button>
@@ -223,7 +229,13 @@
     document.getElementById('awe-selection-overlay').classList.toggle('active', isSelectingMode);
     const btn = document.getElementById('awe-trigger-btn');
     btn.classList.toggle('active', isSelectingMode);
-    btn.title = isSelectingMode ? 'Stop selection (ESC)' : 'AI Web Editor';
+    if (isSelectingMode) {
+      selectedElements = [];
+      selectedElement = null;
+      btn.title = 'Shift+Click to add elements | ESC to stop';
+    } else {
+      btn.title = 'AI Web Editor';
+    }
   }
 
   function handleElementClick(e) {
@@ -231,12 +243,44 @@
     e.stopPropagation();
     let target = e.target;
     if (target.closest('#awe-trigger-btn') || target.closest('#awe-editor-panel')) return;
-    selectedElement = target;
-    highlightElement(target);
-    updatePreview();
+
+    if (e.shiftKey) {
+      // Batch selection mode: add to array
+      if (!selectedElements.find(el => el === target)) {
+        selectedElements.push(target);
+        highlightElementBatch(target, selectedElements.length);
+        showStatus(`已选 ${selectedElements.length} 个元素`, '');
+      }
+    } else {
+      // Single selection
+      clearHighlight();
+      selectedElement = target;
+      selectedElements = [target];
+      highlightElement(target);
+      updatePreview(selectedElement);
+      openPanel();
+      isSelectingMode = false;
+      document.getElementById('awe-selection-overlay').classList.remove('active');
+      document.getElementById('awe-trigger-btn').classList.remove('active');
+    }
+  }
+
+  function handleDoubleElementClick(e) {
+    if (!isSelectingMode) return;
+    e.stopPropagation();
+    let target = e.target;
+    if (target.closest('#awe-trigger-btn') || target.closest('#awe-editor-panel')) return;
+    // Double click exits selection mode, opens all selected in panel
     isSelectingMode = false;
     document.getElementById('awe-selection-overlay').classList.remove('active');
     document.getElementById('awe-trigger-btn').classList.remove('active');
+    if (selectedElements.length === 0) {
+      selectedElement = target;
+      highlightElement(target);
+      updatePreview(selectedElement);
+    } else {
+      showStatus(`已选 ${selectedElements.length} 个元素`, '');
+    }
     openPanel();
   }
 
@@ -244,8 +288,33 @@
     if (!isSelectingMode || !e.target.closest('#awe-selection-overlay')) return;
     let target = e.target;
     if (target.closest('#awe-trigger-btn') || target.closest('#awe-editor-panel')) return;
-    clearHighlight();
-    highlightElement(target);
+    // Only highlight single hover, batch elements stay highlighted
+    if (!selectedElements.find(el => el === target)) {
+      clearHighlight();
+      highlightElement(target);
+    }
+  }
+
+  function highlightElementBatch(el, index) {
+    el.style.outline = '3px solid #6366f1';
+    el.style.outlineOffset = '2px';
+    el.style.boxShadow = `0 0 0 4px rgba(99,102,241,${0.1 + (index % 5) * 0.08})`;
+    // Add index badge
+    const badge = document.createElement('span');
+    badge.style.cssText = 'position:absolute;top:-10px;right:-10px;background:#6366f1;color:white;border-radius:50%;width:20px;height:20px;font-size:12px;text-align:center;line-height:20px;z-index:2147483646;pointer-events:none;';
+    badge.textContent = index.toString();
+    el.style.position = el.style.position || 'relative';
+    if (!el.querySelector('span[style*="position:absolute"]')) {
+      el.appendChild(badge);
+    }
+  }
+
+  function clearBatchBadges() {
+    document.querySelectorAll('#awe-editor-panel ~ * span[style*="position:absolute"]').forEach(el => {
+      if (el.parentElement && !el.closest('#awe-editor-panel') && el.style.position === 'absolute') {
+        el.remove();
+      }
+    });
   }
 
   function highlightElement(el) {
@@ -263,13 +332,21 @@
     });
   }
 
-  function updatePreview() {
-    if (!selectedElement) return;
-    const tag = selectedElement.tagName.toLowerCase();
-    const text = (selectedElement.textContent || '').trim().substring(0, 150);
+  function updatePreview(el) {
+    const target = el || selectedElement;
+    if (!target) return;
+    const tag = target.tagName.toLowerCase();
+    const text = (target.textContent || '').trim().substring(0, 150);
     document.getElementById('awe-element-tag').textContent = `<${tag}>`;
     document.getElementById('awe-element-text').textContent = text;
     document.getElementById('awe-element-text').title = text;
+
+    // Batch info
+    const batchEl = document.getElementById('awe-batch-info');
+    if (batchEl) {
+      batchEl.style.display = selectedElements.length > 1 ? 'block' : 'none';
+      batchEl.textContent = `📦 ${selectedElements.length} elements`;
+    }
 
     // Pre-populate style values
     const cs = window.getComputedStyle(selectedElement);
@@ -295,12 +372,18 @@
   // ============================================================
 
   function openPanel() {
-    isOpen = true;
-    document.getElementById('awe-editor-panel').classList.add('active');
-    refreshHistory();
-    refreshDailyUsage();
-    applyTheme(currentTheme);
-  }
+     isOpen = true;
+     document.getElementById('awe-editor-panel').classList.add('active');
+     refreshHistory();
+     refreshDailyUsage();
+     applyTheme(currentTheme);
+
+     // Show batch bar if multi-select
+     const batchBar = document.getElementById('awe-batch-bar');
+     if (batchBar) {
+       batchBar.style.display = selectedElements.length > 1 ? 'flex' : 'none';
+     }
+   }
 
   function closePanel() {
     isOpen = false;
@@ -447,107 +530,88 @@
   // AI Command Handler
   // ============================================================
 
-  async function handleAICommand() {
-    if (!selectedElement) { showStatus('请先选中页面元素', 'error'); return; }
+  async function handleAICommand(isBatch = false) {
     const cmdKey = document.getElementById('awe-command-input').value.trim();
-    if (!cmdKey) { showStatus('请输入指令或点击快捷按钮', 'error'); return; }
+    if (!cmdKey && !isBatch) { showStatus('请输入指令或点击快捷按钮', 'error'); return; }
+
+    let elementsToProcess = [];
+    if (isBatch) {
+      if (selectedElements.length === 0) { showStatus('请先选中元素', 'error'); return; }
+      elementsToProcess = [...selectedElements];
+    } else {
+      if (!selectedElement) { showStatus('请先选中页面元素', 'error'); return; }
+      elementsToProcess = [selectedElement];
+    }
 
     // Check if it's a known quick command key or free text
     let fullPrompt = COMMAND_PROMPTS[cmdKey] || cmdKey;
-    const elementText = selectedElement.textContent?.trim() || '';
-    const isHtml = selectedElement.innerHTML.trim() !== elementText; // has nested elements
+    const results = [];
 
     saveState();
 
     const btn = document.getElementById('awe-send-btn');
     btn.disabled = true;
-    btn.innerHTML = '<span class="awe-spinner"></span> Processing...';
-    showStatus('正在调用 AI...', '');
+    btn.innerHTML = `<span class="awe-spinner"></span> Processing ${elementsToProcess.length}...`;
+    showStatus(`正在处理 ${elementsToProcess.length} 个元素...`, '');
 
-    try {
-      chrome.runtime.sendMessage({
-        action: 'ai-modify',
-        command: fullPrompt,
-        elementText: elementText,
-        elementTag: selectedElement.tagName?.toLowerCase() || 'div',
-        isHtml: isHtml,
-      }, (response) => {
-        if (chrome.runtime.lastError) {
-          console.error('[AWEditor] Runtime error:', chrome.runtime.lastError);
-          applyLocalModification(selectedElement, fullPrompt);
-          showStatus('本地模式已应用', '');
-          addToHistory(fullPrompt, 'ai-local');
-          btn.disabled = false;
-          btn.innerHTML = '✨ Apply';
-          return;
-        }
-
-        if (response.limitReached) {
-          showStatus('今日使用次数已达上限 (' + response.limit + '/天)', 'error');
-          refreshDailyUsage();
-          btn.disabled = false;
-          btn.innerHTML = '✨ Apply';
-          return;
-        }
-
-        if (response.needsApiKey) {
-          showStatus('未配置 API Key，使用本地模式', '');
-          applyLocalModification(selectedElement, fullPrompt);
-          addToHistory(fullPrompt, 'ai-local');
-        } else if (response.success && response.newContent) {
-          const newContent = response.newContent;
-
-          if (selectedElement.childNodes.length === 0 ||
-              (selectedElement.childNodes.length === 1 && selectedElement.firstChild.nodeType === Node.TEXT_NODE)) {
-            selectedElement.textContent = newContent;
-          } else {
-            // Complex element: replace first text node or wrap
-            const walker = document.createTreeWalker(selectedElement, NodeFilter.SHOW_TEXT);
-            let firstText = walker.nextNode();
-            if (firstText) {
-              firstText.textContent = newContent;
+    for (let i = 0; i < elementsToProcess.length; i++) {
+      const el = elementsToProcess[i];
+      try {
+        await chrome.runtime.sendMessage({
+          action: 'ai-modify',
+          command: fullPrompt,
+          elementText: el.textContent?.trim() || '',
+          elementTag: el.tagName?.toLowerCase() || 'div',
+          isHtml: el.innerHTML.trim() !== el.textContent?.trim(),
+        }, (response) => {
+          if (chrome.runtime.lastError || response.needsApiKey) {
+            applyLocalModification(el, fullPrompt);
+            results.push({ idx: i + 1, ok: true });
+            return;
+          }
+          if (response.success && response.newContent) {
+            const newContent = response.newContent;
+            // If the element has text nodes and no child elements, use textContent
+            if (el.childNodes.length === 0 || Array.from(el.childNodes).every(n => n.nodeType === Node.TEXT_NODE)) {
+              el.textContent = newContent;
             } else {
-              selectedElement.innerHTML = '<span>' + newContent + '</span>';
+              el.innerHTML = newContent;
             }
+            results.push({ idx: i + 1, ok: true });
+          } else if (response.localFallback) {
+            applyLocalModification(el, fullPrompt);
+            results.push({ idx: i + 1, ok: true });
+          } else {
+            // Local fallback for all responses
+            applyLocalModification(el, fullPrompt);
+            results.push({ idx: i + 1, ok: false, error: response.message || 'Local fallback' });
           }
+        });
+      } catch (e) {
+        console.error('[AWEditor] Error processing element', i, ':', e);
+        applyLocalModification(el, fullPrompt);
+        results.push({ idx: i + 1, ok: false, error: e.message });
+      }
 
-          // Also try HTML replacement if the content looks like HTML
-          if (newContent.includes('<') && !COMMAND_PROMPTS[cmdKey]?.includes('translate')) {
-            try {
-              const temp = document.createElement('div');
-              temp.innerHTML = newContent;
-              if (temp.children.length > 0 || temp.textContent !== selectedElement.textContent) {
-                selectedElement.outerHTML = newContent;
-                // Re-select
-                selectedElement = selectedElement?.parentElement?.querySelector('[style*="outline"]') || selectedElement;
-              }
-            } catch(e) {}
-          }
-
-          showStatus('AI 修改已应用', 'success');
-          addToHistory(fullPrompt, 'ai');
-        } else if (response.error) {
-          showStatus('AI 调用失败: ' + response.error.substring(0, 80), 'error');
-          applyLocalModification(selectedElement, fullPrompt);
-          addToHistory(fullPrompt, 'ai-local');
-        }
-
-        btn.disabled = false;
-        btn.innerHTML = '✨ Apply';
-      });
-    } catch (err) {
-      console.error('[AWEditor] Error:', err);
-      showStatus('错误: ' + err.message.substring(0, 80), 'error');
-      applyLocalModification(selectedElement, fullPrompt);
-      addToHistory(fullPrompt, 'ai-local');
-      btn.disabled = false;
-      btn.innerHTML = '✨ Apply';
+      // Wait between requests to avoid overwhelming the API
+      if (i < elementsToProcess.length - 1) await new Promise(r => setTimeout(r, 500));
     }
+
+    const successCount = results.filter(r => r.ok).length;
+    addToHistory(fullPrompt, `batch-${elementsToProcess.length}-items`);
+
+    btn.disabled = false;
+    btn.innerHTML = '✨ Apply';
+    showStatus(`✅ 完成: ${successCount}/${results.length} 成功`, '');
+    refreshDailyUsage();
   }
 
-  // ============================================================
-  // Local Modification Fallback
-  // ============================================================
+  // Batch AI apply function
+   async function handleBatchAICommand() {
+     if (selectedElements.length === 0) { showStatus('请先选中元素', 'error'); return; }
+     await handleAICommand(true);
+   }
+
 
   function applyLocalModification(el, command) {
     const text = el.textContent?.trim();
@@ -757,7 +821,17 @@
   }
 
   // ============================================================
-  // Event Delegation (all clicks in one handler)
+    // Batch mode handler (if batch bar exists)
+  document.addEventListener('DOMContentLoaded', () => {
+    const batchBtn = document.getElementById('awe-batch-send-btn');
+    if (batchBtn) {
+      batchBtn.addEventListener('click', async () => {
+        await handleBatchAICommand();
+      });
+    }
+  }, { once: true });
+
+// Event Delegation (all clicks in one handler)
   // ============================================================
 
   document.addEventListener('click', function (e) {
