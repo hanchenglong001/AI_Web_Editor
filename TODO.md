@@ -126,15 +126,15 @@
 
 ---
 
-## 📊 版本快照 (2026-05-30 T+1)
+## 📊 版本快照 (2026-05-30 T+2 — Cron Check)
 
-|| 项目 | 状态 ||
+||| 项目 | 状态 ||
 |------|------|--||
 | 当前版本 | **v1.4.0** ✅ (待 v1.5 修复) ||
 | Flat files latest | ✅ 最新（含 v1.3/v1.4 全部功能） ||
-| Subdirectory copies | ⚠️ Stale — 需删除 4 个冗余子目录 ||
+| Subdirectory copies | ⚠️ Stale — 需删除 4 个冗余子目录 (共 ~127KB 垃圾代码) ||
 | frist.txt | 🗑️ 0 字节，待删除 ||
-| Working Tree | Clean (未提交的新 TODO.md) ||
+| Working Tree | ✅ Clean (无未提交变更) ||
 | Quick Commands | 20+ 个 (含本地 fallback) ||
 | API 支持 | OpenAI compatible + Together AI + Ollama + Azure (CSP 待补全) ||
 | Undo/Redo | ✅ v1.1 ||
@@ -143,11 +143,29 @@
 | Usage Limits | ✅ v1.1, 可配置 ||
 | Context Menu | ✅ v1.4 — rich submenu ||
 | Batch Edit (Multi-Select) | ✅ v1.3 — Shift+Click ||
-| 文件数量 | ~20 个源文件 + 4 个冗余子目录 ⚠️ ||
-| Git Commits | 9 次 ||
-| Working Tree Status | Clean (all done in previous sessions) ||
-| Flat vs Subdir | Flat versions are LATEST (+4–25KB each); subdirs are stale copies ⚠️ ||
-| frist.txt | 0-byte junk file, needs deletion ||
-| Directory Cleanup | 🚨 4 redundant subdirs need merging (blocking CWS release) ||
+| Git Commits | ~13 次 ||
+| Subdir vs Flat Diff | background.js: 5KB vs 17KB, content-script.js: 21KB vs 46KB, popup.html: 4.6KB vs 6.9KB — subdirs 全部落后数 KB ⚠️ ||
+
+---
+
+## 📈 迭代方向评估 (2026-05-30)
+
+### 🔴 P0 — 发布前必须修复
+1. **目录结构清理 (v1.5)** — 4 个冗余子目录 + frist.txt 占 ~127KB，CSP 缺少 Ollama/Azure endpoint（硬编码 localhost:11434 不通用）
+2. **版本号动态读取** — popup.html 中 v1.0.0 写死，应从 manifest.json 动态获取
+
+### 🟡 P1 — 下一步功能迭代 (5个优先级)
+1. **AI 对话式编辑模式 (Conversation Mode, v1.6)** — 当前单轮指令交互改为多轮对话，支持追问/调整 AI 输出
+2. **安全沙箱 Diff Preview** — AI 修改先展示在 diff 面板中，高亮变更行后用户 acceptance/reject，防止恶意 HTML/JS 注入
+3. **Chrome Web Store 发布流程** — SVG→PNG 多尺寸图标、listing 截图、banner、打包 ZIP、提交审核
+4. **付费订阅集成** — Stripe Payment Links / Gumroad 支付网关 + premium features unlock 逻辑（daily limit 提升到 500+）
+5. **更多 AI 命令模板 + 用户自定义 Prompt** — Markdown→纯文本/JSON→表格/SEO meta description，支持用户保存自己的快捷命令
+
+### 🟢 P2 — 持续优化
+- CSP 动态注入方案（替代硬编码 API URLs）
+- i18n 多语言界面 (EN/CN/JA)
+- Google Gemini / Claude / Llama provider 扩展
+- Favicon 根据页面主题自动适配
+- Performance 优化 (GPU accelerated animations, debounce highlights)
 
 ---
