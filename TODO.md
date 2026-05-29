@@ -2,6 +2,13 @@
 
 ## 🔴 High Priority (马上做)
 
+### 0. 🚨 v1.5 — 目录结构清理 + CSP 修复 (立即修复，阻塞 CWS 发布)
+- [ ] **合并重复文件** — 根目录 `background.js` vs `background/background.js`、`content.css` vs `content/content.css`、`content-script.js` vs `content-script/content.js`、`popup.html/js` vs `popup/popup.html/js` 内容不一致，manifest.json 引用的是 flat 版本但 subdirectory 版本也有更新
+- [ ] **统一为一种目录结构** — 推荐保留 flat 结构（当前 manifest.json 引用的），删除 background/ content/ popup/ content-script/ 四个冗余子目录
+- [ ] **删除无用文件** — `frist.txt` (0字节空文件)
+- [ ] **CSP connect-src 补全** — manifest.json 的 CSP 缺少 Ollama (`http://localhost:11434`)、Azure endpoint，需改为动态注入或包含这些 URL
+- [ ] **版本号硬编码** — popup.html 中 `v1.0.0` 写死，应从 manifest.json 动态读取
+
 ### 1. Chrome Web Store 发布流程
 - [ ] 创建完整的扩展图标（SVG → PNG 多尺寸, 48x48/128x128 高清）
 - [ ] 编写 Web Store listing: 描述、截图、宣传图 (1400x560 banner)
@@ -102,17 +109,20 @@
 
 ## 📊 版本快照 (2026-05-30)
 
-| 项目 | 状态 |
-|------|------|
-| 当前版本 | **v1.4.0** ✅ |
-| Quick Commands | 20+ 个 (含本地 fallback) |
-| API 支持 | OpenAI compatible + Together AI + Ollama + Azure |
-| Undo/Redo | ✅ v1.1 |
-| Export (HTML/CSS/Full Page) | ✅ v1.1/v1.4 |
-| Theme Toggle | ✅ v1.1 |
-| Usage Limits | ✅ v1.1, 可配置 |
-| Context Menu | ✅ v1.4 — rich submenu |
-| Batch Edit (Multi-Select) | ✅ v1.3 — Shift+Click |
-| 文件数量 | ~20 个源文件 |
-| Git Commits | 9 次 |
-| Working Tree Status | **Dirty** — TODO.md updated with v1.5 issues |
+|| 项目 | 状态 ||
+|------|------|--||
+| 当前版本 | **v1.4.0** ✅ (待 v1.5 修复) ||
+| Quick Commands | 20+ 个 (含本地 fallback) ||
+| API 支持 | OpenAI compatible + Together AI + Ollama + Azure (CSP 待补全) ||
+| Undo/Redo | ✅ v1.1 ||
+| Export (HTML/CSS/Full Page) | ✅ v1.1/v1.4 ||
+| Theme Toggle | ✅ v1.1 ||
+| Usage Limits | ✅ v1.1, 可配置 ||
+| Context Menu | ✅ v1.4 — rich submenu ||
+| Batch Edit (Multi-Select) | ✅ v1.3 — Shift+Click ||
+| 文件数量 | ~20 个源文件 + 4 个冗余子目录 ⚠️ ||
+| Git Commits | 9 次 ||
+| Working Tree Status | **Dirty** — TODO.md updated with v1.5 issues ||
+| Directory Cleanup | 🚨 4 redundant subdirs need merging (blocking CWS release) ||
+
+---
