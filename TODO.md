@@ -32,10 +32,10 @@
 - [x] 对选中的所有元素应用相同 AI 指令（✨ Apply to All）
 - [x] 实时预览所有修改效果 + index badge 编号
 
-### 6. 协作与分享 🆕 (v1.3 focus)
-- [ ] **上下文菜单右键编辑** — contextMenus API 已声明，需实现"在 AI Web Editor 中打开"
+### 6. 协作与分享 🆕 (v1.4 focus)
+- [x] **上下文菜单右键编辑** — contextMenus API 已实现！右键 → 🔷 AI Web Editor 子菜单（Edit with AI / Translate CN / Translate EN / Shorten / Open Panel）
 - [ ] 生成"编辑快照"链接（保存当前页面+AI修改后的对比）
-- [ ] 导出为完整 HTML 文件（保留所有 AI 修改）
+- [x] **导出为完整 HTML 文件** — 📄 按钮已实现！保留所有 AI 修改，自动清理扩展 UI 元素和选中高亮
 - [ ] 团队共享 prompt 模板库
 
 ### 7. 浏览器增强
