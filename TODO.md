@@ -148,24 +148,27 @@
 
 ---
 
-## 📈 迭代方向评估 (2026-05-30)
+## 📈 迭代方向评估 (2026-06-01 Cron Check T+4)
 
-### 🔴 P0 — 发布前必须修复
-1. **目录结构清理 (v1.5)** — 4 个冗余子目录 + frist.txt 占 ~127KB，CSP 缺少 Ollama/Azure endpoint（硬编码 localhost:11434 不通用）
-2. **版本号动态读取** — popup.html 中 v1.0.0 写死，应从 manifest.json 动态获取
+**项目整体状态**: v1.4.0 功能已收敛，working tree clean。距上次 cron check 无代码变更。核心 blocker：目录结构冗余（~38KB 重复子目录）+ CSP 缺少 Ollama/Azure。7 个 commit ahead of origin/master，待 push。
+
+### 🔴 P0 — 发布前必须修复 (阻塞 CWS 审核)
+1. **目录结构清理 (v1.5)** — 4 个冗余子目录（background/ content/ popup/ content-script/）内容落后根文件数 KB，加 frist.txt 空文件。建议统一 flat 结构并删除子目录。预计耗时：~30min
+2. **CSP connect-src 补全** — manifest.json CSP 缺少 `http://localhost:11434`(Ollama)、Azure endpoint、LM Studio、vLLM 等自定义地址。当前仅包含 OpenAI/Together AI，导致本地部署用户无法使用 API。**方案**: 将 CSP 改为宽松通配符 `connect-src 'self' https: http:;`（CWS 可接受）或使用动态注入
+3. **版本号动态读取** — popup.html 中 v1.0.0 写死，应从 manifest.json 动态获取。已有代码支持但未被实际使用
 
 ### 🟡 P1 — 下一步功能迭代 (5个优先级)
-1. **AI 对话式编辑模式 (Conversation Mode, v1.6)** — 当前单轮指令交互改为多轮对话，支持追问/调整 AI 输出
-2. **安全沙箱 Diff Preview** — AI 修改先展示在 diff 面板中，高亮变更行后用户 acceptance/reject，防止恶意 HTML/JS 注入
-3. **Chrome Web Store 发布流程** — SVG→PNG 多尺寸图标、listing 截图、banner、打包 ZIP、提交审核
-4. **付费订阅集成** — Stripe Payment Links / Gumroad 支付网关 + premium features unlock 逻辑（daily limit 提升到 500+）
-5. **更多 AI 命令模板 + 用户自定义 Prompt** — Markdown→纯文本/JSON→表格/SEO meta description，支持用户保存自己的快捷命令
+1. **AI 对话式编辑模式 (Conversation Mode, v1.6)** — 当前单轮指令交互改为多轮对话，支持追问/调整 AI 输出。需要增加聊天历史状态管理、消息气泡 UI、上下文 token 压缩策略
+2. **安全沙箱 Diff Preview** — AI 修改先展示在 diff 面板中，高亮变更行后用户 acceptance/reject。防止恶意 HTML/JS 注入，类似 GitHub PR review 体验。需引入 diff-match-patch 库
+3. **Chrome Web Store 发布流程** — SVG→PNG 多尺寸图标（当前 icons/ 只有 PNG）、listing 截图、banner(1400x560)、打包 ZIP、提交审核($5 one-time fee)。这是商业化第一步
+4. **付费订阅集成** — Stripe Payment Links / Gumroad 支付网关 + premium features unlock（daily limit 提升到 500+）。需设计 free vs pro tier 功能边界
+5. **更多 AI 命令模板 + 用户自定义 Prompt** — Markdown→纯文本/JSON→表格/SEO meta description/OG tags，支持用户保存自己的快捷命令到 chrome.storage
 
 ### 🟢 P2 — 持续优化
-- CSP 动态注入方案（替代硬编码 API URLs）
-- i18n 多语言界面 (EN/CN/JA)
-- Google Gemini / Claude / Llama provider 扩展
-- Favicon 根据页面主题自动适配
-- Performance 优化 (GPU accelerated animations, debounce highlights)
+- CSP 动态注入方案（替代硬编码 API URLs）— v1.5 CSP fix 的子任务
+- i18n 多语言界面 (EN/CN/JA) — popup 和面板 UI
+- Google Gemini / Claude / Llama provider 扩展 — 原生 JSON 格式适配
+- Favicon 根据页面主题自动适配 ✦ 按钮颜色
+- Performance 优化 (GPU accelerated animations, debounce highlights, memory leak cleanup)
 
 ---
