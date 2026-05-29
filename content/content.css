@@ -1,0 +1,451 @@
+/* AI Web Editor - Content Styles */
+
+/* Floating trigger button */
+#awe-trigger-btn {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 2147483647;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  color: white;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 4px 20px rgba(99, 102, 241, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+#awe-trigger-btn:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 28px rgba(99, 102, 241, 0.7);
+}
+
+#awe-trigger-btn.active {
+  background: linear-gradient(135deg, #ef4444 0%, #f97316 100%);
+}
+
+/* Selection overlay */
+#awe-selection-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 2147483646;
+  display: none;
+}
+
+#awe-selection-overlay.active {
+  cursor: crosshair;
+}
+
+/* Highlighted element */
+.awe-element-highlight {
+  outline: 3px solid #6366f1 !important;
+  outline-offset: 2px !important;
+  background-color: rgba(99, 102, 241, 0.08) !important;
+}
+
+/* AI Editor Panel */
+#awe-editor-panel {
+  position: fixed;
+  top: 50%;
+  right: 24px;
+  transform: translateY(-50%);
+  width: 380px;
+  max-height: 80vh;
+  background: #1a1a2e;
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  z-index: 2147483647;
+  display: none;
+  flex-direction: column;
+  overflow: hidden;
+  color: #e2e8f0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+#awe-editor-panel.active {
+  display: flex;
+  animation: aweSlideIn 0.3s ease-out;
+}
+
+@keyframes aweSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-50%) translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(-50%) translateX(0);
+  }
+}
+
+/* Panel header */
+#awe-panel-header {
+  padding: 16px 20px;
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+#awe-panel-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: white;
+}
+
+#awe-close-btn {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#awe-close-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Element preview */
+#awe-element-preview {
+  padding: 16px 20px;
+  background: #0f0f23;
+  border-bottom: 1px solid #2d2d4a;
+}
+
+#awe-element-tag {
+  font-family: monospace;
+  font-size: 12px;
+  color: #6366f1;
+  background: rgba(99, 102, 241, 0.1);
+  padding: 2px 8px;
+  border-radius: 4px;
+  display: inline-block;
+  margin-bottom: 8px;
+}
+
+#awe-element-text {
+  font-size: 13px;
+  color: #94a3b8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+#awe-element-preview:hover #awe-element-text {
+  white-space: normal;
+  max-height: 60px;
+  overflow-y: auto;
+}
+
+/* Tab bar */
+#awe-tabs {
+  display: flex;
+  background: #12122a;
+  border-bottom: 1px solid #2d2d4a;
+}
+
+.awe-tab-btn {
+  flex: 1;
+  padding: 10px 8px;
+  background: none;
+  border: none;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s;
+}
+
+.awe-tab-btn:hover {
+  color: #94a3b8;
+}
+
+.awe-tab-btn.active {
+  color: #6366f1;
+  border-bottom-color: #6366f1;
+}
+
+/* Tab content */
+#awe-tab-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 20px;
+}
+
+.awe-tab-panel {
+  display: none;
+}
+
+.awe-tab-panel.active {
+  display: block;
+}
+
+/* Input area */
+#awe-command-input {
+  width: 100%;
+  min-height: 80px;
+  max-height: 200px;
+  background: #0f0f23;
+  border: 1px solid #2d2d4a;
+  border-radius: 8px;
+  color: #e2e8f0;
+  padding: 12px;
+  font-size: 13px;
+  font-family: inherit;
+  resize: vertical;
+  outline: none;
+}
+
+#awe-command-input:focus {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+
+#awe-command-input::placeholder {
+  color: #475569;
+}
+
+/* Send button */
+#awe-send-btn {
+  width: 100%;
+  padding: 12px;
+  margin-top: 12px;
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  border: none;
+  border-radius: 8px;
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.1s;
+}
+
+#awe-send-btn:hover {
+  opacity: 0.9;
+}
+
+#awe-send-btn:active {
+  transform: scale(0.98);
+}
+
+#awe-send-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Quick commands */
+.awe-quick-commands {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.awe-quick-btn {
+  padding: 4px 10px;
+  background: rgba(99, 102, 241, 0.1);
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  border-radius: 16px;
+  color: #a5b4fc;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.awe-quick-btn:hover {
+  background: rgba(99, 102, 241, 0.2);
+  color: #c7d2fe;
+}
+
+/* Style controls */
+.awe-style-group {
+  margin-bottom: 16px;
+}
+
+.awe-style-group label {
+  display: block;
+  font-size: 12px;
+  color: #94a3b8;
+  margin-bottom: 6px;
+  font-weight: 500;
+}
+
+.awe-style-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.awe-style-input {
+  flex: 1;
+  padding: 8px 12px;
+  background: #0f0f23;
+  border: 1px solid #2d2d4a;
+  border-radius: 6px;
+  color: #e2e8f0;
+  font-size: 13px;
+  outline: none;
+}
+
+.awe-style-input:focus {
+  border-color: #6366f1;
+}
+
+.awe-style-input[type="color"] {
+  width: 48px;
+  padding: 2px;
+  height: 36px;
+  cursor: pointer;
+}
+
+.awe-apply-btn {
+  padding: 8px 16px;
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  border: none;
+  border-radius: 6px;
+  color: white;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.awe-apply-btn:hover {
+  opacity: 0.9;
+}
+
+/* History */
+.awe-history-item {
+  padding: 10px 12px;
+  background: rgba(99, 102, 241, 0.05);
+  border: 1px solid #2d2d4a;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.awe-history-item:hover {
+  background: rgba(99, 102, 241, 0.1);
+}
+
+.awe-history-command {
+  font-size: 13px;
+  color: #e2e8f0;
+  margin-bottom: 4px;
+}
+
+.awe-history-time {
+  font-size: 11px;
+  color: #475569;
+}
+
+/* Status messages */
+#awe-status-msg {
+  padding: 8px 20px;
+  font-size: 12px;
+  background: #12122a;
+  text-align: center;
+  color: #f59e0b;
+  display: none;
+}
+
+#awe-status-msg.error {
+  color: #ef4444;
+}
+
+#awe-status-msg.success {
+  color: #22c55e;
+}
+
+#awe-status-msg.visible {
+  display: block;
+}
+
+/* Loading spinner */
+.awe-spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: aweSpin 0.6s linear infinite;
+  vertical-align: middle;
+  margin-right: 8px;
+}
+
+@keyframes aweSpin {
+  to { transform: rotate(360deg); }
+}
+
+/* Settings modal */
+.awe-settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 0;
+  border-bottom: 1px solid #2d2d4a;
+}
+
+.awe-settings-row:last-child {
+  border-bottom: none;
+}
+
+.awe-settings-label {
+  font-size: 13px;
+  color: #cbd5e1;
+}
+
+.awe-settings-input {
+  width: 180px;
+  padding: 6px 10px;
+  background: #0f0f23;
+  border: 1px solid #2d2d4a;
+  border-radius: 6px;
+  color: #e2e8f0;
+  font-size: 12px;
+  outline: none;
+}
+
+.awe-settings-input:focus {
+  border-color: #6366f1;
+}
+
+/* Toast notification */
+#awe-toast {
+  position: fixed;
+  bottom: 90px;
+  right: 24px;
+  padding: 12px 20px;
+  background: #1a1a2e;
+  border: 1px solid #2d2d4a;
+  border-radius: 8px;
+  color: #e2e8f0;
+  font-size: 13px;
+  z-index: 2147483647;
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+}
+
+#awe-toast.visible {
+  opacity: 1;
+}
