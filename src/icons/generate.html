@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head><title>Generate Icons</title></head>
+<body>
+  <canvas id="c" width="512"></canvas>
+  <script>
+    const canvas = document.getElementById('c');
+    const ctx = canvas.getContext('2d');
+
+    // Draw gradient background
+    const grad = ctx.createLinearGradient(0, 0, 512, 512);
+    grad.addColorStop(0, '#6366f1');
+    grad.addColorStop(1, '#8b5cf6');
+    ctx.fillStyle = grad;
+    roundRect(ctx, 0, 0, 512, 512, 80);
+    ctx.fill();
+
+    // Draw star/asterisk symbol
+    ctx.save();
+    ctx.translate(256, 256);
+    ctx.fillStyle = 'white';
+    ctx.font = 'bold 280px -apple-system, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('✦', 0, 10);
+    ctx.restore();
+
+    // Export PNGs
+    [16, 48, 128].forEach(size => {
+      const temp = document.createElement('canvas');
+      temp.width = size;
+      temp.height = size;
+      temp.getContext('2d').drawImage(canvas, 0, 0);
+      const link = document.createElement('a');
+      link.download = `icon${size}.png`;
+      link.href = temp.toDataURL();
+      link.click();
+    });
+  </script>
+</body>
+</html>

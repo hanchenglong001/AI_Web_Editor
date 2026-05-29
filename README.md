@@ -12,7 +12,7 @@
 - **AI 智能修改**：输入自然语言指令（如"把这段标题改得更吸引人"），或使用快捷命令一键处理
 - **样式编辑器**：可视化修改颜色、字体、圆角、透明度、内外边距等
 - **历史面板**：一键回退或重新应用之前的修改
-- **多 API 支持**：兼容 OpenAI GPT-4o-mini 以及所有 OpenAI 兼容接口（Together AI、本地 Ollama 等）
+- **多 API 支持**：兼容 OpenAI GPT-4o-mini、Google Gemini，以及所有 OpenAI 兼容接口（Together AI、本地 Ollama、Azure OpenAI 等）
 
 ## 安装方法（开发者模式）
 
@@ -35,16 +35,8 @@
 ## API 配置
 
 点击扩展图标（拼图→✦）可以：
-- 设置 OpenAI API Key 或自定义 API 端点
-- 选择 GPT-4o-mini 或其他 OpenAI 兼容模型
-
-## 本地模式（无需 API Key）
-
-不配置 API Key 时，插件会使用内置的本地文本处理：
-- 翻译 → 包装中文占位符
-- 缩写 → 截取前一半单词
-- 扩写 → 添加扩展标记
-- 默认 → 添加 `[AI]` 前缀并高亮
+- 设置 OpenAI API Key、Google API Key 或自定义 API 端点
+- 选择 GPT-4o-mini、Gemini Pro 或其他 OpenAI 兼容模型
 
 ## 支持/购买
 
@@ -56,7 +48,7 @@
 
 ## English
 
-# AI Web Editor — Chrome Extension
+# AI Web Editor - Chrome Extension
 
 Click any element on a webpage and use AI to modify its content or style in real-time.
 
@@ -66,7 +58,7 @@ Click any element on a webpage and use AI to modify its content or style in real
 - **AI Modification**: Type a natural language command (e.g., "Rewrite this title to be catchier") or use quick-action buttons
 - **Style Editor**: Change colors, fonts, border-radius, opacity, padding, margin visually
 - **History Panel**: Re-apply previous modifications with one click
-- **Multi-API Support**: OpenAI GPT-4o-mini and any OpenAI-compatible API (Together AI, Ollama, etc.)
+- **Multi-API Support**: OpenAI GPT-4o-mini, Google Gemini, and any OpenAI-compatible API (Together AI, Ollama, Azure OpenAI, etc.)
 
 ## Installation (Developer Mode)
 
@@ -90,22 +82,26 @@ Click any element on a webpage and use AI to modify its content or style in real
 ## API Configuration
 
 Click the extension icon (puzzle piece → ✦) to:
-- Set your OpenAI API key or custom API endpoint
-- Choose between GPT-4o-mini or any OpenAI-compatible provider
+- Set your OpenAI API key, Google API key or custom API endpoint
+- Choose between GPT-4o-mini, Gemini Pro, or any OpenAI-compatible provider
 
-## Local Mode (No API Key Required)
+## Monetization Ideas
 
-Without an API key, built-in local text processing is available:
-- Translate → wraps with Chinese placeholder
-- Shorter → truncates to first half of words
-- Longer → appends expansion marker
-- Default → adds `[AI]` prefix with highlight
+### Freemium Model
+- **Free tier**: Local modifications, basic style editing (up to 10/day)
+- **Premium ($4.99/mo)**: Unlimited AI modifications, advanced prompts, priority API access
+- **Team ($9.99/mo)**: Shared prompt library, collaboration features
 
-## Support / Buy
+### One-time Purchase / Open Source Core + Paid Plugin
+- Core editor on Chrome Web Store (free)
+- Premium AI addon sold separately
 
-If you find this project helpful, please consider supporting us:
+### Affiliate Monetization
+- E-commerce mode: detect product pages, offer style/content optimization tools
+- Partner with web design tools/services for referral links
 
-<img src="support.png" width="200" alt="Payment QR Code">
+### White-label / Enterprise
+- Sell custom-branded version to agencies and developers
 
 ## Tech Stack
 
@@ -114,33 +110,41 @@ If you find this project helpful, please consider supporting us:
 - CSS Grid + Flexbox for responsive UI
 - chrome.storage.sync for persistent settings
 - OpenAI-compatible REST API integration
+- Google Gemini Pro integration
 
 ## File Structure
 
 ```
-├── background.js           # Service worker (AI API, message routing)
-├── content-script.js       # Content script (element selection, editor panel)
-├── content.css             # Styles injected into webpages
-├── popup.html              # Settings popup UI
-├── popup.js                # Popup logic (API config, usage stats)
-├── icons/                  # Plugin icon assets
-│   ├── icon16.png
-│   ├── icon48.png
-│   └── icon128.png
-├── support.png             # Payment QR code
-├── manifest.json           # Extension manifest (MV3)
-├── README.md               # This file
-├── CHANGELOG.md            # Version history
-├── LICENSE                 # MIT License
-├── TODO.md                 # Roadmap
-└── .gitignore              # Git ignore rules
+├── src/
+│   ├── manifest.json           # Extension manifest (MV3)
+│   ├── background/             # Service worker
+│   │   └── background.js       # AI API handling, message routing
+│   ├── content-script/         # Injected into webpages
+│   │   └── content.js          # Element selection, editor panel logic
+│   ├── content/                # CSS injected into webpages
+│   │   └── content.css         # All panel and trigger styles
+│   ├── popup/                  # Extension options UI
+│   │   ├── popup.html          # Settings popup
+│   │   └── popup.js            # Popup logic (API config)
+│   └── icons/                  # Plugin icon assets
+│       ├── icon16.png
+│       ├── icon48.png
+│       └── icon128.png
+├── README.md                   # This file
+├── CHANGELOG.md                # Version history
+├── LICENSE                     # MIT License
+├── TODO.md                     # Roadmap
+└── .gitignore                  # Git ignore rules
 ```
 
 ## API Integration
 
+The extension supports any OpenAI-compatible endpoint:
+
 | Provider | Base URL | Model |
 |----------|----------|-------|
 | OpenAI | `https://api.openai.com/v1` | gpt-4o-mini |
+| Google Gemini | `https://generativelanguage.googleapis.com` | gemini-pro |
 | Together AI | `https://api.together.xyz/v1` | meta-llama/Llama-3-8b-chat-hf |
 | Ollama (local) | `http://localhost:11434/api/openai` | any local model |
 | Azure OpenAI | `{endpoint}/openai/deployments/{dep}/chat/completions?api-version=2024-02-01` | custom |
