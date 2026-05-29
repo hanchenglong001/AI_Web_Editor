@@ -2,6 +2,19 @@
 
 All notable changes to AI Web Editor Chrome Extension.
 
+## [1.2.0] - 2026-05-30 (in progress)
+
+### Added
+- **8 new quick commands**: 翻译韩文/西班牙文、电商产品描述、推特风格(280字)、微博风格、解释代码、添加注释、正式商务邮件、修复语法
+- **Total 20 quick commands** across 4 categories: General, Translations (5 langs), Length/Format, Specialized
+- **Local fallback for all new commands**: emoji-based social media styling, product description templates, Japanese translation wrapper
+- **v1.2 TODO.md**: 10 feature areas from high-priority to nice-to-have, with clear tracking
+
+### Fixed
+- Removed dead `::text` pseudo-element reference in `applyLocalModification` that could cause JS errors
+- README file structure updated to match flat directory layout (no more `src/` references)
+- README installation instructions fixed for both CN and EN sections
+
 ## [1.1.0] - 2026-05-30
 
 ### Added

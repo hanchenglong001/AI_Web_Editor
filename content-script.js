@@ -89,18 +89,31 @@
 
   const QUICK_COMMANDS = {
     ai: [
+      // General
       { cmd: 'rewrite', zh: '改写' },
       { cmd: 'simplify', zh: '简化' },
       { cmd: 'professional', zh: '专业语气' },
       { cmd: 'funnier', zh: '有趣化' },
+      { cmd: 'tone-warm', zh: '亲切语气' },
+      // Translations
       { cmd: 'translate-zh', zh: '翻译中文' },
       { cmd: 'translate-en', zh: '翻译英文' },
+      { cmd: 'translate-ja', zh: '翻译日文' },
+      { cmd: 'translate-ko', zh: '翻译韩文' },
+      { cmd: 'translate-es', zh: '翻译西班牙文' },
+      // Length
       { cmd: 'shorter', zh: '更短' },
       { cmd: 'longer', zh: '更长' },
-      { cmd: 'seo-optimise', zh: 'SEO优化' },
       { cmd: 'bullet-points', zh: '要点列表' },
-      { cmd: 'translate-ja', zh: '翻译日文' },
-      { cmd: 'tone-warm', zh: '亲切语气' },
+      // Specialized
+      { cmd: 'seo-optimise', zh: 'SEO优化' },
+      { cmd: 'product-desc', zh: '电商产品描述' },
+      { cmd: 'tweet-style', zh: '推特风格(280字)' },
+      { cmd: 'weibo-style', zh: '微博风格' },
+      { cmd: 'explain-code', zh: '解释代码' },
+      { cmd: 'add-comments', zh: '添加注释' },
+      { cmd: 'professional-email', zh: '正式商务邮件' },
+      { cmd: 'fix-grammar', zh: '修复语法' },
     ],
   };
 
@@ -181,11 +194,23 @@
     'translate-zh': 'Translate this text to Simplified Chinese (简体中文).',
     'translate-en': 'Translate this text to English naturally.',
     'translate-ja': 'Translate this text to Japanese (日本語).',
+    'translate-ko': 'Translate this text to Korean (한국어).',
+    'translate-es': 'Translate this text to Spanish (Español) naturally.',
     'shorter': 'Make this content much shorter and more concise. Keep only the essential meaning.',
     'longer': 'Expand and make this content longer with more details, examples, and elaboration.',
     'seo-optimise': 'Optimize this text for SEO: include relevant keywords naturally, make it scannable.',
     'bullet-points': 'Convert this into clear bullet points that are easy to scan.',
     'tone-warm': 'Rewrite in a warm, friendly, approachable tone as if talking to a friend.',
+    // E-commerce & marketing
+    'product-desc': 'Write a compelling e-commerce product description: highlight benefits, features, and use cases. Include SEO keywords naturally. Write in 150-250 words with a persuasive tone.',
+    'tweet-style': 'Rewrite this as a tweet under 280 characters. Make it engaging, use hashtags if relevant, and include a hook to get people to click.',
+    'weibo-style': '将这段内容改写为微博风格：口语化、带emoji表情、有话题标签（#xxx#），控制在200字以内，开头要吸引眼球。',
+    // Code
+    'explain-code': 'Explain what this code does in simple, clear language. Break down the key logic step by step.',
+    'add-comments': 'Add helpful inline comments to this code explaining each major block and why it exists.',
+    // Business & communication
+    'professional-email': 'Rewrite this as a professional business email: formal greeting, clear purpose, polite closing. Make it respectful and concise.',
+    'fix-grammar': 'Fix all grammar, spelling, and punctuation errors in this text while preserving the original meaning and tone. Return only the corrected text.',
   };
 
   // ============================================================
@@ -533,11 +558,19 @@
       el.textContent = '（AI翻译：' + text.substring(0, 40) + '）';
     } else if (lower.includes('translate') && lower.includes('english')) {
       el.textContent = '[EN] ' + text.substring(0, 40);
+    } else if (lower.includes('translate') && lower.includes('japanese')) {
+      el.textContent = '（AI訳：' + text.substring(0, 30) + '）';
     } else if (lower.includes('shorter')) {
       const words = text.split(/\s+/).slice(0, Math.max(3, Math.floor(text.split(/\s+/).length / 2)));
       el.textContent = words.join(' ') + '...';
     } else if (lower.includes('longer') || lower.includes('expand')) {
       el.textContent = text + '. [扩展内容 — 连接 API 可获得更完整的 AI 扩写。]';
+    } else if (lower.includes('tweet') || lower.includes('weibo') || lower.includes('social')) {
+      const emojis = ['🔥', '✨', '💡', '🚀', '😂', '❤️'];
+      const emoji = emojis[Math.floor(Math.random() * emojis.length)];
+      el.textContent = `${emoji} ${text.substring(0, 60)}${text.length > 60 ? '...' : ''}`;
+    } else if (lower.includes('product') || lower.includes('desc')) {
+      el.textContent = `✨【推荐好物】\n` + text.substring(0, 40) + `\n👉 点击了解更多信息`;
     } else {
       // Default: wrap with styling to show AI modification
       const span = document.createElement('span');
@@ -546,8 +579,6 @@
         el.textContent = '';
         el.appendChild(span);
       } else {
-        const firstTW = el.querySelector('::text');
-        // Fallback: insert at beginning
         const marker = document.createElement('span');
         marker.innerHTML = '[<span style="color:#6366f1;font-weight:bold">AI</span>] ';
         marker.style.color = '#6366f1';

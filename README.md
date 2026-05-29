@@ -19,7 +19,7 @@
 1. 打开 Chrome，访问 `chrome://extensions/`
 2. 右上角开启 **"开发者模式"**
 3. 点击 **"加载已解压的扩展程序"**
-4. 选择本项目的 `src/` 文件夹
+4. 选择本项目根目录
 5. 安装完成！页面右下角会出现 ✦ 浮动按钮
 
 ## 使用方法
@@ -73,7 +73,7 @@ Click any element on a webpage and use AI to modify its content or style in real
 1. Open Chrome and go to `chrome://extensions/`
 2. Enable **"Developer mode"** (top-right toggle)
 3. Click **"Load unpacked"**
-4. Select the `src/` folder of this project
+4. Select this project's root directory
 5. The extension is now loaded! You'll see a ✦ button in the bottom-right corner of every page
 
 ## Usage
@@ -82,8 +82,9 @@ Click any element on a webpage and use AI to modify its content or style in real
 2. **Hover over elements** to preview (purple highlight)
 3. **Click an element** — the AI editor panel opens
 4. **Type a command** or use quick-action buttons:
-   - Rewrite / Simplify / Translate to Chinese / Make Longer & Shorter
-   - Professional Tone / Make it Fun
+   - Rewrite / Simplify / Translate (CN/EN/JA/KO/ES) / Expand / Shorten
+   - Professional Tone / Make it Fun / E-commerce Product Desc / Twitter Style / Weibo Style
+   - Fix Grammar / SEO Optimise / Bullet Points / Code Explanation / Add Comments
 5. **Apply AI modification** — changes appear in real-time on the page
 
 ## API Configuration
@@ -117,22 +118,22 @@ If you find this project helpful, please consider supporting us:
 ## File Structure
 
 ```
-├── background/             # Service worker
-│   └── background.js       # AI API handling, message routing
-├── content-script/         # Injected into webpages
-│   └── content.js          # Element selection, editor panel logic
-├── content/                # CSS injected into webpages
-│   └── content.css         # All panel and trigger styles
-├── popup/                  # Extension options UI
-│   ├── popup.html          # Settings popup
-│   └── popup.js            # Popup logic (API config)
+├── background.js           # Service worker (AI API, message routing)
+├── content-script.js       # Content script (element selection, editor panel)
+├── content.css             # Styles injected into webpages
+├── popup.html              # Settings popup UI
+├── popup.js                # Popup logic (API config, usage stats)
 ├── icons/                  # Plugin icon assets
 │   ├── icon16.png
 │   ├── icon48.png
 │   └── icon128.png
 ├── support.png             # Payment QR code
 ├── manifest.json           # Extension manifest (MV3)
-└── README.md               # This file
+├── README.md               # This file
+├── CHANGELOG.md            # Version history
+├── LICENSE                 # MIT License
+├── TODO.md                 # Roadmap
+└── .gitignore              # Git ignore rules
 ```
 
 ## API Integration
