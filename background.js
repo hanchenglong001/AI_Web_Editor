@@ -1,13 +1,44 @@
-// AI Web Editor - Background Service Worker v1.1
-// Handles AI API calls, message routing, and extension lifecycle
+// AI Web Editor - Background Service Worker v1.3
+// Handles AI API calls, message routing, context menus, and extension lifecycle
 
 chrome.runtime.onInstalled.addListener(() => {
   console.log('[AWEditor] Installed v' + chrome.runtime.getManifest().version);
 
+  // Create rich context menu with sub-items
   chrome.contextMenus.removeAll(() => {
     chrome.contextMenus.create({
-      id: 'awe-edit-selected',
-      title: 'AI Web Editor — Edit this element',
+      id: 'awe-root',
+      title: '🔷 AI Web Editor',
+      contexts: ['all'],
+    });
+    chrome.contextMenus.create({
+      id: 'awe-edit-element',
+      title: '✨ Edit with AI',
+      parentId: 'awe-root',
+      contexts: ['all'],
+    });
+    chrome.contextMenus.create({
+      id: 'awe-translate-zh',
+      title: '🇨🇳 Translate to Chinese',
+      parentId: 'awe-root',
+      contexts: ['all'],
+    });
+    chrome.contextMenus.create({
+      id: 'awe-translate-en',
+      title: '🇺🇸 Translate to English',
+      parentId: 'awe-root',
+      contexts: ['all'],
+    });
+    chrome.contextMenus.create({
+      id: 'awe-shorten',
+      title: '✂️ Shorten content',
+      parentId: 'awe-root',
+      contexts: ['all'],
+    });
+    chrome.contextMenus.create({
+      id: 'awe-open-in-panel',
+      title: '📋 Open in AI Editor Panel',
+      parentId: 'awe-root',
       contexts: ['all'],
     });
   });
@@ -33,18 +64,104 @@ chrome.runtime.onInstalled.addListener(() => {
   });
 });
 
+// Handle context menu clicks with rich element data
+chrome.contextMenus.onClicked.addListener(async (info, tab) => {
+  if (!info.menuItemId || !info.menuItemId.startsWith('awe-')) return;
+
+  switch (info.menuItemId) {
+    case 'awe-edit-element':
+    case 'awe-translate-zh':
+    case 'awe-translate-en':
+    case 'awe-shorten':
+      // Extract element data from the page
+      const elements = await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        func: (selectionInfo) => {
+          // Try to find if there's a highlighted/selected element via outline
+          let target = null;
+          // First check for outlined elements (from our selection mode)
+          const outlined = document.querySelectorAll('[style*="outline"]');
+          if (outlined.length > 0) {
+            target = outlined[0];
+          } else {
+            // Otherwise try the element at click point via event.target is not available,
+            // so we use the first visible text element as fallback
+            const allEls = document.querySelectorAll('div, span, p, h1, h2, h3, li, td, th, a, button');
+            for (const el of allEls) {
+              const txt = (el.textContent || '').trim();
+              if (txt.length > 0 && !el.closest('#awe-editor-panel') && !el.closest('#awe-trigger-btn')) {
+                target = el;
+                break;
+              }
+            }
+          }
+          if (!target) return null;
+
+          const cs = window.getComputedStyle(target);
+          const rect = target.getBoundingClientRect();
+
+          return {
+            text: (target.textContent || '').trim().substring(0, 500),
+            tag: target.tagName.toLowerCase(),
+            html: target.innerHTML.substring(0, 3000),
+            isHtml: target.innerHTML.trim() !== (target.textContent || '').trim(),
+            xpath: getXPath(target),
+            className: target.className || '',
+            id: target.id || '',
+            top: Math.round(rect.top),
+            left: Math.round(rect.left),
+            width: Math.round(rect.width),
+            height: Math.round(rect.height),
+            color: cs.color,
+            backgroundColor: cs.backgroundColor,
+          };
+        },
+      });
+
+      const elemData = elements?.[0]?.result;
+      if (elemData) {
+        // Store element data for the content script to pick up
+        chrome.storage.local.set({ _awe_context_menu_data: elemData }, () => {
+          // Notify content script that context menu was used
+          chrome.tabs.sendMessage(tab.id, { action: 'context-menu-trigger', command: info.menuItemId }).catch(() => {});
+          // Open the editor panel if it exists in this tab
+          chrome.tabs.sendMessage(tab.id, { action: 'open-editor-from-context' }).catch(() => {});
+        });
+      }
+
+      // Also open the trigger button to show the panel
+      await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        func: () => {
+          const btn = document.getElementById('awe-trigger-btn');
+          if (btn) btn.click();
+        },
+      }).catch(() => {});
+      break;
+
+    case 'awe-open-in-panel':
+      await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        func: () => {
+          const btn = document.getElementById('awe-trigger-btn');
+          if (btn) btn.click();
+          // Force panel open
+          const panel = document.getElementById('awe-editor-panel');
+          if (panel && !panel.classList.contains('active')) {
+            panel.classList.add('active');
+          }
+        },
+      });
+      break;
+  }
+});
+
 // Message routing from content scripts and popup
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   switch (message.action) {
     case 'ai-modify':
       handleAIModify(message.command, message.elementText, message.elementTag, message.isHtml, sendResponse);
       return true; // async
-
-    case 'style-modify':
-      // Style changes are done in-content, but we can log them
-      console.log('[AWEditor] Style modified:', message.properties);
-      sendResponse({ success: true });
-      break;
 
     case 'save-api-key':
       chrome.storage.sync.set({ apiKey: message.apiKey }, () => {
@@ -84,6 +201,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
     case 'test-connection':
       testConnection(message.apiKey, message.provider, message.baseUrl || '', message.model || 'gpt-4o-mini', sendResponse);
+      return true;
+
+    case 'apply-html-modification':
+      // Content script requests to apply HTML change from context menu AI edit
+      chrome.storage.local.set({ _awe_pending_html: message.html }, () => {
+        sendResponse({ success: true });
+      });
       return true;
 
     default:

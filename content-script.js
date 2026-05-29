@@ -82,10 +82,11 @@
         </div>
       </div>
       <div id="awe-status-bar">
-        <span id="awe-daily-usage">Usage: 0/50</span>
-        <span id="awe-status-msg"></span>
-      </div>
-    `;
+           <span id="awe-daily-usage">Usage: 0/50</span>
+           <span id="awe-status-msg"></span>
+         </div>
+         <button id="awe-export-page-btn" style="width:100%;padding:8px;margin-top:6px;background:#374151;border:none;border-radius:6px;color:#e2e8f0;font-size:12px;cursor:pointer;">📄 Export Full Page HTML</button>
+         `;
     document.body.appendChild(panel);
   }
 
@@ -846,7 +847,8 @@
     if (e.target.id === 'awe-redo-btn') { redo(); return; }
 
     // Export
-    if (e.target.id === 'awe-export-btn') { exportHTML(); return; }
+     if (e.target.id === 'awe-export-btn') { exportHTML(); return; }
+     if (e.target.id === 'awe-export-page-btn') { exportFullPage(); return; }
     if (e.target.id === 'awe-theme-btn') { toggleTheme(); return; }
 
     // Tabs
@@ -892,8 +894,151 @@
   });
 
   // ============================================================
-  // Helpers
-  // ============================================================
+   // Export Full Page HTML (with all AI modifications preserved)
+   // ============================================================
+
+   function exportFullPage() {
+     const clone = document.documentElement.cloneNode(true);
+
+     // Remove our extension UI elements from the exported page
+     const triggerBtn = clone.querySelector('#awe-trigger-btn');
+     if (triggerBtn) triggerBtn.remove();
+     const overlay = clone.querySelector('#awe-selection-overlay');
+     if (overlay) overlay.remove();
+     const panel = clone.querySelector('#awe-editor-panel');
+     if (panel) panel.remove();
+     const toast = clone.querySelector('#awe-toast');
+     if (toast) toast.remove();
+
+     // Remove outline styles added by our selection highlighting
+     clone.querySelectorAll('[style*="outline: 3px solid #6366f1"]').forEach(el => {
+       el.style.outline = '';
+       el.style.outlineOffset = '';
+       el.style.boxShadow = '';
+     });
+
+     // Remove batch badges
+     clone.querySelectorAll('span[style*="position:absolute"][style*="background:#6366f1"]').forEach(el => el.remove());
+
+     const htmlStr = '<!DOCTYPE html>\n<html' + (clone.documentElement.getAttribute('lang') ? ' lang="' + clone.documentElement.getAttribute('lang') + '"' : '') + '>\n' + clone.innerHTML + '\n</html>';
+
+     // Create a proper HTML document with head
+     let fullHTML = '<!DOCTYPE html>\n<html';
+     if (clone.documentElement.getAttribute('lang')) fullHTML += ' lang="' + clone.documentElement.getAttribute('lang') + '"';
+     fullHTML += '>\n<head>\n<meta charset="UTF-8">\n<title>' + escapeHtml(document.title) + '</title>\n</head>\n<body>';
+
+     // Copy head content but remove extension scripts/styles
+     const headClone = clone.querySelector('head') ? clone.querySelector('head').cloneNode(true) : null;
+     if (headClone) {
+       headClone.querySelectorAll('[id*="awe-"], [src*="content-script"]').forEach(el => el.remove());
+       fullHTML += '\n' + headClone.innerHTML + '\n';
+     }
+
+     // Copy body with our changes
+     const bodyClone = clone.querySelector('body').cloneNode(true);
+     bodyClone.querySelectorAll('#awe-trigger-btn, #awe-selection-overlay, #awe-editor-panel, #awe-toast').forEach(el => el.remove());
+     bodyClone.querySelectorAll('[style*="outline: 3px solid #6366f1"]').forEach(el => {
+       el.style.outline = '';
+       el.style.outlineOffset = '';
+       el.style.boxShadow = '';
+     });
+     bodyClone.querySelectorAll('span[style*="position:absolute"][style*="background:#6366f1"]').forEach(el => el.remove());
+     fullHTML += bodyClone.innerHTML + '\n';
+
+     fullHTML += '\n<!-- AI Web Editor modifications applied -->\n</body>\n</html>';
+
+     const blob = new Blob([fullHTML], { type: 'text/html' });
+     const url = URL.createObjectURL(blob);
+     const a = document.createElement('a');
+     a.href = url;
+     a.download = `ai-web-editor-${document.title.substring(0, 50).replace(/[^a-zA-Z0-9\u4e00-\u9fff]/g, '-')}-${Date.now()}.html`;
+     a.click();
+     URL.revokeObjectURL(url);
+     showToast('📄 完整页面 HTML 已导出!', 'success');
+     addToHistory('Export Full Page HTML', 'export-full-page');
+   }
+
+   // ============================================================
+   // Context Menu Integration — receive data from context menu
+   // ============================================================
+
+   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+     if (message.action === 'context-menu-trigger') {
+       handleContextMenuTrigger(message.command);
+     } else if (message.action === 'open-editor-from-context') {
+       if (!isOpen) openPanel();
+     }
+   });
+
+   async function handleContextMenuTrigger(menuItemId) {
+     // Read the element data from storage (set by background.js context menu handler)
+     chrome.storage.local.get(['_awe_context_menu_data'], async (result) => {
+       const elemData = result._awe_context_menu_data;
+       if (!elemData) return;
+
+       // Try to find and highlight the element on the page via tag + xpath or className
+       let targetEl = null;
+
+       // Strategy 1: match by tag + text
+       document.querySelectorAll(elemData.tag).forEach(el => {
+         if ((el.textContent || '').trim().substring(0, 50) === (elemData.text || '').substring(0, 50)) {
+           targetEl = el;
+         }
+       });
+
+       if (!targetEl) {
+         // Strategy 2: use the first element in the DOM that looks reasonable
+         const allEls = document.querySelectorAll('div, span, p, h1, h2, h3, li, td, th, a, button');
+         for (const el of allEls) {
+           const txt = (el.textContent || '').trim();
+           if (txt.length > 0 && !el.closest('#awe-editor-panel') && !el.closest('#awe-trigger-btn')) {
+             targetEl = el;
+             break;
+           }
+         }
+       }
+
+       if (targetEl) {
+         selectedElement = targetEl;
+         selectedElements = [targetEl];
+         highlightElement(targetEl);
+         updatePreview(targetEl);
+         openPanel();
+
+         // Auto-fill the command based on which context menu item was clicked
+         const cmdInput = document.getElementById('awe-command-input');
+         if (cmdInput) {
+           let prompt = '';
+           switch (menuItemId) {
+             case 'awe-translate-zh':
+               prompt = COMMAND_PROMPTS['translate-zh'];
+               break;
+             case 'awe-translate-en':
+               prompt = COMMAND_PROMPTS['translate-en'];
+               break;
+             case 'awe-shorten':
+               prompt = COMMAND_PROMPTS['shorter'];
+               break;
+             default:
+               prompt = 'Rewrite this content to be more engaging, clear, and compelling.';
+           }
+           cmdInput.value = prompt;
+           switchTab('ai');
+
+           // Auto-send if no API key (local mode) — don't auto-send for remote API
+           chrome.storage.sync.get(['apiKey'], (keys) => {
+             if (!keys.apiKey) {
+               // Local fallback mode: auto-execute
+               handleAICommand();
+             }
+           });
+         }
+       }
+
+       // Clean up stored data
+       chrome.storage.local.remove('_awe_context_menu_data');
+     });
+   }
 
   function rgbToHex(rgb) {
     if (!rgb || rgb === 'transparent' || rgb.startsWith('rgba')) return null;
