@@ -2,6 +2,26 @@
 
 All notable changes to AI Web Editor Chrome Extension.
 
+## [1.5.0] - 2026-05-30 (in progress)
+
+### Changed
+- **Code structure refactor: flat → `src/` directory** — All source files moved to organized subdirectories:
+  - `background/background.js`, `content-script/content.js`, `content/content.css`, `popup/popup.html+js`
+  - Manifest updated to reflect new paths (still MV3 compatible)
+- **CSP fix**: Added `http://localhost:*`, `http://127.0.0.1:*` to connect-src for Ollama/LM Studio support + `https://generativelanguage.googleapis.com` for Gemini
+- **Version bump**: 1.4.0 → 1.5.0
+
+### Added
+- **Dynamic version reading in popup**: Reads from `chrome.runtime.getManifest().version` instead of hardcoded value
+- **.gitignore improvements**: Excludes generated icons, test files
+
+### Removed
+- Root-level flat JS/CSS/HTML files (consolidated into `src/`)
+- `frist.txt`, `test-report.md`, empty directories
+
+### Fixed
+- Duplicate `background/` directory cleaned up — consolidated to single `background.js` at root level
+
 ## [1.4.0] - 2026-05-30 (in progress)
 
 ### Added
