@@ -3931,4 +3931,50 @@
 
       initKeyboardShortcut();
 
+
+
+      // ============================================================
+      // Theme Editor - Apply Custom Theme (v1.9)
+      // ============================================================
+      function applyCustomTheme(theme) {
+        if (!theme || !theme.styles) return;
+        var panel = document.getElementById('awe-editor-panel');
+        if (!panel) return;
+
+        // Remove all theme-related classes first
+        panel.classList.remove('theme-light', 'theme-dark', 'theme-ocean', 'theme-green');
+
+        // Apply new theme class if it's a preset
+        if (theme.class) {
+          panel.classList.add(theme.class);
+        }
+
+        // Override CSS variables for custom colors
+        var rootStyle = document.documentElement.style;
+        if (theme.styles.background) rootStyle.setProperty('--panel-bg', theme.styles.background);
+        if (theme.styles.foreground) rootStyle.setProperty('--panel-fg', theme.styles.foreground);
+        if (theme.styles.border) rootStyle.setProperty('--panel-border', theme.styles.border);
+        if (theme.styles.accent) rootStyle.setProperty('--panel-accent', theme.styles.accent);
+
+        // Apply custom position if specified
+        if (theme.styles.position) {
+          panel.style.top = theme.styles.position.top || '';  
+          panel.style.right = theme.styles.position.right || '';
+          panel.style.bottom = theme.styles.position.bottom || '';
+          panel.style.left = theme.styles.position.left || '';
+        }
+
+        // Apply custom width if specified
+        if (theme.styles.width) {
+          panel.style.width = theme.styles.width;
+        }
+      }
+
+      // Listen for apply-theme messages from background/popup
+      chrome.runtime.onMessage.addListener(function(message, sender, sendResponse) {
+        if (message.action === 'apply-custom-theme' && message.theme) {
+          applyCustomTheme(message.theme);
+        }
+      });
+
 })();
