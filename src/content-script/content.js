@@ -1704,8 +1704,9 @@
         <button class="awe-tab-btn active" data-tab="ai">AI Modify <span id="awe-review-badge"></span></button>
          <button class="awe-tab-btn" data-tab="style">Style</button>
          <button class="awe-tab-btn" data-tab="html">HTML</button>
-         <button class="awe-tab-btn" data-tab="history">History</button>
-      </div>
+           <button class="awe-tab-btn" data-tab="history">History</button>
+           <button class="awe-tab-btn" data-tab="inspector">Inspector</button>
+         </div>
       <div id="awe-tab-content">
         <!-- AI Tab -->
         <div class="awe-tab-panel active" id="tab-ai">
@@ -1855,12 +1856,24 @@
           <button id="awe-html-apply-btn" style="margin-top:8px; width:100%;">Apply HTML Changes</button>
         </div>
         <!-- History Tab -->
-        <div class="awe-tab-panel" id="tab-history">
-          <div id="awe-history-list">
-            <p style="color:#64748b; font-size:13px; text-align:center; padding:20px 0;">No actions yet. Select an element and try AI or Style edits.</p>
-          </div>
+         <div class="awe-tab-panel" id="tab-history">
+           <div id="awe-history-list">
+             <p style="color:#64748b; font-size:13px; text-align:center; padding:20px 0;">No actions yet. Select an element and try AI or Style edits.</p>
+           </div>
+         </div>
+         <!-- Inspector Tab (v1.8) — DOM tree + computed style -->
+         <div class="awe-tab-panel" id="tab-inspector">
+           <div id="inspector-selector-bar" style="display:flex; gap:4px; margin-bottom:8px;">
+             <input type="text" id="inspector-css-selector" placeholder="CSS selector..." style="flex:1; background:#0f0f23; color:#e2e8f0; border:1px solid #2d2d4a; padding:5px 8px; border-radius:6px; font-size:11px;">
+             <button id="inspector-navigate-btn" style="background:#6366f1; color:white; border:none; border-radius:6px; padding:5px 10px; cursor:pointer; font-size:11px;">Go</button>
+           </div>
+           <!-- DOM Tree -->
+           <div id="inspector-dom-tree" style="max-height:200px; overflow-y:auto; font-family:monospace; font-size:11px; background:#0f0f23; border:1px solid #2d2d4a; border-radius:6px; padding:8px; margin-bottom:10px;"></div>
+           <!-- Computed Style -->
+           <div style="font-weight:600; font-size:12px; color:#94a3b8; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;">Computed Style</div>
+           <div id="inspector-computed-style" style="max-height:250px; overflow-y:auto;"></div>
+         </div>
         </div>
-      </div>
       <div id="awe-status-msg"></div>
         <div id="awe-usage-stats" style="font-size:12px; color:#475569; text-align:center; padding:6px 0; border-top:1px solid #2d2d4a;">Today: loading...</div>
         <!-- Element History Dropdown -->
@@ -1957,11 +1970,15 @@
     document.getElementById('awe-style-margin').value = parseInt(computed.margin) || 0;
 
     // Update HTML editor if visible
-    var htmlEditor = document.getElementById('awe-html-editor');
-    if (htmlEditor) {
-      htmlEditor.value = el.outerHTML;
+      var htmlEditor = document.getElementById('awe-html-editor');
+      if (htmlEditor) {
+        htmlEditor.value = el.outerHTML;
+      }
+      // v1.8: refresh inspector tab too if it's the active tab
+      if (isOpen && document.querySelector('.awe-tab-btn[data-tab="inspector"].active')) {
+        updateInspectorPanel(el);
+      }
     }
-  }
 
   // ============================================================
   // Panel open/close
@@ -2058,10 +2075,14 @@
        document.getElementById(tabId).classList.add('active');
 
        // Refresh CSS rules when Style tab is opened (v1.6)
-       if (tabBtn.dataset.tab === 'style') {
-         refreshCssRulesPanel();
-       }
-       return;
+        if (tabBtn.dataset.tab === 'style') {
+          refreshCssRulesPanel();
+        }
+        // Refresh Inspector tab content when selected (v1.8)
+        if (tabBtn.dataset.tab === 'inspector' && selectedElement) {
+          updateInspectorPanel(selectedElement);
+        }
+        return;
      }
 
     // Quick command buttons
@@ -3231,10 +3252,271 @@
      }
 
      // Listen for apply-snippet messages from popup
-     chrome.runtime.onMessage.addListener(function(message, sender, sendResponse) {
-       if (message.action === 'apply-snippet' && message.content) {
-         applySnippetFromPopup(message.content);
+      chrome.runtime.onMessage.addListener(function(message, sender, sendResponse) {
+        if (message.action === 'apply-snippet' && message.content) {
+          applySnippetFromPopup(message.content);
+        }
+      });
+
+      // ============================================================
+      // Element Inspector Tab (v1.8) — DOM tree + Computed Style
+      // ============================================================
+      var inspectorState = { selectedElement: null };
+
+      function generateCssSelector(el) {
+        if (!el || el.nodeType !== 1) return '';
+        var parts = [];
+        while (el && el.nodeType === 1 && el.id !== 'awe-editor-panel' && el.tagName.toLowerCase() !== 'body') {
+          var selector = el.tagName.toLowerCase();
+          if (el.id) {
+            selector += '#' + el.id;
+            parts.unshift(selector);
+            break;
+          } else if (el.className && typeof el.className === 'string') {
+            var classes = el.className.trim().split(/\s+/).filter(Boolean);
+            if (classes.length > 0) {
+              selector += '.' + classes.join('.');
+            }
+          }
+          parts.unshift(selector);
+          el = el.parentElement;
+        }
+        return parts.join(' > ');
+      }
+
+      function buildDomTree(el, maxDepth, depth, maxNodes) {
+        if (!el || depth >= maxDepth || (maxNodes && depth >= 15)) return '';
+        var result = '';
+        var indent = '  '.repeat(depth);
+        var nodeType = el.nodeType;
+
+        if (nodeType === Node.TEXT_NODE) {
+          var text = (el.textContent || '').trim();
+          if (text.length > 0) {
+            var displayText = text.substring(0, 40).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+            result += indent + '<span style="color:#f59e0b">" ' + escapeHtmlForDisplay(text.substring(0, 120)) + (text.length > 120 ? '...' : '') + ' " </span>\n';
+          }
+        } else if (nodeType === Node.ELEMENT_NODE) {
+          var tag = el.tagName.toLowerCase();
+          var selector = tag;
+          if (el.id) selector += '#' + escapeHtmlForDisplay(el.id);
+          var classes = [];
+          if (el.className && typeof el.className === 'string') {
+            var clsParts = el.className.trim().split(/\s+/).filter(Boolean);
+            classes = clsParts.slice(0, 3);
+          }
+          if (classes.length > 0) selector += '.' + classes.join('.');
+          if (classes.length > 3) selector += '...' + (classes.length - 3);
+
+          // Check for self-closing
+          var isSelfClose = ['br','hr','img','input','meta','link','area','base','col','embed','source','track','wbr'].includes(tag);
+          if (isSelfClose) {
+            result += indent + '<span style="color:#06b6d4">&lt;' + escapeHtmlForDisplay(selector) + '/&gt;</span>\n';
+          } else {
+            // Check children
+            var childCount = el.childNodes ? el.childNodes.length : 0;
+            var firstChild = null;
+            if (childCount > 0) {
+              for (var ci = 0; ci < childCount; ci++) {
+                var c = el.childNodes[ci];
+                if (c.nodeType === Node.ELEMENT_NODE || (c.nodeType === Node.TEXT_NODE && c.textContent.trim().length > 0)) {
+                  firstChild = c;
+                  break;
+                }
+              }
+            }
+
+            if (firstChild) {
+              // Foldable: find end tag
+              var hasLongChildren = childCount > 3 || (firstChild.textContent || '').length > 80;
+              if (hasLongChildren && depth < 12) {
+                result += indent + '<button class="awe-inspector-fold-btn" data-depth="' + depth + '" style="background:none;border:none;color:#64748b;cursor:pointer;padding:0;margin-right:2px;font-size:11px;">▶</button><span style="color:#38bdf8">&lt;' + escapeHtmlForDisplay(selector) + '&gt;</span> <span style="color:#94a3b8;">(' + childCount + ' nodes)</span>\n';
+              } else {
+                result += indent + '<span style="color:#38bdf8">&lt;' + escapeHtmlForDisplay(selector) + '&gt;</span>\n';
+              }
+            } else {
+              result += indent + '<span style="color:#38bdf8">&lt;' + escapeHtmlForDisplay(selector) + '&gt;</span>';
+            }
+          }
+        }
+
+        return result;
+      }
+
+      function updateInspectorPanel(el) {
+        if (!el) {
+          document.getElementById('inspector-dom-tree').innerHTML = '<div style="color:#64748b;padding:12px;">No element selected. Click ✦ and select an element on the page.</div>';
+          document.getElementById('inspector-computed-style').innerHTML = '<div style="color:#64748b;padding:12px;">--</div>';
+          return;
+        }
+
+        inspectorState.selectedElement = el;
+
+        // CSS Selector
+        var selectorBar = document.getElementById('inspector-selector-bar');
+        var selInput = document.getElementById('inspector-css-selector');
+        if (selInput) selInput.value = generateCssSelector(el);
+
+        // DOM Tree
+        var treeDiv = document.getElementById('inspector-dom-tree');
+        var tag = el.tagName.toLowerCase();
+        var html = '<span style="color:#38bdf8">&lt;' + escapeHtmlForDisplay(tag) + '&gt;</span>\n';
+        if (el.id) html += '  <span style="color:#c084fc">#' + escapeHtmlForDisplay(el.id) + '</span>\n';
+        if (el.className && typeof el.className === 'string') {
+          html += '  <span style="color:#a3e635">.' + escapeHtmlForDisplay(el.className.trim().split(/\s+/).join('. ')) + '</span>\n';
+        }
+
+        var nodeCount = 0;
+        function walk(node, depth) {
+          if (!node || nodeCount > 50) return;
+          if (node.nodeType === Node.TEXT_NODE) {
+            var txt = (node.textContent || '').trim();
+            if (txt.length > 0 && txt.length < 80) {
+              html += '  '.repeat(depth) + '<span style="color:#f59e0b">" ' + escapeHtmlForDisplay(txt.substring(0, 60)) + '</span>\n';
+              nodeCount++;
+            }
+          } else if (node.nodeType === Node.ELEMENT_NODE) {
+            var childTag = node.tagName.toLowerCase();
+            html += '  '.repeat(depth) + '<span style="color:#38bdf8">&lt;' + escapeHtmlForDisplay(childTag) + '&gt;</span>';
+            if (node.id) html += ' <span style="color:#c084fc">#' + escapeHtmlForDisplay(node.id) + '</span>';
+            var cls = [];
+            if (node.className && typeof node.className === 'string') {
+              cls = node.className.trim().split(/\s+/).filter(Boolean);
+            }
+            if (cls.length > 0) html += ' <span style="color:#a3e635">.' + escapeHtmlForDisplay(cls.join('. ')) + '</span>';
+            html += '\n';
+           nodeCount++;
+
+            var children = Array.from(node.childNodes);
+            for (var ci = 0; ci < children.length && nodeCount <= 50; ci++) {
+              walk(children[ci], depth + 1);
+            }
+          }
+        }
+
+        // Show first few children then truncate
+        var childCount = 0;
+        var childrenToShow = [];
+        for (var i = 0; i < el.childNodes.length; i++) {
+          if (el.childNodes[i].nodeType === Node.ELEMENT_NODE ||
+             (el.childNodes[i].nodeType === Node.TEXT_NODE && el.childNodes[i].textContent.trim().length > 0)) {
+           childrenToShow.push(el.childNodes[i]);
+           childCount++;
+           if (childrenToShow.length >= 6) break;
+         }
        }
-     });
+
+       for (var ci = 0; ci < childrenToShow.length; ci++) {
+         walk(childrenToShow[ci], 1);
+       }
+        if (el.childNodes.length > childrenToShow.length) {
+          html += '  '.repeat(1) + '<span style="color:#64748b">...and ' + (el.childNodes.length - childrenToShow.length) + ' more nodes</span>\n';
+        }
+        treeDiv.innerHTML = html;
+
+        // Computed Style — show most useful properties in organized groups
+        var computed = window.getComputedStyle(el);
+        var styleHtml = '<div style="font-size:11px;">';
+        var groups = {
+          'Layout': ['display', 'position', 'top', 'right', 'bottom', 'left', 'width', 'height'],
+          'Box Model': ['margin', 'padding', 'border-top-width', 'border-right-width', 'border-bottom-width', 'border-left-width'],
+          'Typography': ['font-family', 'font-size', 'font-weight', 'color', 'line-height', 'text-align'],
+          'Background': ['background-color', 'background-image'],
+          'Border & Radius': ['border-style', 'border-radius', 'box-shadow', 'outline'],
+        };
+
+        var propCount = 0;
+        for (var group in groups) {
+          var props = groups[group];
+          var hasValue = false;
+          var groupHtml = '<div style="margin-bottom:6px;">';
+          for (var pi = 0; pi < props.length; pi++) {
+            var val = computed[props[pi]];
+            if (val && val !== '0px' && val !== 'normal' && val !== 'none' && val !== 'auto' && val !== 'inherit') {
+              groupHtml += '<div style="display:flex; gap:4px;"><span style="color:#64748b;min-width:110px;">' + props[pi] + '</span><span style="color:#e2e8f0;font-family:monospace;">' + val + '</span></div>\n';
+              hasValue = true;
+            }
+          }
+          if (hasValue) {
+            groupHtml += '</div>';
+            // Add header
+            var headerDiv = document.createElement('div');
+            styleHtml += '<div style="font-weight:600;font-size:11px;color:#94a3b8;margin-bottom:2px;text-transform:uppercase;letter-spacing:0.5px;">' + group + '</div>' + groupHtml;
+           propCount++;
+         }
+       }
+
+        // Basic info
+        styleHtml += '<div style="margin-top:10px;padding-top:8px;border-top:1px solid #2d2d4a;"><div style="display:flex;gap:4px;"><span style="color:#64748b;">Selector</span><span style="color:#e2e8f0;font-family:monospace;">' + escapeHtmlForDisplay(generateCssSelector(el)) + '</span></div>\n';
+        styleHtml += '<div style="display:flex;gap:4px;"><span style="color:#64748b;">Node Type</span><span style="color:#e2e8f0;font-family:monospace;">' + el.nodeType + ' (Element)</span></div>\n';
+        styleHtml += '<div style="display:flex;gap:4px;"><span style="color:#64748b;">Children</span><span style="color:#e2e8f0;font-family:monospace;">' + el.childNodes.length + ' total</span></div>\n';
+        styleHtml += '<div style="display:flex;gap:4px;"><span style="color:#64748b;">Scroll</span><span style="color:#e2e8f0;font-family:monospace;">' + el.scrollWidth + '×' + el.scrollHeight + '</span></div>\n';
+        styleHtml += '<div style="display:flex;gap:4px;"><span style="color:#64748b;">Bounding Rect</span><span style="color:#e2e8f0;font-family:monospace;">' + Math.round(el.getBoundingClientRect().width) + '×' + Math.round(el.getBoundingClientRect().height) + '</span></div>\n';
+        // Copy selector button
+        styleHtml += '<button id="awe-inspector-copy-selector" style="margin-top:6px;background:#4f46e5;color:white;border:none;border-radius:4px;padding:4px 10px;cursor:pointer;font-size:11px;">Copy Selector</button>\n';
+
+        styleHtml += '</div>';
+        var computedDiv = document.getElementById('inspector-computed-style');
+        if (computedDiv) {
+          computedDiv.innerHTML = styleHtml;
+          // Copy selector button
+          var copyBtn = document.getElementById('awe-inspector-copy-selector');
+          if (copyBtn) {
+            copyBtn.addEventListener('click', function() {
+              navigator.clipboard.writeText(generateCssSelector(el)).then(function() {
+                showToast('Selector copied!', 'success');
+              }).catch(function() {
+                // Fallback
+                var ta = document.createElement('textarea');
+                ta.value = generateCssSelector(el);
+                document.body.appendChild(ta);
+                ta.select();
+                document.execCommand('copy');
+               document.body.removeChild(ta);
+                showToast('Selector copied!', 'success');
+             });
+           });
+         }
+       }
+
+        // Navigate by selector button
+        var navBtn = document.getElementById('inspector-navigate-btn');
+        if (navBtn) {
+          navBtn.addEventListener('click', function() {
+            var sel = selInput.value.trim();
+            if (!sel) return;
+            try {
+              var found = document.querySelector(sel);
+              if (found) {
+                selectAndHighlightElement(found);
+                showToast('Navigated to element: ' + sel, 'success');
+              } else {
+                showToast('No element found for selector', 'error');
+             }
+           } catch(e) {
+             showToast('Invalid CSS selector', 'error');
+           }
+         });
+       }
+
+        // Enter key on selector input
+        if (selInput && selInput.addEventListener) {
+          selInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              navBtn.click();
+           }
+         });
+       }
+     }
+
+      // Select and highlight an element from selector navigation
+      function selectAndHighlightElement(el) {
+        selectedElement = el;
+        highlightElement(el);
+        openPanel();
+        updatePreview(el);
+        updateInspectorPanel(el);
+      }
 
      })();
