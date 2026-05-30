@@ -10,7 +10,7 @@
 - [x] **.gitignore** — 已添加 test-content.py, icons generated files
 
 ### 1. ✅ v1.5 Manifest Version Bump (已完成)
-- [x] manifest.json 版本号从 `1.4.0` → `1.5.0`（反映 refactor 变更）
+- [x] manifest.json 版本号从 `1.4.0` → `1.5.0`（reflect refactor 变更）
 - [x] TODO.md 版本快照同步更新为 v1.5
 
 ### 2. Chrome Web Store 发布流程
@@ -99,6 +99,35 @@
 - [ ] 高亮变更行，一键 acceptance/reject（类似 GitHub PR review）
 - [ ] 防止 AI 注入恶意 HTML/JS
 
+## 🆕 v1.6+ 新增 — 近期迭代方向评估 (2026-05-30 T+17 Cron Check)
+
+### 16. Element Inspector UX 改进
+- [ ] 添加搜索框用于快速查找页面元素（支持 CSS selector / text content）
+- [ ] 多选结果列表，带缩进层级展示 DOM 结构
+- [ ] 快捷键支持: ESC 取消选择、Enter 确认
+
+### 17. 模板系统升级 — 用户自定义 Prompt Library (chrome.storage)
+- [ ] 在 popup 中新增"我的模板"tab，可创建/编辑/删除自定义 prompt
+- [ ] 支持变量占位符（如 `{{selection}}`、`{{page_url}}`）
+- [ ] 模板分类: 通用 / 电商 / 代码 / 邮件 / 社交
+- [ ] 导入/导出模板包 (JSON 格式)
+
+### 18. 批量编辑增强 — Smart Batch
+- [ ] 基于 CSS selector 的批量操作（"所有 h2 标题翻译成中文"）
+- [ ] 批量修改预览: 同时显示所有元素的 AI 结果再统一应用
+- [ ] 增量/覆盖模式切换
+
+### 19. Content.js 代码质量 — 1,214 行需要关注
+- [ ] 当前 content.js 已 1,214 行，考虑拆分模块（选择器逻辑、面板渲染、AI 调用独立文件）
+- [ ] 添加 JSDoc 注释覆盖核心函数
+- [ ] 单元测试框架（建议使用 Chrome Extension Test Framework / Playwright）
+
+### 20. Docs & Community
+- [ ] CHANGELOG.md 更新 — 目前仅有早期版本记录，v1.1-v1.5 变更未同步
+- [ ] CONTRIBUTING.md — 开发者指南
+- [ ] 添加示例 GIF/demo 视频到 README
+- [ ] 创建 GitHub Discussions / Discord 社区
+
 ## 🐛 Known Issues
 
 ### 1. Content script 在 Shadow DOM 页面中不生效
@@ -109,43 +138,61 @@
 
 ---
 
-## 📊 版本快照 (2026-05-30 T+15 — Cron Check)
+## 📊 版本快照 (2026-05-30 T+17 — Cron Check #2)
 
-| 项目 | 状态 |
-|------|------|
-| 当前版本 | **v1.5.0** ✅ (refactor complete: flat → `src/`, version bump, dynamic version in popup) |
-| Git sync | ✅ **完全同步** — HEAD = origin/master (3d38f9f), 0 ahead/behind |
-| Working Tree | ✅ 干净（无新增提交） |
-| Directory Structure | ✅ v1.5 DONE — clean `src/` structure, old flat files deleted |
-| CSP | ✅ connect-src: OpenAI + Together + Gemini + localhost:* + 127.0.0.1:* |
-| Quick Commands | 20+ 个（含 emoji fallback） |
-| API 支持 | OpenAI compatible + Together AI + Ollama + Azure/Gemini/Localhost |
-| Undo/Redo | ✅ v1.1 |
-| Export (HTML/CSS/Full Page) | ✅ v1.1/v1.4 |
-| Theme Toggle | ✅ v1.1 |
-| Usage Limits | ✅ v1.1, 可配置 |
-| Context Menu | ✅ v1.4 — rich submenu with element detection |
-| Batch Edit (Multi-Select) | ✅ v1.3 — Shift+Click + Apply to All + index badge |
+|| | 项目 | 状态 ||
+|------|------|||
+| **当前版本** | **v1.5.0** ✅ (refactor complete: flat → `src/`, version bump, dynamic version in popup) ||
+| **Git sync** | ⚠️ Working tree dirty — TODO.md unstaged changes pending commit ||
+| **Directory Structure** | ✅ v1.5 DONE — clean `src/` structure, old flat files deleted ||
+| **CSP** | ✅ connect-src: OpenAI + Together + Gemini + localhost:* + 127.0.0.1:* ||
+| **Quick Commands** | 20+ 个（含 emoji fallback） ||
+| **API 支持** | OpenAI compatible + Together AI + Ollama + Azure/Gemini/Localhost ||
+| **Undo/Redo** | ✅ v1.1 ||
+| **Export (HTML/CSS/Full Page)** | ✅ v1.1/v1.4 ||
+| **Theme Toggle** | ✅ v1.1 ||
+| **Usage Limits** | ✅ v1.1, 可配置 ||
+| **Context Menu** | ✅ v1.4 — rich submenu with element detection ||
+| **Batch Edit (Multi-Select)** | ✅ v1.3 — Shift+Click + Apply to All + index badge ||
+| **Code Size** | 📏 2,122 total code lines (content.js: 1,214 / content.css: 492 / background.js: 298) ||
+| **Wiki Docs** | ✅ 已创建 — architecture, modules, workflows (docs/wiki/) ||
 
 ---
 
-## 📈 迭代方向评估 (2026-05-30 T+15 Cron Check)
+## 📈 迭代方向评估 (2026-05-30 T+17 Cron Check #3 — Latest)
 
-**项目整体状态**: v1.5.0 已完成代码结构规范化（flat → `src/`）、CSP 修复、旧文件清理、版本号动态读取。版本已 bump 到 1.5.0，git clean。项目进入 **"发布准备 + 核心功能迭代"** 阶段。
+**项目整体状态**: v1.5.0 已完成代码结构规范化（flat → `src/`）、CSP 修复、旧文件清理、版本号动态读取。Git working tree 有 TODO.md 未提交变更。**CHANGELOG.md 仍缺少 v1.2/v1.3/v1.4/v1.5 的部分记录同步**。项目共 2,122 行代码，功能矩阵已完整覆盖元素选择、AI 修改、样式编辑、历史回退、批量编辑、多 API 支持等核心功能。
 
-### 🔴 P0 — 下一个版本 v1.6 候选
+**下一步关键动作**:
+1. Git sync: commit TODO.md → push origin/master
+2. CHANGELOG.md 补充 v1.2-v1.5 的变更详情
+3. Chrome Web Store 发布流程启动（图标、banner、截图、描述）
+4. v1.6 Conversation Mode 开发（多轮对话编辑面板）
+
+**整体判断**: 核心功能已经非常成熟，下一步应从"功能迭代"转向"用户体验打磨 + 产品发布准备"。
+
+### 🔴 P0 — v1.6 候选功能（开发优先）
 1. **AI 对话式编辑模式 (Conversation Mode)** — 多轮 refine 对话面板，像 ChatGPT 一样持续改进内容，保持上下文不丢失。预计 ~2-3天
 2. **安全沙箱 Diff Preview** — AI 修改 diff 预览 + acceptance/reject（类似 GitHub PR review），防止恶意注入。预计 ~1-2天
 
-### 🟡 P1 — 发布前准备
-1. **Chrome Web Store 发布全流程** — 图标、截图、banner、描述文案、打包 ZIP、$5 开发者注册、提交审核。预计 ~1天
-2. **版本号动态读取确认** — popup.js 中 `chrome.runtime.getManifest().version` → `<span id="version-display">`，已在 v1.5 完成 ✅
+### 🟡 P1 — v1.5.1 发布准备（本周）
+1. **Git sync 收尾** — commit TODO.md 变更，确保 origin/master 干净
+2. **Chrome Web Store 发布全流程** — 完善图标设计、截图/banner 生成、描述文案撰写、打包 ZIP、提交审核。预计 ~1天
 
-### 🟢 P2 — 持续优化路线图
-- i18n 多语言界面（en/zh/ja）
-- Side Panel API 集成（复杂编辑场景）
-- Performance: GPU 加速动画、hover debounce、SW caching
-- Shadow DOM 页面兼容性
-- 付费订阅后端集成 (Stripe/Gumroad)
-- 用户自定义 Prompt 模板库 (chrome.storage)
-- SEO meta description / OG tags 生成命令
+### 🟢 P2 — v1.6+ 持续优化路线图
+1. Element Inspector UX 改进（搜索框、层级展示、快捷键）
+2. 用户自定义 Prompt Library（chrome.storage，支持变量占位符、导入/导出）
+3. Smart Batch — CSS selector 批量操作 + 批量预览
+4. content.js 模块拆分 & JSDoc（1,214 行需重构）
+5. CHANGELOG.md 更新 v1.1-v1.5 + CONTRIBUTING.md + Demo GIF
+
+---
+
+## 💰 商业化路线图
+
+| Phase | 功能 | 预计时间线 |
+|-------|------|------------|
+| Phase 1 (MVP) | CWS free listing + Stripe Payment Links + daily limit upgrade | Month 1-2 |
+| Phase 2 | Freemium tier (10 free / unlimited paid $4.99/mo) + trial credits | Month 3 |
+| Phase 3 | Team features ($9.99/mo): shared prompt library, batch export | Month 4-5 |
+| Phase 4 | White-label for agencies | Month 6+ |
