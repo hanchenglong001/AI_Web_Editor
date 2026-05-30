@@ -188,8 +188,28 @@
 
 ---
 
-## 💰 商业化路线图
+## 📊 版本快照 (2026-05-30 T+19 — Cron Check #4)
 
+||| | 项目 | 状态 ||
+|------|------|||
+| **当前版本** | **v1.5.0** ✅ (stable, git clean) ||
+| **Git sync** | ✅ Working tree clean — HEAD=e1b218e (T+18 docs update) ||
+| **Last commit** | e1b218e — `docs: cron check T+18` (only TODO.md changed) ||
+| **CHANGELOG.md** | ⚠️ Missing v1.4 context menu details, missing v1.5 refactor entry ||
+| **Directory Structure** | ✅ clean `src/` tree ||
+| **CSP** | ✅ OpenAI + Together + Gemini + localhost + 127.0.0.1 ||
+| **Code Size** | 📏 content.js: 1,214 / content.css: 492 / background.js: 298 ≈ 2,122 lines total ||
+| **Manifest V3** | ✅ Permissions: activeTab, storage, contextMenus, scripting ||
+
+## 🔍 T+19 Cron Check Findings (2026-05-30)
+
+1. **Git working tree is CLEAN** — all TODO.md changes committed at e1b218e
+2. **CHANGELOG.md still missing v1.4 detailed context menu + full-page export entries** and **v1.5 refactor summary** (flat→src/, CSP fix, file cleanup)
+3. No code changes detected since T+17 — project is in documentation/packaging phase
+4. Recommendation: bump to v1.5.1 when CHANGELOG.md + CWS prep are complete
+
+## 💰 商业化路线图
+  
 | Phase | 功能 | 预计时间线 |
 |-------|------|------------|
 | Phase 1 (MVP) | CWS free listing + Stripe Payment Links + daily limit upgrade | Month 1-2 |
