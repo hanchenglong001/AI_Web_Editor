@@ -126,12 +126,34 @@
 
 ---
 
-## 📊 Feature Usage Analytics (TBD)
+## 📊 版本快照 (2026-05-30 T+24 — Cron Check #10)
 
-*Need to implement basic usage tracking to determine which features users actually use, so we can make data-driven decisions about what to cut.*
+| 项目 | 状态 |
+|------|------|
+| **当前版本** | **v2.0.0** ✅ (CWS Release Prep Complete) |
+| **Git sync** | ✅ HEAD=ad2d581 (local snapshot committed, pushing…) |
+| **content.js size** | 3980 lines (⚠️ needs modularization) |
+| **background.js** | 566 lines ✅ |
+| **popup.js** | 618 lines ✅ |
+| **Content CSS** | 42KB — growing, needs cleanup |
+| **CWS Assets** | ✅ 5 screenshots, CSP configured, privacy policy, LICENSE |
+| **Manifest V3** | ⚠️ `privacy-policy_url` missing from manifest (CWS blocker) |
 
-Suggested metrics:
-- Which Quick Commands are most used?
-- How often is Translate vs Edit vs Style triggered?
-- Average session duration
-- Features that are never opened
+## 🔍 T+24 Cron Check Findings (2026-05-30)
+
+1. **Remote TODO.md has strategic roadmap** — remote had a "做深不做广" strategy section while local had operational v2.1 roadmap. Both merged above.
+2. **privacy-policy_url still missing from manifest.json** — CWS submission blocker (confirmed again).
+3. **content.js at 3980 lines** — modularization is the #1 technical debt item for v2.1+.
+4. **Git push rejected** — remote had new T+24 commit, rebase conflict resolved.
+
+## 🗺️ 下一步建议 (T+24)
+
+按优先级排序：
+
+1. 🔴 **Add `privacy-policy_url` to manifest.json** — absolute CWS submission blocker. Privacy policy page exists at repo root but manifest has no URL field.
+2. 🔴 **CWS Submission** — all assets ready ($5 fee required). Store listing description + feature graphic still needed.
+3. 🟡 **content.js modularization** — 3980 lines single file. Split into: editor-core, commands, inspector, snippets, theming modules.
+4. 🟡 **v2.1 implementation** — Snippet Library UI panel, Export/Import settings (JSON backup), CSS Presets. Consider "做深不做广" strategy: cut low-usage features first.
+5. 🟢 **Real CWS screenshots** — current screenshots are simulated HTML previews; need real extension screenshots for CWS review.
+
+## 💰 商业化路线图
