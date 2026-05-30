@@ -127,10 +127,30 @@
 ---
 
 ## 📊 版本快照 (2026-05-30 T+36 — Cron Check #20)
-## 📊 版本快照 (2026-05-30 T+37 — Cron Check #21)
+## 📊 版本快照 (2026-05-30 T+38 — Cron Check #22)
 
-|| 项目 | 状态 ||------|------|| **当前版本** | **v2.1.0** ✅ || **Git sync** | ⚠️ Working tree dirty (README.md, TODO.md pending commit) || **CWS blocker** | ✅ RESOLVED: `privacy_policy_url` added (v2.1.0) || **content.js size** | 3980 lines / 180KB (⚠️ frozen since T+27 — 11 consecutive cycles) || **background.js** | 566 lines || **popup.js** | 618 lines || **Content CSS** | 1670 lines (~42KB) || **总行数** | ~7012 lines (incl. README + CHANGELOG) — frozen codebase, no new features since T+27 || **README version badge** | ✅ v2.1.0 (stable) || **CWS screenshots** | 5 PNG mock images in ./screenshots/ — still simulated, not real extension captures || **CWS publish manifest** | .cws-publish-manifest.json exists, version 2.0.0 (needs bump to 2.1.0) || **Last functional commit** | 7def34b feat: bump to v2.1.0 — privacy_policy_url added || **Last cron docs commit** | 229db9f docs: cron check T+31 |
+|| 项目 | 状态 ||------|------|| **当前版本** | **v2.1.0** ✅ || **Git branch** | master, clean working tree || **CWS blocker** | ✅ RESOLVED: `privacy_policy_url` added (v2.1.0) || **content.js size** | 3980 lines / 180KB (⚠️ frozen since T+27 — 12 consecutive cycles) || **background.js** | 566 lines || **popup.js** | 618 lines || **Content CSS** | 1670 lines (~42KB) || **总行数** | ~7012 lines (incl. README + CHANGELOG) — frozen codebase, no new features since T+27 || **README version badge** | ✅ v2.1.0 (stable) || **CWS screenshots** | 5 PNG mock images in ./screenshots/ — still simulated, not real extension captures || **CWS publish manifest** | .cws-publish-manifest.json exists, version 2.0.0 (needs bump to 2.1.0) || **Last functional commit** | 76f43e0 feat(v2.0): right-click context menu overhaul || **Last cron docs commit** | 8325e57 docs: cron check T+37 || **Git status** | ✅ clean, working tree clean || **Permissions** | activeTab, storage, contextMenus, scripting + host_permissions `<all_urls>` |
 ||------|------|
+\n||| **当前版本** | **v2.1.0** ✅ |
+\n||| **Git branch/status** | master / clean (no uncommitted changes) |
+\n||| **CWS blocker** | ✅ RESOLVED: `privacy_policy_url` added (v2.1.0) |
+\n||| **content.js size** | 3980 lines / 180KB (⚠️ #1 tech debt, frozen since T+27 — 12 consecutive freezes) |
+\n||| **Total source lines** | ~6164 lines across background.js + popup.js + content JS + CSS |
+\n||| **README version badge** | ✅ v2.1.0 (stable) |
+\n||| **CWS screenshots** | 5 PNGs in ./screenshots/ — all simulated via HTML preview, not real extension captures |
+\n||| **CWS publish manifest** | .cws-publish-manifest.json, version 2.0.0 (needs bump to 2.1.0) |
+\n||| **Last functional commit** | 76f43e0 feat(v2.0): full right-click context menu overhaul |
+\n||| **Last cron docs commit** | 8325e57 docs: cron check T+37 |
+\n
+\n---
+\n
+\n## 🔍 Cron Check Summary (T+38 — 2026-05-30)
+\n
+\n1. ✅ Clean working tree — all previous TODO.md updates committed at 8325e57
+\n2. ⚠️ **12th consecutive freeze** — no functional changes since T+27 (May 29), only docs-only cron commits in between
+\n3. 🔴 **CWS submission still pending**: .cws-publish-manifest.json version still 2.0.0 (needs 2.1.0 bump), real screenshots missing, store listing description + feature graphic not created, $5 fee not paid
+\n4. 📌 **Zero active development sprint** — project effectively dormant for 12+ cron cycles (since ~May 29)
+\n5. ✅ Permissions verified: `activeTab`, `storage`, `contextMenus`, `scripting` + `<all_urls>` host_permissions
 ||| **当前版本** | **v2.1.0** ✅ |
 ||| **Git sync** | ✅ Up to date with origin/master (working tree dirty) ||| **CWS blocker** | ✅ RESOLVED: `privacy_policy_url` added (v2.1.0) |
 ||| **content.js size** | 3980 lines / 180KB (⚠️ #1 tech debt, frozen since T+27 — 11 consecutive cycles) |
