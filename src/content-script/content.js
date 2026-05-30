@@ -7,8 +7,111 @@
   window.__awe_injected = true;
 
   let selectedElement = null;
-  let isSelectingMode = false;
-  let isOpen = false;
+    let isSelectingMode = false;
+    let isOpen = false;
+
+    // ============================================================
+    // Conversation Mode (v1.5)
+    // ============================================================
+    var conversationHistory = []; // [{role: 'user' | 'assistant', content: string}]
+
+    // ============================================================
+    // Batch Editing (v1.3)
+    // ============================================================
+    var batchSelectedElements = []; // Array of DOM elements for multi-select
+    var isBatchMode = false;        // true when in batch mode
+
+    function clearBatchSelection() {
+          batchSelectedElements = [];
+          isBatchMode = false;
+          document.querySelectorAll('.awe-element-batch-selected').forEach(function(el) {
+            el.classList.remove('awe-element-batch-selected');
+            var badge = el.querySelector('.awe-batch-badge');
+            if (badge) badge.remove();
+          });
+          var batchBtn = document.getElementById('awe-batch-apply-btn');
+          if (batchBtn) batchBtn.style.display = 'none';
+        }
+
+    function handleBatchElementClick(e, target) {
+      e.stopPropagation();
+      clearHighlight();
+      highlightElement(target);
+      // Add to batch selection
+      if (!batchSelectedElements.includes(target)) {
+        batchSelectedElements.push(target);
+      }
+      target.classList.add('awe-element-batch-selected');
+      // Show index badge
+       var idx = batchSelectedElements.indexOf(target) + 1;
+       showBatchBadge(target, idx);
+       updatePreview(target);
+       // Show batch apply button in toolbar
+       var batchBtn = document.getElementById('awe-batch-apply-btn');
+       if (batchBtn) {
+         batchBtn.style.display = 'inline-block';
+         batchBtn.title = 'Apply AI to ' + batchSelectedElements.length + ' selected element(s)';
+       }
+      }
+
+    function showBatchBadge(el, index) {
+      // Remove existing badge
+      var existing = el.querySelector('.awe-batch-badge');
+      if (existing) existing.remove();
+      var badge = document.createElement('span');
+      badge.className = 'awe-batch-badge';
+      badge.textContent = index;
+      badge.style.cssText = 'position:absolute;top:-10px;right:-10px;background:#6366f1;color:white;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:bold;z-index:2147483647;pointer-events:none;';
+      el.style.position = el.style.position || 'static';
+      el.style.position = 'relative';
+      el.appendChild(badge);
+    }
+
+    async function applyToAll() {
+      if (batchSelectedElements.length === 0) return;
+      var cmd = document.getElementById('awe-command-input').value.trim();
+      if (!cmd) { showStatus('Enter a command first!', 'error'); return; }
+      showStatus('Applying to ' + batchSelectedElements.length + ' elements...', '');
+      for (var i = 0; i < batchSelectedElements.length; i++) {
+        var el = batchSelectedElements[i];
+        selectedElement = el;
+        updatePreview(el);
+        try {
+          await chrome.runtime.sendMessage({
+            action: 'ai-modify',
+            command: cmd,
+            elementText: el.textContent?.trim() || '',
+            elementTag: el.tagName?.toLowerCase() || 'div',
+          }, function(response) {
+            if (response && response.success && response.newContent) {
+              if (el.childNodes.length === 0 || (el.childNodes.length === 1 && el.firstChild.nodeType === Node.TEXT_NODE)) {
+                el.textContent = response.newContent;
+              } else {
+                var walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+                var firstText = walker.nextNode();
+                if (firstText) { firstText.textContent = response.newContent; }
+              }
+            }
+          });
+        } catch (err) { console.error('[Batch] Error on element ' + (i+1) + ':', err); }
+        // Delay between requests to avoid rate limiting
+        await new Promise(function(r) { setTimeout(r, 200); });
+      }
+      showStatus('Applied to all ' + batchSelectedElements.length + ' elements!', 'success');
+    }
+
+    function exportFullPageHTML() {
+      var clone = document.documentElement.cloneNode(true);
+      var selectors = ['#awe-trigger-btn', '#awe-selection-overlay', '#awe-editor-panel', '.awe-element-highlight', '.awe-element-batch-selected', '#awe-toast', '.awe-history-item', '#awe-batch-bar', '#awe-conversation-log'];
+      clone.querySelectorAll(selectors.join(', ')).forEach(function(el) { el.remove(); });
+      var html = '<!DOCTYPE html>\n<html>' + clone.innerHTML + '</html>';
+      var blob = new Blob([html], { type: 'text/html' });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url; a.download = 'page-export.html'; a.click();
+      URL.revokeObjectURL(url);
+      showToast('Full page exported!', 'success');
+    }
 
   // ============================================================
   // Undo/Redo System (v1.1)
@@ -163,12 +266,13 @@
       <div id="awe-panel-header">
          <h3>✦ AI Web Editor</h3>
          <div id="awe-toolbar-btns">
-           <button id="awe-undo-btn" title="Undo (Ctrl+Z)">↩</button>
-           <button id="awe-redo-btn" title="Redo (Ctrl+Y)">↪</button>
-           <button id="awe-theme-btn" title="Toggle Theme">◑</button>
-           <button id="awe-export-btn" title="Export HTML/CSS">⬇</button>
-           <button id="awe-copy-btn" title="Copy HTML to Clipboard">📋</button>
-         </div>
+            <button id="awe-undo-btn" title="Undo (Ctrl+Z)">↩</button>
+            <button id="awe-redo-btn" title="Redo (Ctrl+Y)">↪</button>
+            <button id="awe-theme-btn" title="Toggle Theme">◑</button>
+            <button id="awe-export-btn" title="Export HTML/CSS">⬇</button>
+            <button id="awe-copy-btn" title="Copy HTML to Clipboard">📋</button>
+            <button id="awe-batch-apply-btn" title="Apply AI to all selected elements" style="display:none;">⇩ Apply All</button>
+          </div>
          <button id="awe-close-btn" title="Close">×</button>
        </div>
       <div id="awe-element-preview">
@@ -219,9 +323,13 @@
                <button class="awe-quick-btn" data-cmd="story">📖 Make it a Story</button>
                <button class="awe-quick-btn" data-cmd="bullet-points-cn">🔵 精简要点（中文）</button>
              </div>
-          <textarea id="awe-command-input" placeholder="Tell AI how to modify this element...&#10;e.g. 'Rewrite this title to be more catchy' or 'Translate to Chinese'"></textarea>
-          <button id="awe-send-btn">✨ Apply AI Modification</button>
-        </div>
+             <!-- Conversation log (v1.5) -->
+             <div class="awe-conversation-log" id="awe-conversation-log"></div>
+             <div style="display:flex; gap:6px; margin-top:8px;">
+             <textarea id="awe-command-input" placeholder="Tell AI how to modify this element...&#10;e.g. 'Rewrite this title to be more catchy'" style="flex:1;"></textarea>
+             <button id="awe-send-btn">✨</button>
+             </div>
+             </div>
         <!-- Style Tab -->
         <div class="awe-tab-panel" id="tab-style">
           <div class="awe-style-group">
@@ -332,21 +440,27 @@
   }
 
   function handleElementClick(e) {
-    e.stopPropagation();
-    var target = e.target;
+     e.stopPropagation();
+     var target = e.target;
 
-    // Skip our own elements
-    if (target.closest('#awe-trigger-btn') || target.closest('#awe-selection-overlay') || target.closest('#awe-editor-panel')) return;
+     // Skip our own elements
+     if (target.closest('#awe-trigger-btn') || target.closest('#awe-selection-overlay') || target.closest('#awe-editor-panel')) return;
 
-    selectedElement = target;
-    highlightElement(target);
-    updatePreview(target);
-    isSelectingMode = false;
-    document.getElementById('awe-selection-overlay').classList.remove('active');
-    document.getElementById('awe-trigger-btn').classList.remove('active');
-    document.getElementById('awe-trigger-btn').innerHTML = '✦';
-    openPanel();
-  }
+     // v1.3: Shift+Click for batch multi-select
+     if (e.shiftKey && isOpen) {
+       handleBatchElementClick(e, target);
+       return;
+     }
+
+     selectedElement = target;
+     highlightElement(target);
+     updatePreview(target);
+     isSelectingMode = false;
+     document.getElementById('awe-selection-overlay').classList.remove('active');
+     document.getElementById('awe-trigger-btn').classList.remove('active');
+     document.getElementById('awe-trigger-btn').innerHTML = '✦';
+     openPanel();
+   }
 
   function handleElementHover(e) {
     if (!isSelectingMode) return;
@@ -436,18 +550,38 @@
       return;
     }
 
-    // Export button — show a small menu or alternate export HTML/CSS (v1.1)
-    if (e.target.id === 'awe-export-btn') {
-      // Toggle between HTML and CSS export via a flag, or export HTML first
-      exportElementHTML();
-      return;
-    }
+    // Export button — v1.3: cycle through HTML / CSS / Full Page / Apply to All
+     if (e.target.id === 'awe-export-btn') {
+       var cmdText = document.getElementById('awe-command-input').value.trim();
+       if (batchSelectedElements.length > 0 && cmdText) {
+         applyToAll();
+       } else if (!selectedElement) {
+         exportFullPageHTML();
+       } else {
+         // Alternate: HTML first, then CSS on second click
+         var lastExport = localStorage.getItem('awe-last-export');
+         if (lastExport === 'css') {
+           exportElementHTML();
+           localStorage.setItem('awe-last-export', 'html');
+         } else {
+           exportElementCSS();
+           localStorage.setItem('awe-last-export', 'css');
+         }
+       }
+       return;
+     }
 
     // Copy button (v1.1)
-    if (e.target.id === 'awe-copy-btn') {
-      copyElementToClipboard();
-      return;
-    }
+      if (e.target.id === 'awe-copy-btn') {
+        copyElementToClipboard();
+        return;
+      }
+
+      // Batch Apply to All button (v1.3)
+      if (e.target.id === 'awe-batch-apply-btn') {
+        applyToAll();
+        return;
+      }
 
     // Tab buttons
     var tabBtn = e.target.closest('.awe-tab-btn');
@@ -498,9 +632,21 @@
           'poem': 'Rewrite as a beautiful short poem.',
           'story': 'Turn this content into a short narrative story.',
           'bullet-points-cn': '将这段内容总结为3-5条中文要点。',
-        };
-      document.getElementById('awe-command-input').value = commands[cmd] || '';
-      // Switch to AI tab
+          };
+          // Check if this is a template (v1.5)
+          if (cmd.startsWith('template_')) {
+           var templateId = cmd.replace('template_', '');
+           chrome.storage.sync.get(['customTemplates'], function(tplResult) {
+             var templates = tplResult.customTemplates || [];
+             var tpl = templates.find(function(t) { return t.id === templateId; });
+             if (tpl) {
+               document.getElementById('awe-command-input').value = tpl.prompt;
+             }
+           });
+          } else {
+           document.getElementById('awe-command-input').value = commands[cmd] || '';
+          }
+          // Switch to AI tab
       document.querySelectorAll('.awe-tab-btn').forEach(function(b) { b.classList.remove('active'); });
       document.querySelectorAll('.awe-tab-panel').forEach(function(p) { p.classList.remove('active'); });
       document.querySelector('.awe-tab-btn[data-tab="ai"]').classList.add('active');
@@ -559,84 +705,152 @@
   // ============================================================
 
   async function handleAICommand() {
-    if (!selectedElement) {
-      showStatus('Please select an element first!', 'error');
-      return;
-    }
+     if (!selectedElement) {
+       showStatus('Please select an element first!', 'error');
+       return;
+     }
 
-    saveSnapshot(); // v1.1: save before AI modifies
+     saveSnapshot(); // v1.1: save before AI modifies
 
-    var cmd = document.getElementById('awe-command-input').value.trim();
-    if (!cmd) {
-      showStatus('Please enter a command.', 'error');
-      return;
-    }
+     var cmd = document.getElementById('awe-command-input').value.trim();
+     if (!cmd) {
+       showStatus('Please enter a command.', 'error');
+       return;
+     }
 
-    var btn = document.getElementById('awe-send-btn');
-    btn.disabled = true;
-    btn.innerHTML = '<span class="awe-spinner"></span> Processing...';
-    showStatus('Sending to AI...', '');
+     var btn = document.getElementById('awe-send-btn');
+     btn.disabled = true;
+     btn.innerHTML = '<span class="awe-spinner"></span> Processing...';
+     showStatus('Sending to AI...', '');
 
-    try {
-      // Try sending through service worker (which forwards to API)
-      var response = await chrome.runtime.sendMessage({
-        action: 'ai-modify',
-        command: cmd,
-        elementText: selectedElement.textContent?.trim() || '',
-        elementTag: selectedElement.tagName?.toLowerCase() || 'div',
-      });
+     // Build the effective prompt (with conversation history if available)
+     var effectivePrompt = cmd;
+     try {
+       // v1.5: check for template first
+       var tplResult = await new Promise(function(resolve) {
+         chrome.storage.sync.get(['customTemplates'], function(r) { resolve(r.customTemplates || []); });
+       });
 
-      if (response.success && response.newContent) {
-           // Increment daily usage counter
-           chrome.runtime.sendMessage({ action: 'increment-usage' }, function(usageResp) {
-             updateUsageStats();
-           });
+       // If conversation mode (multiple turns), include history in the prompt
+       if (conversationHistory.length > 0) {
+         effectivePrompt = '';
+         for (var i = 0; i < conversationHistory.length; i++) {
+           var msg = conversationHistory[i];
+           if (msg.role === 'user') {
+             effectivePrompt += msg.content + '\n';
+           } else if (msg.role === 'assistant' && msg.newContent) {
+             effectivePrompt += '[Previous AI output was applied]\n';
+           }
+         }
+         effectivePrompt += cmd;
+       }
+     } catch(e) {}
 
-           // Check if limit exceeded after increment
-           chrome.runtime.sendMessage({ action: 'get-daily-usage' }, function(limitResp) {
-             if (limitResp && limitResp.count >= limitResp.limit) {
-               showStatus('⚠️ Daily usage limit reached (' + limitResp.count + '/' + limitResp.limit + ')', 'error');
-             }
-           });
+     try {
+       // Try sending through service worker (which forwards to API)
+       var messagePayload = {
+         action: 'ai-modify',
+         command: effectivePrompt,
+         elementText: selectedElement.textContent?.trim() || '',
+         elementTag: selectedElement.tagName?.toLowerCase() || 'div',
+       };
+       // v1.5: pass conversation history to background
+       if (conversationHistory.length > 0) {
+         messagePayload.conversationHistory = conversationHistory;
+       }
+       var response = await chrome.runtime.sendMessage(messagePayload);
 
-           // For text content modifications
-        if (selectedElement.childNodes.length === 0 || (selectedElement.childNodes.length === 1 && selectedElement.firstChild.nodeType === Node.TEXT_NODE)) {
-          selectedElement.textContent = response.newContent;
-        } else {
-          // For complex elements, try innerText replacement on first text node
-          var walker = document.createTreeWalker(selectedElement, NodeFilter.SHOW_TEXT);
-          var firstText = walker.nextNode();
-          if (firstText) {
-            firstText.textContent = response.newContent;
-          } else {
-            // Fallback: create a new span with the content
-            var span = document.createElement('span');
-            span.innerHTML = response.newContent;
-            selectedElement.innerHTML = '';
-            selectedElement.appendChild(span);
-          }
-        }
-        showStatus('AI modification applied!', 'success');
-        addToHistory(cmd, 'ai', JSON.stringify({ newContent: response.newContent }));
-      } else {
-        // API not configured or failed — show local fallback
-        applyLocalModification(selectedElement, cmd);
-        showStatus('API not connected. Applied local modification.', '');
-        addToHistory(cmd, 'ai-local', null);
+       if (response.success && response.newContent) {
+            // Increment daily usage counter
+            chrome.runtime.sendMessage({ action: 'increment-usage' }, function(usageResp) {
+              updateUsageStats();
+            });
+
+            // Check if limit exceeded after increment
+            chrome.runtime.sendMessage({ action: 'get-daily-usage' }, function(limitResp) {
+              if (limitResp && limitResp.count >= limitResp.limit) {
+                showStatus('⚠️ Daily usage limit reached (' + limitResp.count + '/' + limitResp.limit + ')', 'error');
+              }
+            });
+
+            // For text content modifications
+         if (selectedElement.childNodes.length === 0 || (selectedElement.childNodes.length === 1 && selectedElement.firstChild.nodeType === Node.TEXT_NODE)) {
+           selectedElement.textContent = response.newContent;
+         } else {
+           // For complex elements, try innerText replacement on first text node
+           var walker = document.createTreeWalker(selectedElement, NodeFilter.SHOW_TEXT);
+           var firstText = walker.nextNode();
+           if (firstText) {
+             firstText.textContent = response.newContent;
+           } else {
+             // Fallback: create a new span with the content
+             var span = document.createElement('span');
+             span.innerHTML = response.newContent;
+             selectedElement.innerHTML = '';
+             selectedElement.appendChild(span);
+           }
+         }
+
+         // v1.5: Update conversation history and render log
+         conversationHistory.push({ role: 'user', content: cmd, timestamp: Date.now() });
+         conversationHistory.push({ role: 'assistant', content: response.newContent, newContent: response.newContent, timestamp: Date.now() });
+         renderConversationLog();
+
+         showStatus('AI modification applied!', 'success');
+         addToHistory(cmd, 'ai', JSON.stringify({ newContent: response.newContent }));
+       } else {
+         // API not configured or failed — show local fallback
+         applyLocalModification(selectedElement, cmd);
+         showStatus('API not connected. Applied local modification.', '');
+
+         // Still log to conversation (local mode)
+         var localOutput = selectedElement.textContent;
+         conversationHistory.push({ role: 'user', content: cmd, timestamp: Date.now() });
+         conversationHistory.push({ role: 'assistant', content: '[Local fallback applied]', newContent: localOutput, timestamp: Date.now() });
+         renderConversationLog();
+
+         addToHistory(cmd, 'ai-local', null);
+       }
+     } catch (err) {
+       console.error('[AI Web Editor] Error:', err);
+       // Local fallback
+       applyLocalModification(selectedElement, cmd);
+       showStatus('API not available. Applied local modification.', '');
+
+       conversationHistory.push({ role: 'user', content: cmd, timestamp: Date.now() });
+       conversationHistory.push({ role: 'assistant', content: '[Error: ' + err.message + ']', timestamp: Date.now() });
+       renderConversationLog();
+
+       addToHistory(cmd, 'ai-local', null);
+     } finally {
+        btn.disabled = false;
+        btn.innerHTML = '✨';
       }
-    } catch (err) {
-      console.error('[AI Web Editor] Error:', err);
-      // Local fallback
-      applyLocalModification(selectedElement, cmd);
-      showStatus('API not available. Applied local modification.', '');
-      addToHistory(cmd, 'ai-local', null);
-    } finally {
-      btn.disabled = false;
-      btn.innerHTML = '✨ Apply AI Modification';
-    }
-  }
+     }
 
-  function applyLocalModification(el, command) {
+     // ============================================================
+      // Conversation Log Rendering (v1.5)
+      // ============================================================
+      function renderConversationLog() {
+      var logEl = document.getElementById('awe-conversation-log');
+      if (!logEl || conversationHistory.length === 0) return;
+      logEl.innerHTML = '';
+      for (var i = 0; i < conversationHistory.length; i++) {
+        var msg = conversationHistory[i];
+        var cls = msg.role === 'user' ? 'awe-message-user' : 'awe-message-assistant';
+        var div = document.createElement('div');
+        div.className = cls;
+        // Truncate long messages for display
+        var displayText = (msg.content || '').substring(0, 200);
+        if ((msg.content || '').length > 200) displayText += '...';
+        div.textContent = displayText;
+        logEl.appendChild(div);
+      }
+      // Scroll to bottom
+      logEl.scrollTop = logEl.scrollHeight;
+      }
+
+      function applyLocalModification(el, command) {
     var text = el.textContent?.trim();
     if (!text) return;
     var lower = command.toLowerCase();
@@ -815,10 +1029,120 @@
     }).join('');
   }
 
-  function escapeHtml(str) {
+ function escapeHtml(str) {
     var div = document.createElement('div');
     div.textContent = str;
     return div.innerHTML;
+  }
+
+  // ============================================================
+  // Context Menu Submenu (v1.3) — "Quick Edit with AI Web Editor"
+  // ============================================================
+  function createContextMenu() {
+    var menu = document.createElement('div');
+    menu.id = 'awe-context-menu';
+    menu.style.cssText = 'display:none; position:fixed; z-index:2147483647; background:#1a1a2e; border:1px solid #2d2d4a; border-radius:8px; padding:4px; min-width:200px; box-shadow:0 8px 24px rgba(0,0,0,0.5);';
+    menu.innerHTML = `
+      <div style="padding:6px 12px; font-size:13px; color:#e2e8f0; font-weight:600;">✦ AI Web Editor</div>
+      <div style="border-top:1px solid #2d2d4a; margin:4px 0;"></div>
+      <button id="awe-ctx-select" style="width:100%;padding:8px 12px;background:none;border:none;color:#e2e8f0;text-align:left;font-size:13px;border-radius:4px;cursor:pointer;">🎯 Select & Edit</button>
+      <button id="awe-ctx-translate" style="width:100%;padding:8px 12px;background:none;border:none;color:#e2e8f0;text-align:left;font-size:13px;border-radius:4px;cursor:pointer;">🌐 Translate to Chinese</button>
+      <button id="awe-ctx-simplify" style="width:100%;padding:8px 12px;background:none;border:none;color:#e2e8f0;text-align:left;font-size:13px;border-radius:4px;cursor:pointer;">📝 Simplify</button>
+      <button id="awe-ctx-longer" style="width:100%;padding:8px 12px;background:none;border:none;color:#e2e8f0;text-align:left;font-size:13px;border-radius:4px;cursor:pointer;">📄 Make Longer</button>
+      <button id="awe-ctx-shorter" style="width:100%;padding:8px 12px;background:none;border:none;color:#e2e8f0;text-align:left;font-size:13px;border-radius:4px;cursor:pointer;">✂️ Make Shorter</button>
+      <button id="awe-ctx-professional" style="width:100%;padding:8px 12px;background:none;border:none;color:#e2e8f0;text-align:left;font-size:13px;border-radius:4px;cursor:pointer;">💼 Professional Tone</button>
+      <div style="border-top:1px solid #2d2d4a; margin:4px 0;"></div>
+      <button id="awe-ctx-html" style="width:100%;padding:8px 12px;background:none;border:none;color:#e2e8f0;text-align:left;font-size:13px;border-radius:4px;cursor:pointer;">📋 Copy HTML</button>
+      <button id="awe-ctx-css" style="width:100%;padding:8px 12px;background:none;border:none;color:#e2e8f0;text-align:left;font-size:13px;border-radius:4px;cursor:pointer;">🎨 Get CSS</button>
+    `;
+    document.body.appendChild(menu);
+
+    // Position menu at click coordinates
+    menu.addEventListener('contextmenu', function(e) { e.preventDefault(); });
+
+    // Close on any other click
+    document.addEventListener('click', function() { menu.style.display = 'none'; });
+
+    // Menu item clicks — select the element and apply action
+    var actions = {
+      'awe-ctx-select': 'select',
+      'awe-ctx-translate': 'translate',
+      'awe-ctx-simplify': 'simplify',
+      'awe-ctx-longer': 'longer',
+      'awe-ctx-shorter': 'shorter',
+      'awe-ctx-professional': 'professional',
+      'awe-ctx-html': 'html-copy',
+      'awe-ctx-css': 'css-export',
+    };
+
+    Object.keys(actions).forEach(function(btnId) {
+      document.getElementById(btnId).addEventListener('click', function(e) {
+        e.stopPropagation();
+        menu.style.display = 'none';
+        // Target is the element at the contextmenu click position
+        var targetEl = document.elementFromPoint(e.clientX, e.clientY);
+        if (!targetEl || targetEl.closest('#awe-context-menu') || targetEl.closest('#awe-editor-panel')) return;
+
+        selectedElement = targetEl;
+        highlightElement(targetEl);
+
+        var action = actions[btnId];
+        if (action === 'select') {
+          openPanel();
+          updatePreview(targetEl);
+        } else if (action === 'translate') {
+          saveSnapshot();
+          targetEl.textContent = '[AI-Translated] ' + targetEl.textContent;
+          addToHistory('Translate to Chinese', 'ai-local', null);
+          showToast('Translation applied!', 'success');
+        } else if (action === 'simplify') {
+          applyLocalModification(targetEl, 'simplify text');
+          addToHistory('Simplify', 'ai-local', null);
+          showToast('Simplified!', 'success');
+        } else if (action === 'longer') {
+          applyLocalModification(targetEl, 'make longer');
+          addToHistory('Make Longer', 'ai-local', null);
+          showToast('Expanded!', 'success');
+        } else if (action === 'shorter') {
+          applyLocalModification(targetEl, 'make shorter');
+          addToHistory('Make Shorter', 'ai-local', null);
+          showToast('Shortened!', 'success');
+        } else if (action === 'professional') {
+          applyLocalModification(targetEl, 'rewrite in professional tone');
+          addToHistory('Professional Tone', 'ai-local', null);
+          showToast('Rewritten professionally!', 'success');
+        } else if (action === 'html-copy') {
+          navigator.clipboard.writeText(targetEl.outerHTML);
+          showToast('HTML copied!', 'success');
+        } else if (action === 'css-export') {
+          var cs = window.getComputedStyle(targetEl);
+          var css = targetEl.tagName.toLowerCase() + ' {\n';
+          for (var i = 0; i < cs.length; i++) {
+            var prop = cs[i];
+            if (prop.startsWith('-webkit') || prop === 'content' || prop === 'all') continue;
+            var val = cs.getPropertyValue(prop);
+            css += '  ' + prop + ': ' + val + ';\n';
+          }
+          css += '}';
+          navigator.clipboard.writeText(css);
+          showToast('CSS copied!', 'success');
+        }
+      });
+    });
+
+    // Show menu on right-click on page elements
+    document.addEventListener('contextmenu', function(e) {
+      if (e.target.closest('#awe-context-menu') || e.target.closest('#awe-editor-panel')) return;
+      var targetEl = e.target;
+      if (!targetEl || targetEl.closest('#awe-trigger-btn') || targetEl.closest('#awe-selection-overlay')) return;
+
+      // Show context menu at mouse position, but not if inside our own UI
+      e.preventDefault();
+      var menu = document.getElementById('awe-context-menu');
+      menu.style.display = 'block';
+      menu.style.left = Math.min(e.clientX, window.innerWidth - 220) + 'px';
+      menu.style.top = Math.min(e.clientY, window.innerHeight - 350) + 'px';
+    });
   }
 
   // ============================================================
@@ -842,23 +1166,49 @@
     // Ctrl+Y or Ctrl+Shift+Z = Redo
     if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
       e.preventDefault();
-      redo();
-      return;
-    }
-  });
+       redo();
+       return;
+      }
+      // v1.5: Enter in command input sends message (Shift+Enter for newline)
+      if (e.target.id === 'awe-command-input' && e.key === 'Enter' && !e.shiftKey) {
+       e.preventDefault();
+       handleAICommand();
+       return;
+      }
+      });
 
-  // ============================================================
-  // Initialize
-  // ============================================================
+   // ============================================================
+    // Template Application (v1.5) — from popup via background relay
+    // ============================================================
+
+    chrome.runtime.onMessage.addListener(function(message, sender, sendResponse) {
+      if (message.action === 'apply-template' && message.prompt && selectedElement) {
+        document.getElementById('awe-command-input').value = message.prompt;
+        // Switch to AI tab
+        document.querySelectorAll('.awe-tab-btn').forEach(function(b) { b.classList.remove('active'); });
+        document.querySelectorAll('.awe-tab-panel').forEach(function(p) { p.classList.remove('active'); });
+        document.querySelector('.awe-tab-btn[data-tab="ai"]').classList.add('active');
+        document.getElementById('tab-ai').classList.add('active');
+        if (!isOpen) openPanel();
+        sendResponse({ success: true });
+      }
+    });
+
+    // ============================================================
+    // Initialize
+    // ============================================================
 
   createTriggerBtn();
   createOverlay();
   createEditorPanel();
 
   // Apply saved theme (v1.1)
-   applyTheme(currentTheme);
+    applyTheme(currentTheme);
 
-   // Load daily usage stats (v1.1)
-   updateUsageStats();
+    // Load daily usage stats (v1.1)
+    updateUsageStats();
+
+   // Create context menu (v1.3)
+   createContextMenu();
 
   })();

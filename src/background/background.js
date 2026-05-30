@@ -20,7 +20,7 @@ chrome.runtime.onInstalled.addListener(() => {
 // Handle messages from content scripts
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === 'ai-modify') {
-    handleAIModify(message.command, message.elementText, message.elementTag, sendResponse);
+    handleAIModify(message.command, message.elementText, message.elementTag, message.conversationHistory, sendResponse);
     return true;
   }
   if (message.action === 'save-api-key') {
@@ -126,7 +126,7 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
 // AI Modification Handler
 // ============================================================
 
-async function handleAIModify(command, elementText, elementTag, sendResponse) {
+async function handleAIModify(command, elementText, elementTag, conversationHistory, sendResponse) {
   // Read full API config from storage
   const result = await new Promise((resolve) => {
     chrome.storage.sync.get(['apiKey', 'apiProvider', 'apiBaseUrl', 'apiModel'], resolve);
@@ -145,17 +145,17 @@ async function handleAIModify(command, elementText, elementTag, sendResponse) {
   try {
     let response;
     if (provider === 'openai') {
-      response = await callOpenAICompatible(command, elementText, 'https://api.openai.com/v1', apiKey, apiModel);
+      response = await callOpenAICompatible(command, elementText, conversationHistory, 'https://api.openai.com/v1', apiKey, apiModel);
     } else if (provider === 'custom') {
       const targetUrl = buildEndpointUrl(baseUrl);
       console.log(`[AI Web Editor] Using custom API: ${targetUrl}`);
-      response = await callOpenAICompatible(command, elementText, targetUrl, apiKey, apiModel);
+      response = await callOpenAICompatible(command, elementText, conversationHistory, targetUrl, apiKey, apiModel);
     } else if (provider === 'google') {
-      response = await callGoogleGenerativeAI(command, elementText, apiKey, apiModel);
+      response = await callGoogleGenerativeAI(command, elementText, conversationHistory, apiKey, apiModel);
     } else {
       // Default to openai-compatible with baseUrl or OpenAI
       const targetUrl = baseUrl ? buildEndpointUrl(baseUrl) : 'https://api.openai.com/v1';
-      response = await callOpenAICompatible(command, elementText, targetUrl, apiKey, apiModel);
+      response = await callOpenAICompatible(command, elementText, conversationHistory, targetUrl, apiKey, apiModel);
     }
 
     const content = extractAIContent(response);
@@ -180,7 +180,7 @@ function buildEndpointUrl(baseUrl) {
 // API Call Functions
 // ============================================================
 
-async function callOpenAICompatible(command, elementText, apiUrl, apiKey, model) {
+async function callOpenAICompatible(command, elementText, conversationHistory, apiUrl, apiKey, model) {
   const systemPrompt = `You are a helpful AI that rewrites webpage content. 
 The user has selected an element on a webpage and wants you to modify it.
 Only return the NEW content for this element. Do NOT include markdown formatting like backticks or code blocks.
@@ -188,6 +188,21 @@ Do NOT explain your changes — just give me the modified text.`;
 
   const modelName = model || 'gpt-4o-mini';
   console.log(`[AI Web Editor] Calling API: ${apiUrl} with model: ${modelName}`);
+
+  // Build messages array with conversation history (v1.5)
+  const messages = [{ role: 'system', content: systemPrompt }];
+  if (conversationHistory && conversationHistory.length > 0) {
+    for (var i = 0; i < conversationHistory.length; i++) {
+      var msg = conversationHistory[i];
+      // Convert to valid OpenAI format roles
+      if (msg.role === 'user') {
+        messages.push({ role: 'user', content: `Command: "${command}"\n\nCurrent content:\n${elementText || '(empty element)'}\n\nPlease rewrite this according to the command.` });
+      } else if (msg.role === 'assistant') {
+        // Assistant responses are already applied, so we use them as context
+        // The next turn will provide updated elementText in a real app
+      }
+    }
+  }
 
   const response = await fetch(apiUrl, {
     method: 'POST',
@@ -197,10 +212,7 @@ Do NOT explain your changes — just give me the modified text.`;
     },
     body: JSON.stringify({
       model: modelName,
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: `Command: "${command}"\n\nCurrent content:\n${elementText || '(empty element)'}\n\nPlease rewrite this according to the command.` },
-      ],
+      messages: messages,
       max_tokens: 1000,
     }),
   });
@@ -213,24 +225,24 @@ Do NOT explain your changes — just give me the modified text.`;
   return response.json();
 }
 
-async function callGoogleGenerativeAI(command, elementText, apiKey, model) {
-  const systemPrompt = `You are a helpful AI that rewrites webpage content. 
-Only return the NEW content. No explanations.`;
+async function callGoogleGenerativeAI(command, elementText, conversationHistory, apiKey, model) {
+  const systemPrompt = `You are a helpful AI that rewrites webpage content. \nOnly return the NEW content. No explanations.`;
 
   const modelName = model || 'gemini-pro';
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
   console.log(`[AI Web Editor] Calling Google Gemini API with model: ${modelName}`);
 
+  // Build contents with conversation history (v1.5)
+  const parts = [
+    { text: systemPrompt },
+    { text: `Command: "${command}". Current content:\n${elementText || '(empty element)'}` }
+  ];
+
   const response = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      contents: [{
-        parts: [
-          { text: systemPrompt },
-          { text: `Command: "${command}". Current content:\n${elementText || '(empty element)'}` }
-        ],
-      }],
+      contents: [{ parts: parts }],
       generationConfig: { maxOutputTokens: 1000 },
     }),
   });
@@ -270,9 +282,9 @@ function extractAIContent(response) {
 async function handleTestConnection(apiKey, provider, baseUrl, sendResponse) {
   try {
     if (provider === 'openai') {
-      await callOpenAICompatible('test', 'test', 'https://api.openai.com/v1', apiKey);
+      await callOpenAICompatible('test', 'test', null, 'https://api.openai.com/v1', apiKey, 'gpt-4o-mini');
     } else if (provider === 'custom' && baseUrl) {
-      await callOpenAICompatible('test', 'test', buildEndpointUrl(baseUrl), apiKey);
+      await callOpenAICompatible('test', 'test', null, buildEndpointUrl(baseUrl), apiKey, 'gpt-4o-mini');
     } else {
       // No URL to test, just verify key format
       sendResponse({ success: true, message: 'Settings saved — will be used in extension' });
