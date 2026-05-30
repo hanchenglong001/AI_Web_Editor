@@ -1,0 +1,18 @@
+{
+  "repo_name": "AI_Web_Editor",
+  "source_path": "C:\\Users\\Administrator/Desktop/ai-web-editor-extension",
+  "source_sha": "9b93ad75c59b0966e9045e6f2534af2f475e70b8",
+  "generated_at": "2026-05-30T10:00:00Z",
+  "generator": "hermes-agent code-wiki skill + manual curation",
+  "modules_documented": [
+    "background",
+    "content-script",
+    "content-css",
+    "popup",
+    "manifest"
+  ],
+  "workflows_documented": [
+    "ai-modify-flow",
+    "dev-process"
+  ]
+}
