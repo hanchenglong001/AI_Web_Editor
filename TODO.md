@@ -9,20 +9,24 @@
 - [x] **CSP connect-src 补全** — 已添加 `http://localhost:*`、`http://127.0.0.1:*`、`https://generativelanguage.googleapis.com`
 - [x] **.gitignore** — 已添加 test-content.py, icons generated files
 
-### 1. Chrome Web Store 发布流程
+### 1. ✅ v1.5 Manifest Version Bump (已完成)
+- [x] manifest.json 版本号从 `1.4.0` → `1.5.0`（反映 refactor 变更）
+- [x] TODO.md 版本快照同步更新为 v1.5
+
+### 2. Chrome Web Store 发布流程
 - [ ] 创建完整的扩展图标（SVG → PNG 多尺寸, 48x48/128x128 高清）
 - [ ] 编写 Web Store listing: 描述、截图、宣传图 (1400x560 banner)
 - [ ] 生成打包 ZIP (`chrome://extensions/` → Developer mode → Generate packed extension)
 - [ ] 提交审核（$5 one-time developer fee required）
 - [ ] 设置定价策略: free + in-extension upgrade for premium features
 
-### 2. 付费订阅 / 后端服务
+### 3. 付费订阅 / 后端服务
 - [ ] 集成 Stripe Payment Links 或 Gumroad 作为支付网关
 - [ ] 实现"解锁高级功能"的逻辑 (daily limit 提升到 500+)
 - [ ] 在 popup 中显示升级提示（当用户接近 daily limit 时）
 - [ ] 支持试用: 注册用户获得免费 AI credits
 
-### 3. 更多 AI 命令模板
+### 4. 更多 AI 命令模板
 - [x] ~~电商场景~~ ✅ Added in v1.2 (product-desc, tweet-style, weibo-style)
 - [x] ~~社交媒体~~ ✅ Already included
 - [x] ~~代码场景~~ ✅ Added explain-code, add-comments
@@ -33,29 +37,24 @@
 
 ## 🟡 Medium Priority (近期迭代)
 
-### 4. 协作与分享
+### 5. 协作与分享
 - [x] **上下文菜单右键编辑** — contextMenus API 已实现 (Edit with AI / Translate CN / Translate EN / Shorten / Open Panel)
 - [x] **导出为完整 HTML 文件** — 📄 按钮保留所有 AI 修改
 - [ ] 生成"编辑快照"链接 (保存当前页面+AI修改后的对比)
 - [ ] 团队共享 prompt 模板库
 - [ ] 导出为 Markdown / JSON 格式
 
-### 5. 版本同步 — v1.4 ✅ DONE
-- [x] manifest.json 版本号: v1.4.0
-- [x] context menu rich submenu implementation
-- [x] Full page HTML export with modification preservation
-- [x] CHANGELOG.md 已更新至 v1.4 (2026-05-30)
-- [x] 支持同时选中多个元素（Shift+Click）
-- [x] 对选中的所有元素应用相同 AI 指令（✨ Apply to All）
-- [x] 实时预览所有修改效果 + index badge 编号
+### 6. ✅ v1.5 — 版本号动态读取 (已完成)
+- [x] popup.js 中从 `chrome.runtime.getManifest().version` 读取版本号替换硬编码
+- [x] popup.html 中的 `<span id="version-display"></span>` 已由新代码支持
 
-### 6. 浏览器增强
+### 7. 浏览器增强
 - [ ] Favicon 自定义 — 根据页面主题自动调整 ✦ 按钮颜色
 - [ ] Side panel 支持 (Chrome side panel API, for complex edits)
 - [ ] Tab-aware: 记住上次编辑的 tab，跨 tab 恢复上下文
 - [ ] 右键菜单元素选择后，面板可折叠为非模态浮窗
 
-### 7. AI Providers 扩展
+### 8. AI Providers 扩展
 - [ ] Google Gemini / Claude / Llama 原生支持 (已在 manifest CSP 中预留)
 - [ ] 内置轻量模型（通过 WebAssembly 本地运行）— 完全离线可用
 - [x] Together AI 兼容接口已支持
@@ -63,36 +62,32 @@
 
 ## 🟢 Nice to Have
 
-### 8. Analytics & Feedback
+### 9. Analytics & Feedback
 - [ ] 集成简单的使用统计 (用户可关闭)
 - [ ] 内置反馈按钮 — "报告问题" / "建议功能"
 - [ ] A/B 测试不同 prompt 模板的效果
 
-### 9. Monetization Features
+### 10. Monetization Features
 - [x] Usage limits 已在 v1.1 实现
 - [ ] Freemium: 每天 N 次免费 AI 调用，付费解锁无限
 - [ ] One-time unlock: $9.99 买断高级功能
 - [ ] Affiliate mode: 电商页面自动推荐优化服务 (赚佣金)
 - [ ] White-label: 卖给 Web 设计公司做定制版
 
-### 10. Performance & Polish
+### 11. Performance & Polish
 - [ ] CSS animations use `transform` only (GPU accelerated)
 - [ ] Debounce hover highlights for better performance on large pages
 - [ ] Service worker caching for repeated API calls
 - [ ] Memory leak check: cleanup when navigating to new page
 - [ ] 页面中大量 DOM 元素时优化选择性能
 
-### 11. 多语言 / 国际化 (i18n)
+### 12. 多语言 / 国际化 (i18n)
 - [ ] popup 和面板 UI 支持英文/中文/日文切换
 - [ ] prompt 模板的本地化翻译包
 
-### 12. ✅ CSP 修复 (v1.5 DONE)
+### 13. ✅ CSP 修复 (v1.5 DONE)
 - [x] CSP connect-src 已扩展: `http://localhost:*`、`http://127.0.0.1:*`（覆盖 Ollama、LM Studio）+ `https://generativelanguage.googleapis.com`（Gemini）
 - [ ] 未来如需支持 vLLM / Azure / 动态用户 endpoint，考虑改为 MV3 中 CSP 通配符方案
-
-### 13. 🆕 Popup UI 优化 — 版本号动态读取
-- [ ] popup.js 中从 `chrome.runtime.getManifest().version` 读取版本号替换硬编码
-- [ ] popup.html 中的 `v1.0.0` → `<span id="version-display"></span>` 已由新代码支持
 
 ### 14. 🆕 v1.6 — AI 对话式编辑模式 (Conversation Mode)
 - [ ] 当前面板是单轮指令交互，改为多轮对话（像 ChatGPT 一样持续 refine）
@@ -114,12 +109,12 @@
 
 ---
 
-## 📊 版本快照 (2026-05-30 T+14 — Cron Check)
+## 📊 版本快照 (2026-05-30 T+15 — Cron Check)
 
 | 项目 | 状态 |
 |------|------|
-| 当前版本 | **v1.4.0** ✅ (v1.5 refactor DONE: flat → src/) |
-| Git sync | ✅ **完全同步** — HEAD = origin/master (396dac2), 0 ahead/behind |
+| 当前版本 | **v1.5.0** ✅ (refactor complete: flat → `src/`, version bump, dynamic version in popup) |
+| Git sync | ✅ **完全同步** — HEAD = origin/master (3d38f9f), 0 ahead/behind |
 | Working Tree | ✅ 干净（无新增提交） |
 | Directory Structure | ✅ v1.5 DONE — clean `src/` structure, old flat files deleted |
 | CSP | ✅ connect-src: OpenAI + Together + Gemini + localhost:* + 127.0.0.1:* |
@@ -134,18 +129,23 @@
 
 ---
 
-## 📈 迭代方向评估 (2026-05-30 Cron Check T+14)
+## 📈 迭代方向评估 (2026-05-30 T+15 Cron Check)
 
-**项目整体状态**: v1.4.0 功能完整且稳定，代码结构已通过 v1.5 refactor 规范化（flat → `src/`）。CSP 已修复、旧文件已清理。项目进入"发布准备 + 功能迭代"阶段。
+**项目整体状态**: v1.5.0 已完成代码结构规范化（flat → `src/`）、CSP 修复、旧文件清理、版本号动态读取。版本已 bump 到 1.5.0，git clean。项目进入 **"发布准备 + 核心功能迭代"** 阶段。
 
-### 🔴 P0 — 发布前必须完成
-1. **版本号动态读取** — popup.html 中硬编码的 `v1.0.0` → `<span id="version-display"></span>`，popup.js 中动态填充 `chrome.runtime.getManifest().version`。~15min
-2. **Chrome Web Store 发布流程** — 图标、截图、banner、描述、打包 ZIP、提交审核。~1天
+### 🔴 P0 — 下一个版本 v1.6 候选
+1. **AI 对话式编辑模式 (Conversation Mode)** — 多轮 refine 对话面板，像 ChatGPT 一样持续改进内容，保持上下文不丢失。预计 ~2-3天
+2. **安全沙箱 Diff Preview** — AI 修改 diff 预览 + acceptance/reject（类似 GitHub PR review），防止恶意注入。预计 ~1-2天
 
-### 🟡 P1 — 核心功能迭代（优先级排序）
-1. **AI 对话式编辑模式 (Conversation Mode, v1.6)** — 多轮 refine 对话，像 ChatGPT 一样持续改进内容。预计 ~2-3天
-2. **安全沙箱 Diff Preview** — AI 修改 diff 面板 + acceptance/reject（类似 GitHub PR review）。预计 ~1-2天
-3. **用户自定义 Prompt 模板库** — chrome.storage 保存/编辑/分享自己的快捷命令。预计 ~1-2天
+### 🟡 P1 — 发布前准备
+1. **Chrome Web Store 发布全流程** — 图标、截图、banner、描述文案、打包 ZIP、$5 开发者注册、提交审核。预计 ~1天
+2. **版本号动态读取确认** — popup.js 中 `chrome.runtime.getManifest().version` → `<span id="version-display">`，已在 v1.5 完成 ✅
 
-### 🟢 P2 — 持续优化
-- i18n 多语言、Side Panel API、Performance 优化、Shadow DOM 支持、付费订阅集成
+### 🟢 P2 — 持续优化路线图
+- i18n 多语言界面（en/zh/ja）
+- Side Panel API 集成（复杂编辑场景）
+- Performance: GPU 加速动画、hover debounce、SW caching
+- Shadow DOM 页面兼容性
+- 付费订阅后端集成 (Stripe/Gumroad)
+- 用户自定义 Prompt 模板库 (chrome.storage)
+- SEO meta description / OG tags 生成命令
