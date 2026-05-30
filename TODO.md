@@ -159,15 +159,15 @@
 
 ---
 
-## 📈 迭代方向评估 (2026-05-30 T+17 Cron Check #3 — Latest)
+## 📈 迭代方向评估 (2026-05-30 T+20 — Cron Check #5)
 
-**项目整体状态**: v1.5.0 已完成代码结构规范化（flat → `src/`）、CSP 修复、旧文件清理、版本号动态读取。Git working tree 有 TODO.md 未提交变更。**CHANGELOG.md 仍缺少 v1.2/v1.3/v1.4/v1.5 的部分记录同步**。项目共 2,122 行代码，功能矩阵已完整覆盖元素选择、AI 修改、样式编辑、历史回退、批量编辑、多 API 支持等核心功能。
+**项目整体状态**: v1.5.0 已完成所有代码规范化和文档更新。CHANGELOG.md 已补充完整（v1.0-v1.5）。Git working tree clean，已与 origin/master 同步。**项目已进入产品发布准备阶段**。
 
 **下一步关键动作**:
-1. Git sync: commit TODO.md → push origin/master
-2. CHANGELOG.md 补充 v1.2-v1.5 的变更详情
-3. Chrome Web Store 发布流程启动（图标、banner、截图、描述）
-4. v1.6 Conversation Mode 开发（多轮对话编辑面板）
+1. ✅ Git sync 已合并完成 — origin/master = HEAD (a4f88a0)
+2. ✅ CHANGELOG.md 已更新完整（v1.0-v1.5）
+3. **Chrome Web Store 发布流程启动** — 图标、截图、banner、描述文案撰写，打包 ZIP 提交审核
+4. **v1.6 Conversation Mode** 规划与设计（多轮对话编辑面板）
 
 **整体判断**: 核心功能已经非常成熟，下一步应从"功能迭代"转向"用户体验打磨 + 产品发布准备"。
 
@@ -188,25 +188,25 @@
 
 ---
 
-## 📊 版本快照 (2026-05-30 T+19 — Cron Check #4)
+## 📊 版本快照 (2026-05-30 T+20 — Cron Check #5)
 
-||| | 项目 | 状态 ||
-|------|------|||
-| **当前版本** | **v1.5.0** ✅ (stable, git clean) ||
-| **Git sync** | ✅ Working tree clean — HEAD=e1b218e (T+18 docs update) ||
-| **Last commit** | e1b218e — `docs: cron check T+18` (only TODO.md changed) ||
-| **CHANGELOG.md** | ⚠️ Missing v1.4 context menu details, missing v1.5 refactor entry ||
-| **Directory Structure** | ✅ clean `src/` tree ||
-| **CSP** | ✅ OpenAI + Together + Gemini + localhost + 127.0.0.1 ||
-| **Code Size** | 📏 content.js: 1,214 / content.css: 492 / background.js: 298 ≈ 2,122 lines total ||
-| **Manifest V3** | ✅ Permissions: activeTab, storage, contextMenus, scripting ||
+|||| | 项目 | 状态 ||
+||------|------||||
+|| **当前版本** | **v1.5.0** ✅ (stable, git clean, CHANGELOG updated) ||
+|| **Git sync** | ✅ Working tree clean — HEAD=a4f88a0 (synced with origin/master) ||
+|| **Last commit** | a4f88a0 — `docs: add v1.5.0 changelog entry` ||
+|| **CHANGELOG.md** | ✅ Updated — v1.0-v1.5 all now documented ||
+|| **Directory Structure** | ✅ clean `src/` tree ||
+|| **CSP** | ✅ OpenAI + Together + Gemini + localhost + 127.0.0.1 ||
+|| **Code Size** | 📏 content.js: 1,214 / content.css: 492 / background.js: 298 ≈ 2,122 lines total ||
+|| **Manifest V3** | ✅ Permissions: activeTab, storage, contextMenus, scripting ||
 
-## 🔍 T+19 Cron Check Findings (2026-05-30)
+## 🔍 T+20 Cron Check Findings (2026-05-30)
 
-1. **Git working tree is CLEAN** — all TODO.md changes committed at e1b218e
-2. **CHANGELOG.md still missing v1.4 detailed context menu + full-page export entries** and **v1.5 refactor summary** (flat→src/, CSP fix, file cleanup)
-3. No code changes detected since T+17 — project is in documentation/packaging phase
-4. Recommendation: bump to v1.5.1 when CHANGELOG.md + CWS prep are complete
+1. **Git working tree is CLEAN** — all changes committed and pushed to origin/master
+2. **CHANGELOG.md v1.5.0 entry now added** — flat→src/ refactor, CSP fix, version bump fully documented
+3. No code changes detected — project ready for CWS (Chrome Web Store) submission phase
+4. Recommendation: focus on Chrome Web Store listing prep (icons, screenshots, description) and v1.6 Conversation Mode planning
 
 ## 💰 商业化路线图
   
