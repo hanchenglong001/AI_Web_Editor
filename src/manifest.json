@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "AI Web Editor",
-  "version": "1.8.0",
+  "version": "1.9.0",
   "description": "Click any element on a webpage and use AI to modify its content or style in real-time.",
   "permissions": [
     "activeTab",
@@ -17,9 +17,15 @@
   },
   "content_scripts": [
     {
-      "matches": ["<all_urls>"],
-      "js": ["content-script/content.js"],
-      "css": ["content/content.css"],
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "content-script/content.js"
+      ],
+      "css": [
+        "content/content.css"
+      ],
       "run_at": "document_idle"
     }
   ],
@@ -38,5 +44,14 @@
   },
   "content_security_policy": {
     "extension_pages": "script-src 'self'; object-src 'self'; connect-src https://*.openai.com https://api.openai.com https://generativelanguage.googleapis.com http://localhost:* http://127.0.0.1:*; img-src 'self' data: blob:;"
+  },
+  "commands": {
+    "toggle-editor": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+E",
+        "mac": "Cmd+Shift+E"
+      },
+      "description": "Toggle AI Web Editor panel"
+    }
   }
 }

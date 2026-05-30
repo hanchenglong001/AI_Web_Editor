@@ -150,16 +150,68 @@
          }
 
          function updateTranslationButtons(sourceLang) {
-           // Update the quick-btn text for translate button
-           var translateBtn = document.querySelector('.awe-quick-btn[data-cmd="translate"]');
-           if (translateBtn && LANG_TO_TARGETS[sourceLang]) {
-             var targets = LANG_TO_TARGETS[sourceLang];
-             translateBtn.textContent = 'Translate → ' + targets[0].replace('Chinese (', '').replace(')', '');
-           }
+            // Update the quick-btn text for translate button
+            var translateBtn = document.querySelector('.awe-quick-btn[data-cmd="translate"]');
+            if (translateBtn && LANG_TO_TARGETS[sourceLang]) {
+              var targets = LANG_TO_TARGETS[sourceLang];
+              translateBtn.textContent = 'Translate → ' + targets[0].replace('Chinese (', '').replace(')', '');
+            }
 
-           // Update or add language-specific translation buttons dynamically
-           updateDynamicLangButtons(sourceLang);
-         }
+            // Update or add language-specific translation buttons dynamically
+            updateDynamicLangButtons(sourceLang);
+          }
+
+          // Enhanced: Detect language from ALL visible page text to improve translation recommendations
+          function detectPageLanguage() {
+            var bodyText = document.body ? (document.body.textContent || '') : '';
+            if (bodyText.length < 10) return null;
+            var result = detectLanguage(bodyText);
+            if (!result) return null;
+
+            // Cross-reference with currentDetectedLang — if element text disagrees, use majority vote
+            if (currentDetectedLang && currentDetectedLang.code !== result.code) {
+              // If both detected the same code from different sources, keep it
+              currentDetectedLang = result;
+            } else if (!currentDetectedLang) {
+              currentDetectedLang = result;
+            }
+
+            updateTranslationButtons(currentDetectedLang.code);
+            return currentDetectedLang;
+          }
+
+          // Enhanced: Auto-detect language when element changes and update quick buttons accordingly
+          function autoDetectAndDisplay() {
+            var inputEl = document.getElementById('awe-command-input');
+            if (!inputEl || !selectedElement) return;
+
+            var text = selectedElement.textContent || '';
+            if (text.length < 2) { currentDetectedLang = null; updateLangIndicator(null); return; }
+
+            // Use the textarea value for detection if present, otherwise use element text
+            var detectText = inputEl.value.trim() || text;
+            if (detectText.length < 2) return;
+
+            var result = detectLanguage(detectText);
+            if (result && (!currentDetectedLang || currentDetectedLang.code !== result.code)) {
+              currentDetectedLang = result;
+              updateLangIndicator(result);
+              updateTranslationButtons(result.code);
+            } else if (result && !currentDetectedLang) {
+              currentDetectedLang = result;
+              updateLangIndicator(result);
+              updateTranslationButtons(result.code);
+            }
+
+            // If no language detected from text, try full page detection
+            if (!currentDetectedLang) {
+              var pageLang = detectPageLanguage();
+              if (pageLang) {
+                updateLangIndicator(pageLang);
+                updateTranslationButtons(pageLang.code);
+              }
+            }
+          }
 
          function updateDynamicLangButtons(sourceLang) {
            var container = document.querySelector('.awe-quick-commands');
@@ -210,26 +262,315 @@
          }
 
          function autoDetectAndDisplay() {
-           var inputEl = document.getElementById('awe-command-input');
-           if (!inputEl || !selectedElement) return;
+            var inputEl = document.getElementById('awe-command-input');
+            if (!inputEl || !selectedElement) return;
 
-           var text = selectedElement.textContent || '';
-           if (text.length < 2) { currentDetectedLang = null; updateLangIndicator(null); return; }
+            var text = selectedElement.textContent || '';
+            if (text.length < 2) { currentDetectedLang = null; updateLangIndicator(null); return; }
 
-           // Use the textarea value for detection if present, otherwise use element text
-           var detectText = inputEl.value.trim() || text;
-           if (detectText.length < 2) return;
+            // Use the textarea value for detection if present, otherwise use element text
+            var detectText = inputEl.value.trim() || text;
+            if (detectText.length < 2) return;
 
-           var result = detectLanguage(detectText);
-           if (result && result !== currentDetectedLang) {
-             currentDetectedLang = result;
-             updateLangIndicator(result);
-             updateTranslationButtons(result.code);
-           }
-         }
+            var result = detectLanguage(detectText);
+            if (result && result !== currentDetectedLang) {
+              currentDetectedLang = result;
+              updateLangIndicator(result);
+              updateTranslationButtons(result.code);
+            }
+          }
 
-      // ============================================================
-         // Code Highlight Editor — HTML Tab (v1.7)
+         // ============================================================
+          // Quick Commands Enhanced (v1.9) — Command Suggestions Dropdown
+         // ============================================================
+          var _suggestionState = {
+            visible: false,
+            selectedIndex: -1,
+            currentFilter: '',
+            filteredCommands: [],
+         };
+
+          // Full command catalog with icons and descriptions
+          var COMMAND_CATALOG = [
+            // Text transformations
+            { cmd: 'Rewrite this text to be more concise', icon: '✂️', category: '📝 Rewrite' },
+            { cmd: 'Make this longer and more detailed', icon: '📏', category: '📝 Rewrite' },
+            { cmd: 'Simplify this language for general audience', icon: '🔄', category: '📝 Rewrite' },
+            { cmd: 'Fix grammar, spelling, and punctuation', icon: '✍️', category: '📝 Fix' },
+            { cmd: 'Make this text more professional', icon: '💼', category: '📝 Fix' },
+            { cmd: 'Rewrite this with a friendly tone', icon: '😊', category: '🎭 Tone' },
+            { cmd: 'Rewrite this with an authoritative tone', icon: '🎯', category: '🎭 Tone' },
+            { cmd: 'Rewrite this to be more persuasive', icon: '💪', category: '🎭 Tone' },
+            { cmd: 'Convert to bullet point list', icon: '📋', category: '🔢 Format' },
+            { cmd: 'Number the items in a sequential list', icon: '1️⃣', category: '🔢 Format' },
+            { cmd: 'Format as markdown', icon: '📝', category: '🔢 Format' },
+            { cmd: 'Extract key points into summary', icon: '📊', category: '📊 Summarize' },
+            { cmd: 'Provide a shorter summary (1-2 sentences)', icon: '📌', category: '📊 Summarize' },
+            { cmd: 'Expand with additional details and examples', icon: '🔍', category: '📊 Expand' },
+
+            // Translation commands (populated dynamically)
+            { cmd: 'Translate to English', icon: '🇺🇸', category: '🌐 Translate' },
+            { cmd: 'Translate to Chinese', icon: '🇨🇳', category: '🌐 Translate' },
+            { cmd: 'Translate to Japanese', icon: '🇯🇵', category: '🌐 Translate' },
+            { cmd: 'Translate to Korean', icon: '🇰🇷', category: '🌐 Translate' },
+            { cmd: 'Translate to French', icon: '🇫🇷', category: '🌐 Translate' },
+            { cmd: 'Translate to German', icon: '🇩🇪', category: '🌐 Translate' },
+            { cmd: 'Translate to Spanish', icon: '🇪🇸', category: '🌐 Translate' },
+
+            // Code / Developer
+            { cmd: 'Explain what this code does', icon: '💡', category: '💻 Developer' },
+            { cmd: 'Add comments to explain the code', icon: '📝', category: '💻 Developer' },
+            { cmd: 'Convert to a clean function signature', icon: '🧩', category: '💻 Developer' },
+
+            // Creative / Social
+            { cmd: 'Write this as a social media post (Twitter/X)', icon: '🐦', category: '📱 Social' },
+            { cmd: 'Write this for LinkedIn professional audience', icon: '💼', category: '📱 Social' },
+            { cmd: 'Make it more catchy and attention-grabbing', icon: '✨', category: '🎨 Creative' },
+            { cmd: 'Turn into a short story format', icon: '📖', category: '🎨 Creative' },
+            { cmd: 'Write as a poem', icon: '✒️', category: '🎨 Creative' },
+
+            // SEO / Meta
+            { cmd: 'Generate an SEO meta title and description', icon: '🏷️', category: '🔍 SEO' },
+            { cmd: 'Add appropriate alt text for images', icon: '🖼️', category: '🔍 SEO' },
+
+            // Special prefix commands
+            { cmd: '/translate zh', icon: '🇨🇳', category: '⚡ Shortcuts' },
+            { cmd: '/translate en', icon: '🇺🇸', category: '⚡ Shortcuts' },
+            { cmd: '/shorter', icon: '✂️', category: '⚡ Shortcuts' },
+            { cmd: '/longer', icon: '📏', category: '⚡ Shortcuts' },
+            { cmd: '/fix grammar', icon: '✍️', category: '⚡ Shortcuts' },
+            { cmd: '/bullet points', icon: '📋', category: '⚡ Shortcuts' },
+            { cmd: '/more professional', icon: '💼', category: '⚡ Shortcuts' },
+            { cmd: '/simplify', icon: '🔄', category: '⚡ Shortcuts' },
+
+            // HTML/Element actions
+            { cmd: 'Show HTML source of this element', icon: '🔎', category: '🔧 Actions' },
+            { cmd: 'Clear all inline styles from this element', icon: '🧹', category: '🔧 Actions' },
+
+            // Language-specific
+            { cmd: '翻译成中文', icon: '🇨🇳', category: '🌐 翻译' },
+            { cmd: '改为更简洁', icon: '✂️', category: '📝 改写' },
+            { cmd: '改成更专业的语气', icon: '💼', category: '🎭 语气' },
+          ];
+
+          // Filter commands by search text, return top matches
+          function filterCommands(query) {
+            if (!query || query.length === 0) {
+              // Show top 20 when no query (categorized)
+              return COMMAND_CATALOG.slice(0, 20);
+            }
+            var q = query.toLowerCase().replace(/^\//, '').trim();
+            if (q.length === 0) return COMMAND_CATALOG.slice(0, 20);
+
+            var results = [];
+            for (var i = 0; i < COMMAND_CATALOG.length; i++) {
+              var c = COMMAND_CATALOG[i];
+              // Exact match on command text gets highest priority
+              if (c.cmd.toLowerCase() === q) {
+                results.unshift(c); continue;
+              }
+              // Check if query appears in cmd or category
+              var score = 0;
+              if (c.cmd.toLowerCase().indexOf(q) !== -1) score += 10;
+              if (c.category.toLowerCase().indexOf(q) !== -1) score += 5;
+              if (c.icon.indexOf(query.charAt(0)) !== -1 && query.length === 1) score += 3;
+              if (score > 0) results.push({ cmd: c.cmd, icon: c.icon, category: c.category, _score: score });
+            }
+            // Sort by relevance score
+            results.sort(function(a, b) { return (b._score || 0) - (a._score || 0); });
+            return results.slice(0, 20);
+          }
+
+          function renderSuggestions(commands, query) {
+            var container = document.getElementById('awe-command-suggestions');
+            if (!container) return;
+            _suggestionState.filteredCommands = commands;
+
+            if (commands.length === 0 || !_suggestionState.visible) {
+              closeSuggestions();
+              return;
+            }
+
+            // Group by category
+            var groups = {};
+            for (var i = 0; i < commands.length; i++) {
+              var cat = commands[i].category || 'Others';
+              if (!groups[cat]) groups[cat] = [];
+              groups[cat].push(commands[i]);
+            }
+
+            var html = '<div class="awe-cs-header">Quick Commands (v1.9)</div>';
+
+            // If query starts with /, show the first match prominently
+            if (query && query.charAt(0) === '/') {
+              var directMatch = filterCommands(query);
+              if (directMatch.length > 0) {
+                var dm = directMatch[0];
+                html += '<div class="awe-cs-item awe-cs-highlight" data-index="0">' +
+                  '<span class="awe-cs-icon">' + (dm.icon || '⚡') + '</span>' +
+                  '<span class="awe-cs-text"><strong>' + escapeHtmlForDisplay(dm.cmd) + '</strong></span>' +
+                  '<span class="awe-cs-desc">' + escapeHtmlForDisplay(query.replace(/^\//, '').trim()) + '</span>' +
+                  '</div>';
+              }
+            }
+
+            // Render grouped categories
+            for (var cat in groups) {
+              html += '<div class="awe-cs-category">' + escapeHtmlForDisplay(cat) + '</div>';
+              var items = groups[cat];
+              for (var j = 0; j < items.length; j++) {
+                var item = items[j];
+                var idx = _suggestionState.visible ? findGlobalIndex(item, commands, query) : -1;
+                // Only render if not already rendered above as direct match
+                html += '<div class="awe-cs-item' + (idx === 0 && query.charAt(0) === '/' ? '' : '') + '" data-index="' + idx + '">' +
+                  '<span class="awe-cs-icon">' + (item.icon || '•') + '</span>' +
+                  '<span class="awe-cs-text">' + escapeHtmlForDisplay(item.cmd) + '</span>' +
+                  '</div>';
+              }
+            }
+
+            html += '<div class="awe-cs-footer">↑↓ Navigate · Enter to select · Esc to close</div>';
+            container.innerHTML = html;
+
+            // Attach click handlers
+            container.querySelectorAll('.awe-cs-item').forEach(function(el) {
+              el.addEventListener('click', function() {
+                var idx = parseInt(this.dataset.index);
+                if (idx >= 0 && idx < _suggestionState.filteredCommands.length) {
+                  selectSuggestion(idx);
+                }
+              });
+            });
+
+            // Update highlight after render
+            updateSuggestionHighlight();
+          }
+
+          function findGlobalIndex(item, cmds, query) {
+            for (var i = 0; i < cmds.length; i++) {
+              if (cmds[i].cmd === item.cmd && (query ? cmds[i].category === item.category : true)) return i;
+            }
+            return -1;
+          }
+
+          function showSuggestions(query) {
+            var commands = filterCommands(query);
+            _suggestionState.visible = true;
+            _suggestionState.selectedIndex = -1;
+            renderSuggestions(commands, query);
+          }
+
+          function closeSuggestions() {
+            _suggestionState.visible = false;
+            _suggestionState.selectedIndex = -1;
+            _suggestionState.currentFilter = '';
+            var container = document.getElementById('awe-command-suggestions');
+            if (container) {
+              container.style.display = 'none';
+            }
+          }
+
+          function updateSuggestionHighlight() {
+            var container = document.getElementById('awe-command-suggestions');
+            if (!container || !_suggestionState.visible) return;
+            var items = container.querySelectorAll('.awe-cs-item[data-index]');
+            for (var i = 0; i < items.length; i++) {
+              if (parseInt(items[i].dataset.index) === _suggestionState.selectedIndex) {
+                items[i].classList.add('awe-cs-selected');
+              } else {
+                items[i].classList.remove('awe-cs-selected');
+              }
+            }
+          }
+
+          function selectSuggestion(index) {
+            if (index < 0 || index >= _suggestionState.filteredCommands.length) return;
+            var selected = _suggestionState.filteredCommands[index];
+            var input = document.getElementById('awe-command-input');
+            if (!input) return;
+
+            // If the user is typing a prefix command (starts with /), replace the / prefix
+            var currentValue = input.value;
+            if (currentValue.charAt(0) === '/' && _suggestionState.currentFilter.startsWith('/')) {
+              input.value = selected.cmd;
+            } else {
+              input.value = selected.cmd;
+            }
+
+            closeSuggestions();
+            input.focus();
+          }
+
+          function updateSuggestionsOnType() {
+            var input = document.getElementById('awe-command-input');
+            if (!input) return;
+            var val = input.value;
+
+            // Trigger on "/" or when user types a space after partial text
+            if (val.length > 0 && !_suggestionState.visible) {
+              if (val.charAt(0) === '/' || (val.trim().length >= 2)) {
+                showSuggestions(val);
+              } else {
+                closeSuggestions();
+                return;
+              }
+            }
+
+            // Update filtering if already visible
+            if (_suggestionState.visible && val.length > 0) {
+              var commands = filterCommands(val);
+              _suggestionState.selectedIndex = Math.min(_suggestionState.selectedIndex, commands.length - 1);
+              renderSuggestions(commands, val);
+            }
+
+            // Close if input is empty
+            if (val.length === 0) {
+              closeSuggestions();
+            }
+          }
+
+          function handleSuggestionKeydown(e) {
+            if (!_suggestionState.visible) return;
+
+            var commands = _suggestionState.filteredCommands;
+            if (e.key === 'ArrowDown') {
+              e.preventDefault();
+              _suggestionState.selectedIndex = Math.min(_suggestionState.selectedIndex + 1, commands.length - 1);
+              updateSuggestionHighlight();
+              scrollToSelected();
+            } else if (e.key === 'ArrowUp') {
+              e.preventDefault();
+              _suggestionState.selectedIndex = Math.max(_suggestionState.selectedIndex - 1, 0);
+              updateSuggestionHighlight();
+              scrollToSelected();
+            } else if (e.key === 'Enter' && _suggestionState.selectedIndex >= 0) {
+              e.preventDefault();
+              selectSuggestion(_suggestionState.selectedIndex);
+            } else if (e.key === 'Escape') {
+              e.preventDefault();
+              closeSuggestions();
+            } else if (e.key === 'Tab') {
+              e.preventDefault();
+              if (_suggestionState.selectedIndex >= 0) {
+                selectSuggestion(_suggestionState.selectedIndex);
+              } else if (commands.length > 0) {
+                _suggestionState.selectedIndex = 0;
+                selectSuggestion(0);
+              }
+            }
+          }
+
+          function scrollToSelected() {
+            var container = document.getElementById('awe-command-suggestions');
+            if (!container) return;
+            var selected = container.querySelector('.awe-cs-selected');
+            if (selected) {
+              selected.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+            }
+          }
+
+         // ============================================================
+          // Code Highlight Editor — HTML Tab (v1.7)
          // ============================================================
          function initHighlightEditor() {
            var htmlContainer = document.getElementById('tab-html');
@@ -1748,11 +2089,13 @@
              <!-- Conversation log (v1.5) -->
              <div class="awe-conversation-log" id="awe-conversation-log"></div>
              <div class="awe-command-row-wrapper" style="display:flex; gap:6px; margin-top:8px;">
-               <textarea id="awe-command-input" placeholder="Tell AI how to modify this element...&#10;e.g. 'Rewrite this title to be more catchy'" style="flex:1;"></textarea>
-               <button id="awe-snippet-toggle-btn" title="Snippets">📎</button>
-               <button id="awe-send-btn">✨</button>
-               </div>
-              <!-- Snippet Dropdown -->
+                 <textarea id="awe-command-input" placeholder="Tell AI how to modify this element...&#10;e.g. 'Rewrite this title to be more catchy'" style="flex:1;"></textarea>
+                 <button id="awe-snippet-toggle-btn" title="Snippets">📎</button>
+                 <button id="awe-send-btn">✨</button>
+                 </div>
+                <!-- Command Suggestions Dropdown (v1.9) -->
+                <div id="awe-command-suggestions"></div>
+                <!-- Snippet Dropdown -->
               <div id="awe-snippet-dropdown">
                 <div class="awe-snippet-header">Snippets</div>
                 <input type="text" id="awe-snippet-search" class="awe-snippet-search" placeholder="Search snippets...">
@@ -3519,4 +3862,73 @@
         updateInspectorPanel(el);
       }
 
-     })();
+     
+
+      // ============================================================
+      // Keyboard Shortcut Manager & Global Hotkey (v1.9)
+      // ============================================================
+      var _kbdState = {
+        active: true,
+        hotkey: 'Ctrl+Shift+E',
+        currentShortcutKey: ''
+      };
+
+      // Track keyboard shortcuts for recording
+      document.addEventListener('keydown', function(kbdEvent) {
+        if (_kbdState.currentShortcutKey && _kbdState.currentShortcutKey !== 'backspace') {
+          kbdEvent.preventDefault();
+          kbdEvent.stopPropagation();
+
+          var shortcutParts = [];
+          if (kbdEvent.ctrlKey || kbdEvent.metaKey) shortcutParts.push('Ctrl');
+          if (kbdEvent.shiftKey) shortcutParts.push('Shift');
+          if (kbdEvent.altKey) shortcutParts.push('Alt');
+
+          // Find the key part (last character pressed)
+          var key = kbdEvent.key.toUpperCase();
+          if (key.length === 1 || ['ENTER', 'SPACE'].includes(key)) {
+            shortcutParts.push(key);
+            _kbdState.currentShortcutKey = '';
+
+            // Save the new shortcut
+            chrome.storage.local.get(['awe-keyboard-shortcut'], function(storage) {
+              storage['awe-keyboard-shortcut'] = shortcutParts.join('+');
+              chrome.storage.local.set(storage, function() {
+                _kbdState.hotkey = storage['awe-keyboard-shortcut'];
+                // Notify popup to update UI
+                chrome.runtime.sendMessage({ action: 'update-kbd-shortcut-display' });
+              });
+            });
+          }
+        }
+      }, true);
+
+      // Initialize keyboard shortcut listener from storage
+      function initKeyboardShortcut() {
+        chrome.storage.local.get(['awe-keyboard-shortcut'], function(storage) {
+          if (storage['awe-keyboard-shortcut']) {
+            _kbdState.hotkey = storage['awe-keyboard-shortcut'];
+          }
+        });
+
+        // Set up shortcut key recording state for popup UI
+        var recBtn = document.getElementById('rec-kbd-shortcut-btn');
+        if (recBtn) {
+          recBtn.addEventListener('click', function() {
+            _kbdState.currentShortcutKey = 'waiting';
+            recBtn.textContent = 'Press shortcut...';
+            recBtn.disabled = true;
+
+            // Wait 5 seconds then reset
+            setTimeout(function() {
+              _kbdState.currentShortcutKey = '';
+              recBtn.textContent = 'Record Shortcut';
+              recBtn.disabled = false;
+            }, 5000);
+          });
+        }
+      }
+
+      initKeyboardShortcut();
+
+})();

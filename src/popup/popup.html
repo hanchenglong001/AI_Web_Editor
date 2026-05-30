@@ -71,19 +71,64 @@
 
      /* ===== CSS Rule Modal ===== */
      .css-rule-modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 10000; align-items: center; justify-content: center; }
-     .css-rule-modal-overlay.active { display: flex; }
-     .css-rule-modal { background: #1a1a2e; border-radius: 12px; width: 340px; padding: 20px; box-shadow: 0 8px 32px rgba(0,0,0,0.5); }
-     .css-rule-modal h3 { font-size: 14px; color: #e2e8f0; margin-bottom: 12px; text-align: center; }
-     .css-rule-modal label { display: block; font-size: 11px; color: #94a3b8; margin-bottom: 4px; margin-top: 8px; }
-     .css-rule-modal input, .css-rule-modal textarea { width: 100%; padding: 8px 10px; background: #0f0f23; border: 1px solid #2d2d4a; border-radius: 6px; color: #e2e8f0; font-size: 12px; outline: none; font-family: inherit; }
-     .css-rule-modal textarea { height: 70px; resize: vertical; }
-     .css-rule-modal input:focus, .css-rule-modal textarea:focus { border-color: #6366f1; }
-     .modal-btn-row { display: flex; gap: 8px; margin-top: 14px; }
-     .modal-btn-row button { flex: 1; padding: 8px; border-radius: 6px; border: none; font-size: 12px; font-weight: 600; cursor: pointer; }
-     .btn-apply-all { width: 100%; padding: 8px; background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); border: none; border-radius: 6px; color: white; font-size: 12px; font-weight: 600; cursor: pointer; margin-top: 4px; }
-     .btn-apply-all:hover { opacity: 0.9; }
-     .btn-cancel-modal { background: #2d2d4a; color: #e2e8f0; }
-     .btn-cancel-modal:hover { background: #3d3d5a; }
+      .css-rule-modal-overlay.active { display: flex; }
+      .css-rule-modal { background: #1a1a2e; border-radius: 12px; width: 340px; padding: 20px; box-shadow: 0 8px 32px rgba(0,0,0,0.5); }
+      .css-rule-modal h3 { font-size: 14px; color: #e2e8f0; margin-bottom: 12px; text-align: center; }
+      .css-rule-modal label { display: block; font-size: 11px; color: #94a3b8; margin-bottom: 4px; margin-top: 8px; }
+      .css-rule-modal input, .css-rule-modal textarea { width: 100%; padding: 8px 10px; background: #0f0f23; border: 1px solid #2d2d4a; border-radius: 6px; color: #e2e8f0; font-size: 12px; outline: none; font-family: inherit; }
+      .css-rule-modal textarea { height: 70px; resize: vertical; }
+      .css-rule-modal input:focus, .css-rule-modal textarea:focus { border-color: #6366f1; }
+      .modal-btn-row { display: flex; gap: 8px; margin-top: 14px; }
+      .modal-btn-row button { flex: 1; padding: 8px; border-radius: 6px; border: none; font-size: 12px; font-weight: 600; cursor: pointer; }
+      .btn-apply-all { width: 100%; padding: 8px; background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); border: none; border-radius: 6px; color: white; font-size: 12px; font-weight: 600; cursor: pointer; margin-top: 4px; }
+      .btn-apply-all:hover { opacity: 0.9; }
+      .btn-cancel-modal { background: #2d2d4a; color: #e2e8f0; }
+      .btn-cancel-modal:hover { background: #3d3d5a; }
+
+      /* ===== Theme Editor Styles (v1.9) ===== */
+      .theme-presets-row { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
+      .theme-preset-btn { flex: 1; min-width: 70px; padding: 8px 4px; border-radius: 8px; border: 2px solid #2d2d4a; cursor: pointer; font-size: 11px; font-weight: 600; text-align: center; transition: all 0.2s; color: #e2e8f0; }
+      .theme-preset-btn:hover { border-color: #6366f1; transform: scale(1.05); }
+      .theme-preset-btn.active { border-color: #6366f1; box-shadow: 0 0 0 2px rgba(99,102,241,0.3); }
+      .theme-preset-btn[data-theme="Dark"] { background: #1a1a2e; }
+      .theme-preset-btn[data-theme="Light"] { background: #ffffff; color: #1e293b; }
+      .theme-preset-btn[data-theme="Ocean Blue"] { background: #0c1929; border-color: #1a3a5c; }
+      .theme-preset-btn[data-theme="Green Terminal"] { background: #0a0f0a; border-color: #1a2e1a; color: #33ff33; }
+
+      .theme-custom-toggle { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; font-size: 12px; color: #94a3b8; cursor: pointer; }
+      .theme-custom-toggle input[type="checkbox"] { accent-color: #6366f1; }
+
+      .theme-editor-area { display: none; margin-bottom: 12px; }
+      .theme-editor-area.visible { display: block; }
+
+      .color-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-size: 12px; }
+      .color-row label { width: 90px; color: #94a3b8; flex-shrink: 0; }
+      .color-row input[type="color"] { width: 36px; height: 28px; border: 1px solid #2d2d4a; border-radius: 4px; cursor: pointer; padding: 0; background: #0f0f23; }
+      .color-row input[type="text"] { flex: 1; padding: 6px 8px; background: #0f0f23; border: 1px solid #2d2d4a; border-radius: 4px; color: #e2e8f0; font-size: 12px; outline: none; }
+      .color-row input[type="text"]:focus { border-color: #6366f1; }
+
+      .config-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-size: 12px; }
+      .config-row label { width: 90px; color: #94a3b8; flex-shrink: 0; }
+      .config-row select { flex: 1; padding: 6px 8px; background: #0f0f23; border: 1px solid #2d2d4a; border-radius: 4px; color: #e2e8f0; font-size: 12px; outline: none; }
+
+      .theme-preview-box { width: 100%; height: 60px; border-radius: 8px; border: 1px solid #2d2d4a; margin-bottom: 12px; overflow: hidden; position: relative; }
+      .theme-preview-header { height: 20px; display: flex; align-items: center; padding: 0 8px; }
+      .theme-preview-text { font-size: 8px; padding: 2px 6px; margin-top: 2px; border-radius: 3px; }
+
+      .btn-row { display: flex; gap: 6px; margin-bottom: 8px; }
+      .btn-row button { flex: 1; padding: 7px 0; border-radius: 6px; border: none; font-size: 12px; font-weight: 600; cursor: pointer; transition: opacity 0.2s; }
+      .btn-apply-theme { background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color: white; }
+      .btn-apply-theme:hover { opacity: 0.9; }
+      .btn-save-custom { background: #22c55e; color: white; }
+      .btn-save-custom:hover { opacity: 0.9; }
+      .btn-delete-custom { background: #ef4444; color: white; }
+      .btn-delete-custom:hover { opacity: 0.9; }
+
+      .theme-list-item { display: flex; justify-content: space-between; align-items: center; padding: 6px 8px; background: #0f0f23; border: 1px solid #2d2d4a; border-radius: 6px; margin-bottom: 4px; font-size: 12px; }
+      .theme-list-item .theme-name { flex: 1; color: #e2e8f0; cursor: pointer; }
+      .theme-list-item .theme-colors { width: 50px; height: 16px; border-radius: 3px; display: flex; overflow: hidden; flex-shrink: 0; margin-right: 8px; }
+      .theme-list-item .theme-colors span { flex: 1; }
+      .theme-list-item .btn-icon { width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; background: none; border: 1px solid #2d2d4a; color: #94a3b8; border-radius: 4px; cursor: pointer; font-size: 12px; padding: 0; }
     </style>
 </head>
 <body>
@@ -185,7 +230,118 @@
 
       <div class="divider"></div>
 
-      <div class="section-title">How to Use</div>
+       <!-- Custom Theme Editor (v1.9) -->
+       <div id="theme-editor-section" class="section-title">Custom Theme Editor</div>
+       <div id="theme-presets-row" class="theme-presets-row">
+         <button class="theme-preset-btn active" data-theme="Dark">Dark</button>
+         <button class="theme-preset-btn" data-theme="Light">Light</button>
+         <button class="theme-preset-btn" data-theme="Ocean Blue">Ocean</button>
+         <button class="theme-preset-btn" data-theme="Green Terminal">Terminal</button>
+       </div>
+
+       <label class="theme-custom-toggle">
+         <input type="checkbox" id="customThemeToggle"> Use Custom Editor
+       </label>
+
+       <!-- Custom Theme Editor -->
+       <div id="theme-editor-area" class="theme-editor-area">
+         <div class="color-row">
+           <label>Background</label>
+           <input type="color" id="theme-bg-color" value="#1a1a2e">
+           <input type="text" id="theme-bg-text" value="#1a1a2e" maxlength="7">
+         </div>
+         <div class="color-row">
+           <label>Foreground</label>
+           <input type="color" id="theme-fg-color" value="#e2e8f0">
+           <input type="text" id="theme-fg-text" value="#e2e8f0" maxlength="7">
+         </div>
+         <div class="color-row">
+           <label>Border</label>
+           <input type="color" id="theme-border-color" value="#2d2d4a">
+           <input type="text" id="theme-border-text" value="#2d2d4a" maxlength="7">
+         </div>
+         <div class="color-row">
+           <label>Accent</label>
+           <input type="color" id="theme-accent-color" value="#6366f1">
+           <input type="text" id="theme-accent-text" value="#6366f1" maxlength="7">
+         </div>
+         <div class="color-row">
+           <label>Header Start</label>
+           <input type="color" id="theme-hs-color" value="#6366f1">
+           <input type="text" id="theme-hs-text" value="#6366f1" maxlength="7">
+         </div>
+         <div class="color-row">
+           <label>Header End</label>
+           <input type="color" id="theme-he-color" value="#8b5cf6">
+           <input type="text" id="theme-he-text" value="#8b5cf6" maxlength="7">
+         </div>
+
+         <div class="config-row">
+           <label>Panel Pos</label>
+           <select id="theme-position">
+             <option value="right-middle">Right (Middle)</option>
+             <option value="top-right">Top Right</option>
+             <option value="bottom-right">Bottom Right</option>
+             <option value="bottom-left">Bottom Left</option>
+             <option value="top-left">Top Left</option>
+           </select>
+         </div>
+
+         <div class="config-row">
+           <label>Panel Width</label>
+           <select id="theme-width">
+             <option value="360px">360px</option>
+             <option value="420px" selected>420px</option>
+             <option value="480px">480px</option>
+             <option value="540px">540px</option>
+           </select>
+         </div>
+
+         <!-- Preview -->
+         <div id="theme-preview-box" class="theme-preview-box">
+           <div id="theme-preview-header" class="theme-preview-header"></div>
+           <div style="padding: 4px 8px;">
+             <span id="theme-preview-text" class="theme-preview-text"></span>
+           </div>
+         </div>
+
+         <!-- Custom theme name + buttons -->
+         <div class="config-row">
+           <label>Name</label>
+           <input type="text" id="theme-name-input" placeholder="My Theme" style="flex:1; padding:6px 8px; background:#0f0f23; border:1px solid #2d2d4a; border-radius:4px; color:#e2e8f0; font-size:12px; outline:none;">
+         </div>
+         <div class="btn-row">
+           <button id="apply-theme-btn" class="btn-apply-theme">Apply</button>
+           <button id="save-custom-theme-btn" class="btn-save-custom">Save Custom</button>
+         </div>
+         <div class="btn-row">
+           <button id="reset-default-btn" style="background:#475569; color:white;">Reset Default</button>
+         </div>
+       </div>
+
+       <!-- Custom themes list -->
+       <div id="custom-themes-list" style="marg
+
+    <!-- Keyboard Shortcut Manager (v1.9) -->
+    <div class="section-title">⌨️ Keyboard Shortcuts</div>
+    <div style="margin-bottom: 8px; padding: 8px; background: #3a3a5c; border-radius: 6px;">
+      <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+        <span style="font-size: 12px; color: #aaa;">Current shortcut:</span>
+        <code id="kbd-shortcut-display" style="background: #2d2d4a; padding: 4px 8px; border-radius: 4px; color: #7dd3fc; font-size: 13px;">Ctrl+Shift+E</code>
+      </div>
+      <button id="rec-kbd-shortcut-btn" class="btn-apply-theme">📝 Record Shortcut</button>
+    </div>in-bottom: 12px;"></div>
+
+       <div class="divider"></div>
+
+       <!-- v1.9: Quick Theme Switch (always visible when theme is active) -->
+       <div id="active-theme-indicator" style="font-size:12px; color:#94a3b8; margin-bottom:12px; display:none;">
+         Active theme: <span id="active-theme-name" style="color:#e2e8f0; font-weight:600;">Dark</span>
+       </div>
+
+       <div class="divider"></div>
+
+       <div class="section-title">How to Use</div>
      <div class="info-item">
        <span class="info-label">1.</span>
        <span class="info-value">Click the ✦ button (bottom-right)</span>
@@ -224,8 +380,8 @@
      </div>
     </div>
   <div class="footer">
-   AI Web Editor v1.8.0 · <a href="#" id="aboutLink">About</a>
-  </div>
+    AI Web Editor v1.9.0 · <a href="#" id="aboutLink">About</a>
+   </div>
   <script src="popup.js"></script>
 </body>
 </html>
