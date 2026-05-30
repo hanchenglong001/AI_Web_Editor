@@ -175,3 +175,9 @@
 ## 📊 版本快照 (2026-05-30 T+12 — Cron Check)
 
 || 项目 | 状态 ||------|------|| 当前版本 | **v1.4.0** ✅ (待 v1.5 修复) || Git sync | ✅ **完全同步** — HEAD = origin/master (25e4227), 0 ahead/behind || Working Tree | ✅ 干净 || Flat files latest | ✅ 最新（含全部 v1.1~v1.4 功能） || Subdirectory copies | ⚠️ Stale — 4 个冗余子目录共 ~39KB，需 v1.5 清理 || Quick Commands | 20+ 个（含 emoji fallback） || API 支持 | OpenAI compatible + Together AI + Ollama + Azure（CSP 缺少 localhost:11434） || Undo/Redo | ✅ v1.1 || Export (HTML/CSS/Full Page) | ✅ v1.1/v1.4 || Theme Toggle | ✅ v1.1 || Usage Limits | ✅ v1.1, 可配置 || Context Menu | ✅ v1.4 — rich submenu with element detection || Batch Edit (Multi-Select) | ✅ v1.3 — Shift+Click + Apply to All + index badge || CSP | ⚠️ connect-src 仅含 OpenAI + Together，缺 Ollama/Azure/LM Studio/vLLM |
+
+---
+
+## 📊 版本快照 (2026-05-30 T+13 — Cron Check)
+
+||| 项目 | 状态 ||------|------|| 当前版本 | **v1.4.0** ✅ (待 v1.5 修复) || Git sync | ✅ **完全同步** — HEAD = origin/master (35188de), 0 ahead/behind || Working Tree | ✅ 干净（无新增提交） || Flat files latest | ✅ 最新（含全部 v1.1~v1.4 功能） || Subdirectory copies | ⚠️ Stale — 4 个冗余子目录共 ~39KB，需 v1.5 清理 || Quick Commands | 20+ 个（含 emoji fallback） || API 支持 | OpenAI compatible + Together AI + Ollama + Azure（CSP 缺少 localhost:11434） || Undo/Redo | ✅ v1.1 || Export (HTML/CSS/Full Page) | ✅ v1.1/v1.4 || Theme Toggle | ✅ v1.1 || Usage Limits | ✅ v1.1, 可配置 || Context Menu | ✅ v1.4 — rich submenu with element detection || Batch Edit (Multi-Select) | ✅ v1.3 — Shift+Click + Apply to All + index badge || CSP | ⚠️ connect-src 仅含 OpenAI + Together，缺 Ollama/Azure/LM Studio/vLLM |
