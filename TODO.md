@@ -149,11 +149,11 @@
 
 ---
 
-## 📈 迭代方向评估 (2026-05-30 Cron Check T+11)
+## 📈 迭代方向评估 (2026-05-30 Cron Check T+12)
 
-**项目整体状态**: v1.4.0 功能稳定运行，远程仓库已同步（origin/master = HEAD 4604c43）。自 v1.4 发布以来进入"修 bug + 准备 CWS 发布"阶段。
+**项目整体状态**: v1.4.0 功能稳定运行，远程仓库已完全同步（origin/master = HEAD = 25e4227）。无新提交。自 v1.4 发布以来进入"修 bug + 准备 CWS 发布"阶段。
 
-**v1.5 修复应优先于更多功能迭代** — 目录冗余（4 子目录 ~39KB）和 CSP 限制是两个阻塞 Chrome Web Store 审核的硬伤，需立即清理。建议走 v1.4.1 hotfix → CWS 提交流程，v1.5 conversation mode 作为 v1.6 后续迭代。
+**v1.5 修复应优先于更多功能迭代** — 目录冗余（4 子目录 ~39KB）和 CSP 限制是两个阻塞 Chrome Web Store 审核的硬伤，需立即清理。建议走 v1.4.1 hotfix → CWS 提交流程，v1.6 conversation mode 作为 v1.6 后续迭代。
 
 ### 🔴 P0 — 发布前必须修复
 1. **目录结构清理 (v1.5)** — 4 个冗余子目录全部 stale（与 root flat 文件均有差异）。统一保留 flat 结构，删除 subdirectories。预计 ~30min
@@ -171,3 +171,7 @@
 - i18n 多语言、Gemini/Claude provider、Performance 优化、Side Panel API、Shadow DOM 支持
 
 ---
+
+## 📊 版本快照 (2026-05-30 T+12 — Cron Check)
+
+|| 项目 | 状态 ||------|------|| 当前版本 | **v1.4.0** ✅ (待 v1.5 修复) || Git sync | ✅ **完全同步** — HEAD = origin/master (25e4227), 0 ahead/behind || Working Tree | ✅ 干净 || Flat files latest | ✅ 最新（含全部 v1.1~v1.4 功能） || Subdirectory copies | ⚠️ Stale — 4 个冗余子目录共 ~39KB，需 v1.5 清理 || Quick Commands | 20+ 个（含 emoji fallback） || API 支持 | OpenAI compatible + Together AI + Ollama + Azure（CSP 缺少 localhost:11434） || Undo/Redo | ✅ v1.1 || Export (HTML/CSS/Full Page) | ✅ v1.1/v1.4 || Theme Toggle | ✅ v1.1 || Usage Limits | ✅ v1.1, 可配置 || Context Menu | ✅ v1.4 — rich submenu with element detection || Batch Edit (Multi-Select) | ✅ v1.3 — Shift+Click + Apply to All + index badge || CSP | ⚠️ connect-src 仅含 OpenAI + Together，缺 Ollama/Azure/LM Studio/vLLM |
