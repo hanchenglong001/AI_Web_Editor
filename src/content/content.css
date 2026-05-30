@@ -89,11 +89,11 @@
 
 /* Panel header */
 #awe-panel-header {
-  padding: 16px 20px;
+  padding: 12px 16px;
   background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 8px;
 }
 
 #awe-panel-header h3 {
@@ -101,6 +101,30 @@
   font-size: 16px;
   font-weight: 600;
   color: white;
+  white-space: nowrap;
+}
+
+/* Toolbar buttons row (v1.1) */
+#awe-toolbar-btns {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+#awe-undo-btn, #awe-redo-btn, #awe-theme-btn, #awe-export-btn, #awe-copy-btn {
+  background: none;
+  border: 1px solid rgba(255,255,255,0.2);
+  color: white;
+  padding: 3px 8px;
+  cursor: pointer;
+  font-size: 14px;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+#awe-undo-btn:hover, #awe-redo-btn:hover, #awe-theme-btn:hover, #awe-export-btn:hover, #awe-copy-btn:hover {
+  background: rgba(255,255,255,0.2);
 }
 
 #awe-close-btn {

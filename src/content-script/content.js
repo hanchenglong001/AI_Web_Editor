@@ -11,11 +11,136 @@
   let isOpen = false;
 
   // ============================================================
+  // Undo/Redo System (v1.1)
+  // ============================================================
+  let undoStack = [];       // [{ html: string, type: 'ai'|'style'|'html', time: Date }]
+  let redoStack = [];       // same structure
+
+  function saveSnapshot() {
+    if (!selectedElement) return;
+    const entry = { html: selectedElement.innerHTML, type: 'unknown', time: new Date() };
+    undoStack.push(entry);
+    if (undoStack.length > 50) undoStack.shift();
+    redoStack = []; // New operation clears redo stack
+  }
+
+  function undo() {
+    if (undoStack.length === 0 || !selectedElement) return;
+    const current = { html: selectedElement.innerHTML, type: 'unknown' };
+    const prev = undoStack.pop();
+    if (!prev) return;
+    selectedElement.innerHTML = prev.html;
+    redoStack.push(current);
+    updatePreview(selectedElement);
+  }
+
+  function redo() {
+    if (redoStack.length === 0 || !selectedElement) return;
+    const current = { html: selectedElement.innerHTML, type: 'unknown' };
+    const next = redoStack.pop();
+    if (!next) return;
+    undoStack.push(current);
+    selectedElement.innerHTML = next.html;
+    updatePreview(selectedElement);
+  }
+
+  // ============================================================
+  // Theme Toggle (v1.1)
+  // ============================================================
+  let currentTheme = localStorage.getItem('awe-theme') || 'dark';
+
+  function applyTheme(theme) {
+    currentTheme = theme;
+    localStorage.setItem('awe-theme', theme);
+    const panel = document.getElementById('awe-editor-panel');
+    const overlay = document.getElementById('awe-selection-overlay');
+    const htmlEditor = document.getElementById('awe-html-editor');
+
+    if (theme === 'light') {
+      panel.style.background = '#ffffff';
+      panel.style.color = '#1a1a2e';
+      overlay.style.background = 'rgba(0,0,0,0.1)';
+      const tabContent = document.getElementById('awe-tab-content');
+      if (tabContent) tabContent.style.background = '#f8fafc';
+      document.querySelectorAll('.awe-tab-panel').forEach(function(el) {
+        el.style.color = '#1a1a2e';
+      });
+      if (htmlEditor) {
+        htmlEditor.style.background = '#ffffff';
+        htmlEditor.style.color = '#1a1a2e';
+        htmlEditor.style.borderColor = '#d1d5db';
+      }
+    } else {
+      panel.style.background = ''; // revert to CSS
+      panel.style.color = '';
+      overlay.style.background = '';
+      var tc = document.getElementById('awe-tab-content');
+      if (tc) tc.style.background = '';
+      document.querySelectorAll('.awe-tab-panel').forEach(function(el) {
+        el.style.color = '';
+      });
+      if (htmlEditor) {
+        htmlEditor.style.background = '#0f0f23';
+        htmlEditor.style.color = '#e2e8f0';
+        htmlEditor.style.borderColor = '#2d2d4a';
+      }
+    }
+  }
+
+  function toggleTheme() {
+    var newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    applyTheme(newTheme);
+  }
+
+  // ============================================================
+  // Export & Copy (v1.1)
+  // ============================================================
+
+  function exportElementHTML() {
+    if (!selectedElement) { showToast('No element selected!', 'error'); return; }
+    var html = selectedElement.outerHTML;
+    var blob = new Blob([html], { type: 'text/html' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url; a.download = 'element-export.html'; a.click();
+    URL.revokeObjectURL(url);
+    showToast('HTML exported!', 'success');
+  }
+
+  function exportElementCSS() {
+    if (!selectedElement) { showToast('No element selected!', 'error'); return; }
+    var cs = window.getComputedStyle(selectedElement);
+    var css = selectedElement.tagName.toLowerCase() + ' {\n';
+    for (var i = 0; i < cs.length; i++) {
+      var prop = cs[i];
+      if (prop.startsWith('-webkit') || prop === 'content' || prop === 'all') continue;
+      var val = cs.getPropertyValue(prop);
+      css += '  ' + prop + ': ' + val + ';\n';
+    }
+    css += '}';
+    var blob = new Blob([css], { type: 'text/css' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url; a.download = 'element-export.css'; a.click();
+    URL.revokeObjectURL(url);
+    showToast('CSS exported!', 'success');
+  }
+
+  function copyElementToClipboard() {
+    if (!selectedElement) { showToast('No element selected!', 'error'); return; }
+    navigator.clipboard.writeText(selectedElement.outerHTML).then(function() {
+      showToast('Copied to clipboard!', 'success');
+    }).catch(function(err) {
+      showToast('Failed to copy: ' + err.message, 'error');
+    });
+  }
+
+  // ============================================================
   // Create and inject all DOM elements
   // ============================================================
 
   function createTriggerBtn() {
-    const btn = document.createElement('button');
+    var btn = document.createElement('button');
     btn.id = 'awe-trigger-btn';
     btn.innerHTML = '✦';
     btn.title = 'AI Web Editor — Click to select element';
@@ -24,7 +149,7 @@
   }
 
   function createOverlay() {
-    const overlay = document.createElement('div');
+    var overlay = document.createElement('div');
     overlay.id = 'awe-selection-overlay';
     overlay.addEventListener('click', handleElementClick);
     overlay.addEventListener('mouseenter', handleElementHover);
@@ -32,21 +157,29 @@
   }
 
   function createEditorPanel() {
-    const panel = document.createElement('div');
+    var panel = document.createElement('div');
     panel.id = 'awe-editor-panel';
     panel.innerHTML = `
       <div id="awe-panel-header">
-        <h3>✦ AI Web Editor</h3>
-        <button id="awe-close-btn" title="Close">×</button>
-      </div>
+         <h3>✦ AI Web Editor</h3>
+         <div id="awe-toolbar-btns">
+           <button id="awe-undo-btn" title="Undo (Ctrl+Z)">↩</button>
+           <button id="awe-redo-btn" title="Redo (Ctrl+Y)">↪</button>
+           <button id="awe-theme-btn" title="Toggle Theme">◑</button>
+           <button id="awe-export-btn" title="Export HTML/CSS">⬇</button>
+           <button id="awe-copy-btn" title="Copy HTML to Clipboard">📋</button>
+         </div>
+         <button id="awe-close-btn" title="Close">×</button>
+       </div>
       <div id="awe-element-preview">
         <span id="awe-element-tag">&lt;div&gt;</span>
         <div id="awe-element-text">Click an element to select it</div>
       </div>
       <div id="awe-tabs">
         <button class="awe-tab-btn active" data-tab="ai">AI Modify</button>
-        <button class="awe-tab-btn" data-tab="style">Style</button>
-        <button class="awe-tab-btn" data-tab="history">History</button>
+         <button class="awe-tab-btn" data-tab="style">Style</button>
+         <button class="awe-tab-btn" data-tab="html">HTML</button>
+         <button class="awe-tab-btn" data-tab="history">History</button>
       </div>
       <div id="awe-tab-content">
         <!-- AI Tab -->
@@ -127,6 +260,11 @@
             </div>
           </div>
         </div>
+        <!-- HTML Editor Tab -->
+        <div class="awe-tab-panel" id="tab-html">
+          <textarea id="awe-html-editor" rows="12" style="width:100%; font-family:monospace; background:#0f0f23; color:#e2e8f0; border:1px solid #2d2d4a; padding:8px; border-radius:6px; resize:vertical; font-size:12px;" spellcheck="false"></textarea>
+          <button id="awe-html-apply-btn" style="margin-top:8px; width:100%;">Apply HTML Changes</button>
+        </div>
         <!-- History Tab -->
         <div class="awe-tab-panel" id="tab-history">
           <div id="awe-history-list">
@@ -144,8 +282,8 @@
   // ============================================================
 
   function toggleSelectMode() {
-    const overlay = document.getElementById('awe-selection-overlay');
-    const btn = document.getElementById('awe-trigger-btn');
+    var overlay = document.getElementById('awe-selection-overlay');
+    var btn = document.getElementById('awe-trigger-btn');
 
     if (isOpen) {
       closePanel();
@@ -168,7 +306,7 @@
 
   function handleElementClick(e) {
     e.stopPropagation();
-    let target = e.target;
+    var target = e.target;
 
     // Skip our own elements
     if (target.closest('#awe-trigger-btn') || target.closest('#awe-selection-overlay') || target.closest('#awe-editor-panel')) return;
@@ -185,7 +323,7 @@
 
   function handleElementHover(e) {
     if (!isSelectingMode) return;
-    let target = e.target;
+    var target = e.target;
     if (target.closest('#awe-trigger-btn') || target.closest('#awe-editor-panel')) return;
     clearHighlight();
     highlightElement(target);
@@ -197,19 +335,19 @@
   }
 
   function clearHighlight() {
-    document.querySelectorAll('.awe-element-highlight').forEach((el) => {
+    document.querySelectorAll('.awe-element-highlight').forEach(function(el) {
       el.classList.remove('awe-element-highlight');
     });
   }
 
   function updatePreview(el) {
-    const tag = el.tagName.toLowerCase();
-    const text = (el.textContent || '').trim().substring(0, 120);
-    document.getElementById('awe-element-tag').textContent = `<${tag}>`;
+    var tag = el.tagName.toLowerCase();
+    var text = (el.textContent || '').trim().substring(0, 120);
+    document.getElementById('awe-element-tag').textContent = '<' + tag + '>';
     document.getElementById('awe-element-text').textContent = text + (text.length >= 120 ? '...' : '');
 
     // Pre-populate style tab with current values
-    const computed = window.getComputedStyle(el);
+    var computed = window.getComputedStyle(el);
     document.getElementById('awe-style-color').value = rgbToHex(computed.color) || '#000000';
     document.getElementById('awe-style-bg').value = rgbToHex(computed.backgroundColor) || '#ffffff';
     document.getElementById('awe-style-fontsize').value = parseInt(computed.fontSize) || 16;
@@ -218,6 +356,12 @@
     document.getElementById('awe-style-opacity').value = parseFloat(computed.opacity) || 1;
     document.getElementById('awe-style-padding').value = parseInt(computed.padding) || 0;
     document.getElementById('awe-style-margin').value = parseInt(computed.margin) || 0;
+
+    // Update HTML editor if visible
+    var htmlEditor = document.getElementById('awe-html-editor');
+    if (htmlEditor) {
+      htmlEditor.value = el.outerHTML;
+    }
   }
 
   // ============================================================
@@ -246,22 +390,54 @@
       return;
     }
 
+    // Undo/Redo buttons (v1.1)
+    if (e.target.id === 'awe-undo-btn') {
+      undo();
+      showToast('Undo applied', 'success');
+      return;
+    }
+    if (e.target.id === 'awe-redo-btn') {
+      redo();
+      showToast('Redo applied', 'success');
+      return;
+    }
+
+    // Theme toggle button (v1.1)
+    if (e.target.id === 'awe-theme-btn') {
+      toggleTheme();
+      showToast('Theme: ' + currentTheme, 'success');
+      return;
+    }
+
+    // Export button — show a small menu or alternate export HTML/CSS (v1.1)
+    if (e.target.id === 'awe-export-btn') {
+      // Toggle between HTML and CSS export via a flag, or export HTML first
+      exportElementHTML();
+      return;
+    }
+
+    // Copy button (v1.1)
+    if (e.target.id === 'awe-copy-btn') {
+      copyElementToClipboard();
+      return;
+    }
+
     // Tab buttons
-    const tabBtn = e.target.closest('.awe-tab-btn');
+    var tabBtn = e.target.closest('.awe-tab-btn');
     if (tabBtn) {
-      document.querySelectorAll('.awe-tab-btn').forEach((b) => b.classList.remove('active'));
-      document.querySelectorAll('.awe-tab-panel').forEach((p) => p.classList.remove('active'));
+      document.querySelectorAll('.awe-tab-btn').forEach(function(b) { b.classList.remove('active'); });
+      document.querySelectorAll('.awe-tab-panel').forEach(function(p) { p.classList.remove('active'); });
       tabBtn.classList.add('active');
-      const tabId = 'tab-' + tabBtn.dataset.tab;
+      var tabId = 'tab-' + tabBtn.dataset.tab;
       document.getElementById(tabId).classList.add('active');
       return;
     }
 
     // Quick command buttons
-    const quickBtn = e.target.closest('.awe-quick-btn');
+    var quickBtn = e.target.closest('.awe-quick-btn');
     if (quickBtn && selectedElement) {
-      const cmd = quickBtn.dataset.cmd;
-      const commands = {
+      var cmd = quickBtn.dataset.cmd;
+      var commands = {
         'rewrite': 'Rewrite this content to be more engaging and clear.',
         'simplify': 'Simplify the text so it is easier to understand.',
         'translate': 'Translate this text to Chinese (简体中文).',
@@ -272,17 +448,18 @@
       };
       document.getElementById('awe-command-input').value = commands[cmd] || '';
       // Switch to AI tab
-      document.querySelectorAll('.awe-tab-btn').forEach((b) => b.classList.remove('active'));
-      document.querySelectorAll('.awe-tab-panel').forEach((p) => p.classList.remove('active'));
+      document.querySelectorAll('.awe-tab-btn').forEach(function(b) { b.classList.remove('active'); });
+      document.querySelectorAll('.awe-tab-panel').forEach(function(p) { p.classList.remove('active'); });
       document.querySelector('.awe-tab-btn[data-tab="ai"]').classList.add('active');
       document.getElementById('tab-ai').classList.add('active');
       return;
     }
 
     // Style apply buttons
-    const styleBtn = e.target.closest('[data-action]');
+    var styleBtn = e.target.closest('[data-action]');
     if (styleBtn && selectedElement) {
-      const action = styleBtn.dataset.action;
+      var action = styleBtn.dataset.action;
+      saveSnapshot(); // v1.1: save before each style change
       applyStyleAction(action, selectedElement);
       showToast('Style applied!', 'success');
       return;
@@ -294,10 +471,30 @@
       return;
     }
 
+    // HTML Apply button (v1.1)
+    if (e.target.id === 'awe-html-apply-btn' && selectedElement) {
+      try {
+        saveSnapshot(); // for undo
+        var newHTML = document.getElementById('awe-html-editor').value;
+        var tempDiv = document.createElement('div');
+        tempDiv.innerHTML = newHTML;
+        if (tempDiv.children.length === 1 || tempDiv.children.length === 0) {
+          selectedElement.innerHTML = newHTML;
+          updatePreview(selectedElement);
+          showToast('HTML applied!', 'success');
+        } else {
+          showStatus('Error: HTML must contain a single root element', 'error');
+        }
+      } catch (err) {
+        showStatus('Invalid HTML: ' + err.message, 'error');
+      }
+      return;
+    }
+
     // History items click
-    const historyItem = e.target.closest('.awe-history-item');
+    var historyItem = e.target.closest('.awe-history-item');
     if (historyItem) {
-      const action = historyItem.dataset.action;
+      var action = historyItem.dataset.action;
       restoreHistoryAction(action);
       showToast('Restored previous change', 'success');
       return;
@@ -314,20 +511,22 @@
       return;
     }
 
-    const cmd = document.getElementById('awe-command-input').value.trim();
+    saveSnapshot(); // v1.1: save before AI modifies
+
+    var cmd = document.getElementById('awe-command-input').value.trim();
     if (!cmd) {
       showStatus('Please enter a command.', 'error');
       return;
     }
 
-    const btn = document.getElementById('awe-send-btn');
+    var btn = document.getElementById('awe-send-btn');
     btn.disabled = true;
     btn.innerHTML = '<span class="awe-spinner"></span> Processing...';
     showStatus('Sending to AI...', '');
 
     try {
       // Try sending through service worker (which forwards to API)
-      const response = await chrome.runtime.sendMessage({
+      var response = await chrome.runtime.sendMessage({
         action: 'ai-modify',
         command: cmd,
         elementText: selectedElement.textContent?.trim() || '',
@@ -340,13 +539,13 @@
           selectedElement.textContent = response.newContent;
         } else {
           // For complex elements, try innerText replacement on first text node
-          const walker = document.createTreeWalker(selectedElement, NodeFilter.SHOW_TEXT);
-          let firstText = walker.nextNode();
+          var walker = document.createTreeWalker(selectedElement, NodeFilter.SHOW_TEXT);
+          var firstText = walker.nextNode();
           if (firstText) {
             firstText.textContent = response.newContent;
           } else {
             // Fallback: create a new span with the content
-            const span = document.createElement('span');
+            var span = document.createElement('span');
             span.innerHTML = response.newContent;
             selectedElement.innerHTML = '';
             selectedElement.appendChild(span);
@@ -373,21 +572,21 @@
   }
 
   function applyLocalModification(el, command) {
-    const text = el.textContent?.trim();
+    var text = el.textContent?.trim();
     if (!text) return;
-    const lower = command.toLowerCase();
+    var lower = command.toLowerCase();
 
     if (lower.includes('translate') && lower.includes('chinese')) {
       // Local translation placeholder — in production, use a real API
       el.textContent = '（AI翻译：' + text.substring(0, 30) + '）';
     } else if (lower.includes('shorter') || lower.includes('concise')) {
-      const words = text.split(/\s+/).slice(0, Math.max(5, Math.floor(text.split(/\s+/).length / 2)));
+      var words = text.split(/\s+/).slice(0, Math.max(5, Math.floor(text.split(/\s+/).length / 2)));
       el.textContent = words.join(' ') + '...';
     } else if (lower.includes('longer') || lower.includes('detail')) {
       el.textContent = text + '. [This was expanded by AI Web Editor. Additional details and context would be added here.]';
     } else {
       // Default: wrap with styled span as visible modification
-      const modified = '[AI-Modified] ' + text;
+      var modified = '[AI-Modified] ' + text;
       if (el.childNodes.length === 1 && el.firstChild.nodeType === Node.TEXT_NODE) {
         el.textContent = modified;
       } else {
@@ -436,9 +635,9 @@
   let historyStore = [];
 
   function addToHistory(command, type, data) {
-    const entry = {
-      command,
-      type,
+    var entry = {
+      command: command,
+      type: type,
       data: data ? JSON.parse(data) : null,
       time: new Date().toLocaleTimeString(),
       elementTag: selectedElement?.tagName?.toLowerCase() || 'unknown',
@@ -450,7 +649,7 @@
   }
 
   function renderHistory() {
-    const container = document.getElementById('awe-history-list');
+    var container = document.getElementById('awe-history-list');
     if (!container) return;
 
     if (historyStore.length === 0) {
@@ -458,22 +657,23 @@
       return;
     }
 
-    container.innerHTML = historyStore.map((h) => `
-      <div class="awe-history-item" data-action-id="${h.actionId}" data-type="${h.type}">
-        <div class="awe-history-command">${escapeHtml(h.command)}</div>
-        <div class="awe-history-time"><${h.elementTag}> · ${h.time}</div>
-      </div>
-    `).join('');
+    container.innerHTML = historyStore.map(function(h) {
+      return '<div class="awe-history-item" data-action-id="' + h.actionId + '" data-type="' + h.type + '">' +
+        '<div class="awe-history-command">' + escapeHtml(h.command) + '</div>' +
+        '<div class="awe-history-time"><' + h.elementTag + '> · ' + h.time + '</div>' +
+        '</div>';
+    }).join('');
 
     // Attach click handlers for restore
-    container.querySelectorAll('.awe-history-item').forEach((item) => {
+    container.querySelectorAll('.awe-history-item').forEach(function(item) {
       item.addEventListener('click', function () {
-        const id = parseInt(this.dataset.actionId);
-        const entry = historyStore.find((h) => h.actionId === id);
+        var id = parseInt(this.dataset.actionId);
+        var entry = historyStore.find(function(h) { return h.actionId === id; });
         if (entry && entry.data) {
           // Re-apply the modification
           if (selectedElement) {
             if (entry.type === 'ai' && entry.data.newContent) {
+              saveSnapshot(); // v1.1: save before restoring
               selectedElement.textContent = entry.data.newContent;
             }
           }
@@ -497,17 +697,17 @@
   // ============================================================
 
   function showStatus(msg, type) {
-    const el = document.getElementById('awe-status-msg');
+    var el = document.getElementById('awe-status-msg');
     if (!el) return;
     el.textContent = msg;
     el.className = '';
     if (type) el.classList.add(type);
     el.classList.add('visible');
-    setTimeout(() => el.classList.remove('visible'), 4000);
+    setTimeout(function() { el.classList.remove('visible'); }, 4000);
   }
 
   function showToast(msg, type) {
-    let toast = document.getElementById('awe-toast');
+    var toast = document.getElementById('awe-toast');
     if (!toast) {
       toast = document.createElement('div');
       toast.id = 'awe-toast';
@@ -517,7 +717,7 @@
     toast.classList.add('visible');
     if (type === 'success') toast.style.borderColor = '#22c55e';
     else toast.style.borderColor = '#6366f1';
-    setTimeout(() => toast.classList.remove('visible'), 2500);
+    setTimeout(function() { toast.classList.remove('visible'); }, 2500);
   }
 
   // ============================================================
@@ -526,22 +726,22 @@
 
   function rgbToHex(rgb) {
     if (!rgb || rgb === 'transparent' || rgb === 'rgba(0, 0, 0, 0)') return null;
-    const match = rgb.match(/(\d+)/g);
+    var match = rgb.match(/(\d+)/g);
     if (!match || match.length < 3) return null;
-    return '#' + match.slice(0, 3).map((x) => {
-      const hex = parseInt(x).toString(16);
+    return '#' + match.slice(0, 3).map(function(x) {
+      var hex = parseInt(x).toString(16);
       return hex.length === 1 ? '0' + hex : hex;
     }).join('');
   }
 
   function escapeHtml(str) {
-    const div = document.createElement('div');
+    var div = document.createElement('div');
     div.textContent = str;
     return div.innerHTML;
   }
 
   // ============================================================
-  // Keyboard shortcut: Escape to deselect/close
+  // Keyboard shortcuts (v1.1: added Undo/Redo)
   // ============================================================
 
   document.addEventListener('keydown', function (e) {
@@ -552,6 +752,18 @@
         closePanel();
       }
     }
+    // Ctrl+Z = Undo (not with Shift)
+    if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+      e.preventDefault();
+      undo();
+      return;
+    }
+    // Ctrl+Y or Ctrl+Shift+Z = Redo
+    if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
+      e.preventDefault();
+      redo();
+      return;
+    }
   });
 
   // ============================================================
@@ -561,5 +773,8 @@
   createTriggerBtn();
   createOverlay();
   createEditorPanel();
+
+  // Apply saved theme (v1.1)
+  applyTheme(currentTheme);
 
 })();
