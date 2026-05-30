@@ -73,3 +73,51 @@
 ## 🐛 Bug Fixes / Issues
 
 *(Add discovered issues here with reproduction steps)*
+
+---
+
+## 📊 版本快照 (2026-05-30 T+22 — Cron Check #8)
+
+| 项目 | 状态 |
+|------|------|
+| **当前版本** | **v2.0.0** ✅ (CWS Release Prep Complete) |
+| **Git sync** | ✅ Working tree clean — HEAD=dffdedb (merged with origin/master) |
+| **Last commit** | dffdedb — `Merge: resolve TODO.md conflict` |
+| **Latest release** | 15396b1 — `release(v2.0.1): CWS screenshots + .gitignore fix + roadmap` |
+| **v2.0 release** | 9b295ce — privacy-policy.html, LICENSE (MIT), CHANGELOG complete, CSP dashscope |
+| **CHANGELOG.md** | ✅ v1.0-v1.9 fully documented (124 lines) |
+| **Directory Structure** | ✅ clean `src/` tree + docs/assets in root |
+| **CSP** | ✅ OpenAI + Together + Gemini + localhost + 127.0.0.1 + dashscope.aliyuncs.com |
+| **Manifest V3** | ✅ Version 2.0.0, permissions: activeTab, storage, contextMenus, scripting |
+| **CWS Assets** | ✅ privacy-policy.html, LICENSE, .cws-publish-manifest.json, screenshots/ (5 images) |
+| **Quick Commands** | 27+ (General / Translation 5-lang / Length / Specialized + Quick Commands palette) |
+
+## 🔍 T+22 Cron Check Findings (2026-05-30)
+
+1. **Project has reached v2.0.0 CWS release stage** — all publishing prerequisites met: privacy policy, LICENSE, CHANGELOG complete, screenshots generated, CSP updated for dashscope
+2. **CHANGELOG.md is now complete** — all versions from v1.0 to v1.9 documented (was missing since T+6)
+3. **TODO.md was refreshed by remote v2.0.1 commit** — includes CWS checklist and v2.1 roadmap, replaced local cron snapshot version
+4. **manifest.json CSP now includes dashscope.aliyuncs.com** — Alibaba Cloud AI provider support added for international users
+5. **.cws-publish-manifest.json created** — contains Chrome Web Store metadata (upload file for CWS dashboard)
+6. **No new uncommitted changes** — working tree clean after merging remote TODO.md
+7. **Recommendation**: Next milestone is v2.1 implementation from the roadmap (Snippet Library UI, settings export/import, performance optimizations), then submit to Chrome Web Store
+
+## 🗺️ 下一步建议 (T+22)
+
+按优先级排序：
+
+1. **🔴 CWS Submission** — 虽然所有资产已就绪，但尚未实际提交到 Chrome Web Store。$5 开发者费用需支付后才能发布。
+2. **🟡 v2.1 Implementation** — 按 TODO.md 规划，优先实现: (a) Snippet Library UI, (b) Export/Import settings, (c) Content script performance profiling
+3. **🟢 代码模块化重构** — content.js 规模持续增长（~4000+行），v2.x+ 前应启动模块化拆分
+4. **🟢 AI Conversation Mode** (本地 T+6 开发但远程未合并) — 多轮对话功能在本地已实现但远端仍为 v1.9，需决定是否合并到主分支
+
+---
+
+## 💰 商业化路线图
+
+| Phase | 功能 | 预计时间线 |
+|-------|------|------------|
+| Phase 1 (MVP) | CWS free listing + Stripe Payment Links + daily limit upgrade | Month 1-2 |
+| Phase 2 | Freemium tier (10 free / unlimited paid $4.99/mo) + trial credits | Month 3 |
+| Phase 3 | Team features ($9.99/mo): shared prompt library, batch export | Month 4-5 |
+| Phase 4 | White-label for agencies | Month 6+ |
