@@ -40,10 +40,10 @@
    - 改为：右键元素 → 直接出现 AI 编辑面板
    - 或者：选中文字后浮出 mini-toolbar（类似浏览器原生右键菜单的增强版）
 
-3. **CWS 发布** — `privacy-policy_url` missing from manifest.json (CWS blocker)
-   - 必须在 manifest.json 添加 `"privacy_policy_url"` 字段并 bump version
-   - 需要真实截图替换模拟截图
-   - Store listing description + feature graphic (1400×560) 未创建
+3. **CWS 发布**
+   - ✅ `privacy_policy_url` added + version bumped to v2.1.0 (resolved in cron T+27)
+   - ⏳ 需要真实截图替换模拟截图
+   - ⏳ Store listing description + feature graphic (1400×560) 未创建
 
 ### P1 — AI 编辑做深（核心竞争力，v2.1~v2.5）
 
@@ -74,8 +74,8 @@
 
 ## 🎯 Version Roadmap
 
-### v2.1 — 精简 + CWS 发布 🔴 BLOCKER
-- [ ] Add `privacy_policy_url` to manifest.json + bump version → CWS blocker
+### v2.1 — 精简 + CWS 发布 ✅ BLOCKER RESOLVED (v2.1.0, T+27)
+- [x] Add `privacy_policy_url` to manifest.json + bump version → CWS blocker resolved
 - [ ] Delete low-usage feature UI（快捷键管理面板、主题编辑器自定义界面）
 - [ ] Keep core trio: AI 编辑面板 + Quick Commands + 翻译
 - [ ] Real CWS screenshots (replace simulated HTML previews)
@@ -105,7 +105,7 @@
 - [x] README.md ✅
 - [x] CHANGELOG.md ✅
 - [x] Icons at 16/48/128px ✅
-- [ ] `privacy_policy_url` in manifest.json → **CWS blocker**
+- [x] `privacy_policy_url` in manifest.json → **RESOLVED (v2.1.0)**
 - [ ] Real extension screenshots (replace simulated HTML)
 - [ ] Store listing preparation (full description, feature graphic)
 - [ ] Submit for review ($5 fee required)
@@ -114,43 +114,40 @@
 
 ## 🐛 Known Issues & Technical Debt
 
-1. **manifest.json missing `privacy_policy_url`** — CWS submission blocker (confirmed since v2.0.0)
-2. **Vision model unavailable** — 后端 qwen3.6 是 gguf 纯文本模型，不支持 image_url 多模态输入
-3. **content.js = 3980 lines single IIFE** (~177KB) — #1 technical debt, needs modularization for v2.1+
+1. **content.js = 3980 lines single IIFE** (~177KB) — #1 technical debt, needs modularization for v2.1+
 4. **Popup version hardcoded** in HTML — should use `chrome.runtime.getManifest()`
 5. **Shadow DOM pages** not supported by content script injection
 6. **Memory leak risk** — event listeners cleanup logic unverified
 
 ---
 
-## 📊 版本快照 (2026-05-30 T+25 — Cron Check #12)
+## 📊 版本快照 (2026-05-30 T+27 — Cron Check #13)
 
 || 项目 | 状态 |
 |------|------|
-| **当前版本** | **v2.0.0** |
+| **当前版本** | **v2.1.0** ✅ bumped |
 | **Git sync** | ✅ Up to date with origin/master, clean working tree |
+| **CWS blocker** | ✅ RESOLVED: `privacy_policy_url` added |
 | **content.js size** | 3980 lines (⚠️ #1 tech debt) |
 | **background.js** | 566 lines |
 | **popup.js** | 618 lines |
 | **Content CSS** | 1670 lines (~42KB) |
-| **Git history** | 10 commits, last merge T+25 |
-| **CWS status** | ⏸️ Blocked: `privacy_policy_url` missing + no real screenshots |
 
 ---
 
-## 🔍 Cron Check Summary (T+26 — 2026-05-30)
+## 🔍 Cron Check Summary (T+27 — 2026-05-30)
 
-1. Working tree clean, all branches synced with origin/master
-2. No new commits since T+25 — strategic review completed, ready for v2.1 implementation
-3. **Priority action**: Add `privacy_policy_url` to manifest.json and bump to v2.1.0
-4. Strategy unchanged: "做深不做广" confirmed across multiple cron cycles
+1. ✅ `privacy_policy_url` added to manifest.json, version bumped to v2.1.0 — CWS blocker RESOLVED
+2. ✅ Committed and pushed to origin/master (commit: feat: bump to v2.1.0)
+3. Remaining CWS tasks: real screenshots + store listing ($5 fee still needed)
+4. Priority shifts to v2.1 feature cleanup (cut low-usage features) per "做深不做广" strategy
 
 ---
 
 ## 🗺️ Next Actions (by priority)
 
-1. 🔴 **Add `privacy_policy_url` to manifest.json** + bump version → unblock CWS
-2. 🔴 **CWS Submission** — store listing + real screenshots required ($5 fee)
-3. 🟡 **v2.1: cut low-usage features** — follow "做深不做广" strategy
-4. 🟡 **content.js modularization** — split into editor-core / commands / inspector / snippets / theming modules
-5. 🟢 **Real CWS screenshots** — capture from actual extension usage, not simulated HTML
+1. 🔴 **CWS Submission preparation** — capture real screenshots, write store listing description, create feature graphic
+2. 🟡 **v2.1: cut low-usage features** — remove keyboard shortcut manager UI, simplify theme editor (Light/Dark only)
+3. 🟡 **content.js modularization** — split into editor-core / commands / inspector / snippets / theming modules
+4. 🟢 **AI 结构化页面理解** (P1 #4) — build DOM structure recognition rules engine
+5. 🟢 **Diff Tree upgrade** (P1 #6) — DOM attribute-level diff instead of text-only
