@@ -17,7 +17,7 @@
 
 这些方向会分散资源，阻碍核心竞争力的建立：
 
-| # | 功能 | 为什么不推荐 | 替代方案 |
+|| # | 功能 | 为什么不推荐 | 替代方案 |
 |---|------|-------------|---------|
 | ❌ 1 | **付费订阅后端** | 在核心产品没验证 PMF 之前做商业化太早 | 先免费积累用户，v3.0+ 再考虑 |
 | ❌ 2 | **更多功能堆叠** (v2.0 已有十几个功能) | 工具箱合集 = 没有特色，用户记不住卖点 | 砍功能，做精品 |
@@ -29,7 +29,7 @@
 
 ## ✅ 建议做的（按优先级排序）
 
-### P0 — 立即执行（砍功能 + 精简体验）
+### P0 — 立即执行（砍功能 + CWS 发布）
 
 1. **审查并删除低使用率功能模块**
    - 快捷键管理器 → 只保留 manifest.json 的 `chrome.commands`，删掉 popup UI
@@ -37,12 +37,13 @@
    - CSS Rules Panel（如果存在）→ 合并到 Quick Commands 里
 
 2. **重构核心交互流程** — 当前点击"AI Web Editor"图标弹出 popup 再选功能，太慢
-   - 改为：右键元素 → 直接出现 AI 编辑面板（不需要先开 popup 再选编辑器 tab）
+   - 改为：右键元素 → 直接出现 AI 编辑面板
    - 或者：选中文字后浮出 mini-toolbar（类似浏览器原生右键菜单的增强版）
 
-3. **CWS 发布前的真实截图** — 当前用的是模拟 HTML 页面生成的截图
-   - 需要在实际扩展中截取真图
-   - CWS 审核不通过的风险极高
+3. **CWS 发布** — `privacy-policy_url` missing from manifest.json (CWS blocker)
+   - 必须在 manifest.json 添加 `"privacy_policy_url"` 字段并 bump version
+   - 需要真实截图替换模拟截图
+   - Store listing description + feature graphic (1400×560) 未创建
 
 ### P1 — AI 编辑做深（核心竞争力，v2.1~v2.5）
 
@@ -60,36 +61,26 @@
    - 显示哪些 CSS 属性被改、哪些 HTML 标签变了、哪些新节点被添加
 
 7. **翻译能力超越沉浸式翻译**
-   - 现有自动检测 + 多语言是好的基础
-   - 增强：在页面元素上直接展示翻译结果（非覆盖式，而是类似 Google Translate 的 inline tooltip）
+   - 增强：在页面元素上直接展示翻译结果（inline tooltip 非覆盖式）
    - 支持"解释性翻译" — 不仅翻译文字，还解释文化背景差异
 
 ### P2 — PMF 验证 + 杀手级场景（v2.5+）
 
-8. **找到并深耕一个杀手级场景** — 在以下方向中验证哪个有真实需求：
-   - A: **信息抽取** — 圈选电商页面数据 → 一键导出表格
-   - B: **无障碍改造** — 临时给页面添加 alt 文本、对比度调整（视障用户辅助）
-   - C: **社交媒体内容生成** — 选中产品描述 → AI 改写为小红书/抖音文案风格
-
-9. **缓存 + 离线能力**
-   - 当前每次编辑都要调 AI API，成本高且依赖网络
-   - 建立页面结构缓存，智能识别"上次已处理过的区域"
-   - Diff 结果本地缓存，支持快速恢复
-
-10. **Content script 性能优化**
-    - profile content.js 加载时间
-    - 审查事件监听器清理逻辑（内存泄漏排查）
-    - Service Worker 消息可靠性
+8. **找到并深耕一个杀手级场景** — A: 信息抽取 / B: 无障碍改造 / C: 社交媒体内容生成
+9. **缓存 + 离线能力** — 页面结构缓存，降低 API 成本
+10. **Content script 性能优化** — profile、内存泄漏排查
 
 ---
 
 ## 🎯 Version Roadmap
 
-### v2.1 — 精简 + CWS 发布
-- [ ] 删除低使用率功能 UI（快捷键管理面板、主题编辑器自定义界面、CSS Rules Panel）
-- [ ] 保留 core：AI 编辑面板 + Quick Commands + 翻译（核心三件套）
-- [ ] 真实截图替换模拟截图
-- [ ] Chrome Web Store 提交
+### v2.1 — 精简 + CWS 发布 🔴 BLOCKER
+- [ ] Add `privacy_policy_url` to manifest.json + bump version → CWS blocker
+- [ ] Delete low-usage feature UI（快捷键管理面板、主题编辑器自定义界面）
+- [ ] Keep core trio: AI 编辑面板 + Quick Commands + 翻译
+- [ ] Real CWS screenshots (replace simulated HTML previews)
+- [ ] Store listing: description, short description, feature graphic (1400×560)
+- [ ] Submit for CWS review ($5 fee)
 
 ### v2.2 — AI 结构化理解 + Diff Tree
 - [ ] 页面结构识别规则引擎
@@ -107,57 +98,59 @@
 
 ---
 
-## 📦 CWS Release Checklist (Updated)
+## 📦 CWS Release Checklist
 
 - [x] Privacy policy page ✅
 - [x] LICENSE (MIT) ✅
 - [x] README.md ✅
 - [x] CHANGELOG.md ✅
-- [x] Screenshots generated (simulated) — ⚠️ 需要替换为真实截图
-- [ ] CWS store listing preparation (description, feature graphic)
-- [ ] Submit for review
+- [x] Icons at 16/48/128px ✅
+- [ ] `privacy_policy_url` in manifest.json → **CWS blocker**
+- [ ] Real extension screenshots (replace simulated HTML)
+- [ ] Store listing preparation (full description, feature graphic)
+- [ ] Submit for review ($5 fee required)
 
 ---
 
-## 🐛 Current Bugs / Known Issues
+## 🐛 Known Issues & Technical Debt
 
-1. **Vision 模型不可用** — 后端 qwen3.6 是 gguf 纯文本模型，不支持 image_url 多模态输入。需要换用 Qwen2-VL 或类似的多模态模型。
-2. *(Add discovered issues here)*
+1. **manifest.json missing `privacy_policy_url`** — CWS submission blocker (confirmed since v2.0.0)
+2. **Vision model unavailable** — 后端 qwen3.6 是 gguf 纯文本模型，不支持 image_url 多模态输入
+3. **content.js = 3980 lines single IIFE** (~177KB) — #1 technical debt, needs modularization for v2.1+
+4. **Popup version hardcoded** in HTML — should use `chrome.runtime.getManifest()`
+5. **Shadow DOM pages** not supported by content script injection
+6. **Memory leak risk** — event listeners cleanup logic unverified
 
 ---
 
-## 📊 版本快照 (2026-05-30 T+25 — Cron Check #11)
+## 📊 版本快照 (2026-05-30 T+25 — Cron Check #12)
 
-| 项目 | 状态 |
+|| 项目 | 状态 |
 |------|------|
-| **当前版本** | **v2.0.0** ✅ (CWS Release Prep Complete) |
-| **Git sync** | 🔄 Merge conflict in TODO.md, resolving... |
-| **content.js size** | 3980 lines (⚠️ needs modularization) |
-| **background.js** | 566 lines ✅ |
-| **popup.js** | 618 lines ✅ |
-| **Content CSS** | 42KB — growing, needs cleanup |
-| **CWS Assets** | ✅ 5 screenshots, CSP configured, privacy policy, LICENSE |
-| **Manifest V3** | ⚠️ `privacy-policy_url` missing from manifest (CWS blocker) |
+| **当前版本** | **v2.0.0** |
+| **Git sync** | ✅ Up to date with origin/master, clean working tree |
+| **content.js size** | 3980 lines (⚠️ #1 tech debt) |
+| **background.js** | 566 lines |
+| **popup.js** | 618 lines |
+| **Content CSS** | 1670 lines (~42KB) |
+| **Git history** | 10 commits, last merge T+25 |
+| **CWS status** | ⏸️ Blocked: `privacy_policy_url` missing + no real screenshots |
 
-## 🔍 T+25 Cron Check Findings (2026-05-30)
+---
 
-1. **Merge conflict resolved** — strategic roadmap (remote) + operational snapshot (local) merged into single TODO.md
-2. **privacy-policy_url still missing from manifest.json** — CWS submission blocker confirmed again
-3. **content.js at 3980 lines** — modularization is the #1 technical debt item for v2.1+
-4. **Strategy validated**: "做深不做广" (depth over breadth) — cut low-usage features, focus on core AI editing
+## 🔍 Cron Check Summary (T+26 — 2026-05-30)
 
-## 🗺️ 下一步建议
+1. Working tree clean, all branches synced with origin/master
+2. No new commits since T+25 — strategic review completed, ready for v2.1 implementation
+3. **Priority action**: Add `privacy_policy_url` to manifest.json and bump to v2.1.0
+4. Strategy unchanged: "做深不做广" confirmed across multiple cron cycles
 
-按优先级排序：
+---
 
-1. 🔴 **Add `privacy-policy_url` to manifest.json** — absolute CWS submission blocker
-2. 🔴 **CWS Submission** — all assets ready ($5 fee required). Store listing description + feature graphic needed
-3. 🟡 **content.js modularization** — 3980 lines single file; split into editor-core, commands, inspector, snippets, theming
-4. 🟡 **v2.1: cut low-usage features + Snippet Library UI + Export/Import settings** — follow "做深不做广" strategy
-5. 🟢 **Real CWS screenshots** — current screenshots are simulated HTML previews; need real extension screenshots
+## 🗺️ Next Actions (by priority)
 
-## 💰 商业化路线图
-
-## 📊 Feature Usage Analytics (TBD)
-
-*Need to implement basic usage tracking to determine which features users actually use.*
+1. 🔴 **Add `privacy_policy_url` to manifest.json** + bump version → unblock CWS
+2. 🔴 **CWS Submission** — store listing + real screenshots required ($5 fee)
+3. 🟡 **v2.1: cut low-usage features** — follow "做深不做广" strategy
+4. 🟡 **content.js modularization** — split into editor-core / commands / inspector / snippets / theming modules
+5. 🟢 **Real CWS screenshots** — capture from actual extension usage, not simulated HTML
