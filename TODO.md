@@ -74,13 +74,18 @@
 
 ## 🎯 Version Roadmap
 
-### v2.1 — 精简 + CWS 发布 ✅ BLOCKER RESOLVED (v2.1.0, T+27)
+### v2.1 — 精简 + CWS 发布 ✅ BLOCKER RESOLVED (v2.1.0)
 - [x] Add `privacy_policy_url` to manifest.json + bump version → CWS blocker resolved
 - [ ] Delete low-usage feature UI（快捷键管理面板、主题编辑器自定义界面）
 - [ ] Keep core trio: AI 编辑面板 + Quick Commands + 翻译
 - [ ] Real CWS screenshots (replace simulated HTML previews)
 - [ ] Store listing: description, short description, feature graphic (1400×560)
 - [ ] Submit for CWS review ($5 fee)
+
+### v2.1+ — Context Menu Integration ✅ WORK IN PROGRESS
+- [x] Right-click → "✦ AI Web Editor — Edit this element" directly selects and opens panel
+- [x] Quick Actions submenu (Translate CN/EN, Copy HTML/Text) via contextMenus API
+- [ ] Full PMF validation of UX change: right-click vs floating button workflow comparison
 
 ### v2.2 — AI 结构化理解 + Diff Tree
 - [ ] 页面结构识别规则引擎
