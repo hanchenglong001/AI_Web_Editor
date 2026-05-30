@@ -4,10 +4,25 @@
 chrome.runtime.onInstalled.addListener(() => {
   console.log('[AI Web Editor] Installed');
   chrome.contextMenus.create({
-    id: 'awe-edit-selected',
-    title: 'AI Web Editor — Edit this element',
-    contexts: ['all'],
-  });
+      id: 'awe-edit-selected',
+      title: '✦ AI Web Editor — Edit this element',
+      contexts: ['all'],
+    });
+    // Add quick-action submenu for common operations
+    chrome.contextMenus.create({
+      id: 'awe-submenu',
+      title: 'Quick Actions',
+      contexts: ['all'],
+    });
+    const QUICK_ITEMS = [
+      { id: 'awe-translate-zh', parentId: 'awe-submenu', title: '🇨🇳 Translate → Chinese', contexts: ['image', 'selection', 'link'], targetUrlPatterns: ['*://*/*'] },
+      { id: 'awe-translate-en', parentId: 'awe-submenu', title: '🇺🇸 Translate → English', contexts: ['image', 'selection', 'link'] },
+      { id: 'awe-copy-html', parentId: 'awe-submenu', title: '📋 Copy Element HTML', contexts: ['all'] },
+      { id: 'awe-copy-text', parentId: 'awe-submenu', title: '📝 Copy Text Content', contexts: ['all'] },
+    ];
+    for (let i = 0; i < QUICK_ITEMS.length; i++) {
+      chrome.contextMenus.create(QUICK_ITEMS[i]);
+    }
   chrome.storage.sync.get(['apiKey'], (result) => {
     if (!result.apiKey) {
       console.log('[AI Web Editor] No API key set. Using local fallback mode.');
@@ -324,15 +339,48 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
    return false;
   });
 
-// Handle context menu clicks
+// Handle context menu clicks — right-click to edit or perform quick action
 chrome.contextMenus.onClicked.addListener((info, tab) => {
-  chrome.scripting.executeScript({
-    target: { tabId: tab.id },
-    function: () => {
-      const btn = document.getElementById('awe-trigger-btn');
-      if (btn) btn.click();
-    },
-  });
+  if (info.menuItemId === 'awe-edit-selected') {
+    // Get mouse position and pass to content script
+    chrome.tabs.sendMessage(tab.id, {
+      action: 'awe-get-mouse-position',
+    }, (mousePos) => {
+      if (chrome.runtime.lastError || !mousePos) {
+        console.error('[AWEditor] Cannot get mouse position');
+        return;
+      }
+      chrome.tabs.sendMessage(tab.id, {
+        action: 'awe-context-menu-edit',
+        rect: mousePos,
+      }, (response) => {
+        if (chrome.runtime.lastError) {
+          console.error('[AWEditor] Context menu error:', chrome.runtime.lastError.message);
+        }
+      });
+    });
+  } else if (info.menuItemId === 'awe-translate-zh') {
+    // Translate to Chinese
+    chrome.tabs.sendMessage(tab.id, {
+      action: 'awe-quick-action',
+      type: 'translate',
+      targetLang: 'Chinese',
+      text: info.selectionText || '',
+      srcUrl: info.srcUrl || '',
+    }, () => {});
+  } else if (info.menuItemId === 'awe-translate-en') {
+    chrome.tabs.sendMessage(tab.id, {
+      action: 'awe-quick-action',
+      type: 'translate',
+      targetLang: 'English',
+      text: info.selectionText || '',
+      srcUrl: info.srcUrl || '',
+    }, () => {});
+  } else if (info.menuItemId === 'awe-copy-html') {
+    chrome.tabs.sendMessage(tab.id, { action: 'awe-quick-action', type: 'copy-html' }, () => {});
+  } else if (info.menuItemId === 'awe-copy-text') {
+    chrome.tabs.sendMessage(tab.id, { action: 'awe-quick-action', type: 'copy-text', text: info.selectionText || '' }, () => {});
+  }
 });
 
 // ============================================================

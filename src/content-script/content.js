@@ -3594,13 +3594,100 @@
        });
      }
 
-     // Listen for apply-snippet messages from popup
+     // Listen for messages from background script and popup
       chrome.runtime.onMessage.addListener(function(message, sender, sendResponse) {
+        // Handle apply-snippet from popup
         if (message.action === 'apply-snippet' && message.content) {
           applySnippetFromPopup(message.content);
         }
-      });
 
+        // Handle context menu right-click to edit element directly
+        if (message.action === 'awe-context-menu-edit') {
+          try {
+            var rect = message.rect;
+            var elAtPoint = document.elementFromPoint(rect.x, rect.y);
+            if (elAtPoint && elAtPoint.closest('#awe-editor-panel') === null && elAtPoint.closest('#awe-trigger-btn') === null) {
+              var targetEl = elAtPoint;
+              selectedElement = targetEl;
+              highlightElement(targetEl);
+              updatePreview(targetEl);
+              if (!isOpen) { openPanel(); }
+              showStatus('已从右键选中: <' + targetEl.tagName.toLowerCase() + '>', '');
+              sendResponse({ success: true });
+            } else {
+              sendResponse({ success: false, message: 'No element found at click position' });
+            }
+          } catch(e) {
+            console.error('[AWEditor] Context menu error:', e);
+            sendResponse({ success: false, message: e.message });
+          }
+        }
+
+        // Handle context menu highlight (preview)
+        if (message.action === 'awe-context-menu-highlight') {
+          try {
+            var hoverEl = document.elementFromPoint(message.x, message.y);
+            if (hoverEl && !hoverEl.closest('#awe-editor-panel') && !hoverEl.closest('#awe-trigger-btn')) {
+              clearHighlight();
+              highlightElement(hoverEl);
+            } else {
+              clearHighlight();
+            }
+          } catch(e) {}
+        }
+      });
+        // Handle get mouse position from background
+        if (message.action === 'awe-get-mouse-position') {
+          try {
+            // Get the last known right-click position from the document
+            sendResponse({ x: window._awe_lastRightClickX || 0, y: window._awe_lastRightClickY || 0 });
+          } catch(e) {
+            sendResponse(null);
+          }
+        }
+
+        // Handle quick actions from context menu
+        if (message.action === 'awe-quick-action') {
+          try {
+            const qa = message;
+            if (qa.type === 'copy-html') {
+              // Find element at center of viewport or use selection
+              const targetEl = document.elementFromPoint(window.innerWidth/2, window.innerHeight/2);
+              if (targetEl && !targetEl.closest('#awe-editor-panel')) {
+                navigator.clipboard.writeText(targetEl.outerHTML).then(() => {
+                  showToast('HTML copied!', 'success');
+                }).catch(() => {});
+              }
+            } else if (qa.type === 'copy-text') {
+              if (qa.text) {
+                navigator.clipboard.writeText(qa.text).then(() => {
+                  showToast('Text copied!', 'success');
+                }).catch(() => {});
+              }
+            } else if (qa.type === 'translate') {
+              // Open panel with translation command
+              if (!isOpen) openPanel();
+              if (!selectedElement && qa.srcUrl) {
+                selectedElement = document.body;
+              }
+              const cmdText = `Translate this text to ${qa.targetLang}.`;
+              const inputEl = document.getElementById('awe-command-input');
+              if (inputEl) inputEl.value = cmdText;
+              // Switch to AI tab
+              document.querySelectorAll('.awe-tab-btn').forEach(b => b.classList.remove('active'));
+              document.querySelectorAll('.awe-tab-panel').forEach(p => p.classList.remove('active'));
+              const aiTabBtn = document.querySelector('.awe-tab-btn[data-tab="ai"]');
+              if (aiTabBtn) aiTabBtn.classList.add('active');
+              const tabAi = document.getElementById('tab-ai');
+              if (tabAi) tabAi.classList.add('active');
+              showToast(`Translation to ${qa.targetLang} ready!`, 'success');
+            }
+            sendResponse({ success: true });
+          } catch(e) {
+            console.error('[AWEditor] Quick action error:', e);
+            sendResponse({ success: false, message: e.message });
+          }
+        }
       // ============================================================
       // Element Inspector Tab (v1.8) — DOM tree + Computed Style
       // ============================================================
@@ -3976,5 +4063,12 @@
           applyCustomTheme(message.theme);
         }
       });
+
+  // Track right-click position for context menu usage
+  document.addEventListener('contextmenu', function(e) {
+    window._awe_lastRightClickX = e.clientX;
+    window._awe_lastRightClickY = e.clientY;
+  });
+
 
 })();
