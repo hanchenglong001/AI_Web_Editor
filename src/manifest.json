@@ -1,8 +1,9 @@
 {
   "manifest_version": 3,
   "name": "AI Web Editor",
-  "version": "2.0.0",
-  "description": "Click any element on a webpage and use AI to modify its content or style in real-time.",
+  "version": "2.1.0",
+   "description": "AI-powered web page editor: modify any element's content, style, or layout using natural language commands.",
+   "privacy_policy_url": "https://github.com/hanchenglong001/AI_Web_Editor/blob/main/privacy-policy.html",
   "permissions": [
     "activeTab",
     "storage",
