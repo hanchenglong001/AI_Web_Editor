@@ -1,75 +1,137 @@
-# AI Web Editor — TODO / Roadmap
+# AI Web Editor — Strategy + Development Roadmap
 
-## ✅ Completed
+## 📐 产品战略方向（AI Agent 分析结论）
 
-| Version | Features | Status |
-|---------|----------|--------|
-| v1.0 | Basic AI element editing, commands | ✅ |
-| v1.1 | Undo/redo, HTML editor, theme toggle, FAB | ✅ |
-| v1.2 | Model selector (Qwen/Gemini/GPT), token tracking | ✅ |
-| v1.3 | Batch edit mode, custom CSS rules, code highlight | ✅ |
-| v1.4 | Context menu submenu, full page HTML export | ✅ |
-| v1.5 | Flat→src/ refactor, CSP fix, dynamic version | ✅ |
-| v1.6 | Diff Preview, Element History, Translate Overlay, CSS Rules Panel | ✅ |
-| v1.7 | Review Mode, Snippet Library, Auto-Detect Language, Code Highlight Editor | ✅ |
-| v1.8 | Element Inspector tab (DOM tree + Computed Style) | ✅ |
-| v1.9 | Quick Commands palette, Multi-lang Translate, Theme Editor, Keyboard Shortcuts + Global Hotkey | ✅ |
-| v2.0 | Chrome Web Store release prep (privacy policy, LICENSE, README, CHANGELOG, CSP update) | ✅ |
+### ✅ 核心方向 — "做深不做广"
+
+**当前问题**: v1.0~v2.0 堆了十几个功能，每个都做了但没一个做到极致。用户不需要更多按钮，需要更好的体验。
+
+**正确策略**:
+- **砍掉不常用的功能**（快捷键管理器、主题编辑器等）— 精简到核心 3-5 个功能
+- **把 AI 编辑能力做深** — 这是唯一有护城河的地方
+- **找到一个杀手级场景**，做到"卧槽这好用"而非十个"还行吧"
 
 ---
 
-## 🎯 Planned — v2.1
+## 🔴 不建议做的（优先级最低）
 
-### Must-have for CWS approval
-- [ ] **Permissions justification** — Add `tabs` permission manifest entry if not present
-- [ ] **Icon optimization** — Generate proper Web Store icons (128px, 48px, 32px) via PNG optimization tools
-- [ ] **Screenshot quality review** — Verify 5 screenshots meet CWS requirements (1280x800 recommended)
+这些方向会分散资源，阻碍核心竞争力的建立：
 
-### User-facing features
-- [ ] **Snippet Library UI** — Dedicated snippet management panel in popup with CRUD operations
-- [ ] **Export/Import settings** — Backup/restore user preferences as JSON file
-- [ ] **Batch mode improvements** — Bulk edit across multiple matching elements with preview
-- [ ] **Custom CSS Presets** — 10+ CSS effect presets (blur, grayscale, contrast, sepia, etc.)
-
-### Technical improvements
-- [ ] **Content script performance** — Profile and optimize content.js loading time
-- [ ] **Memory leak fix** — Review event listener cleanup in content scripts
-- [ ] **Service Worker optimization** — Background worker message handling reliability
-- [ ] **Error boundaries** — Graceful degradation when AI API fails
+| # | 功能 | 为什么不推荐 | 替代方案 |
+|---|------|-------------|---------|
+| ❌ 1 | **付费订阅后端** | 在核心产品没验证 PMF 之前做商业化太早 | 先免费积累用户，v3.0+ 再考虑 |
+| ❌ 2 | **更多功能堆叠** (v2.0 已有十几个功能) | 工具箱合集 = 没有特色，用户记不住卖点 | 砍功能，做精品 |
+| ❌ 3 | **继续堆模板/命令** (已有 27+ 命令) | 用户不知道怎么用，反而增加认知负担 | 精简为最常用的 5-8 个 |
+| ❌ 4 | **跨浏览器支持** (Edge/Firefox/Safari) | 资源有限时应先做好 Chrome 扩展 | Chrome 验证 PMF 后再说 |
+| ❌ 5 | **协作/团队编辑** | 偏离核心场景，开发成本极高 | 不考虑 |
 
 ---
 
-## 🚀 Future — v2.x+
+## ✅ 建议做的（按优先级排序）
 
-### Major features
-- [ ] **AI Image generation/editing** — Generate or modify images directly in-page via AI
-- [ ] **Web page screenshot export** — Save modified page as HTML/PNG with all changes applied
-- [ ] **Multi-tab editing** — Apply same edit across multiple open tabs simultaneously
-- [ ] **AI-powered form filling** — Auto-fill forms using AI understanding of context
-- [ ] **Accessibility auditing** — Detect and suggest accessibility improvements (WCAG)
+### P0 — 立即执行（砍功能 + 精简体验）
 
-### Integrations
-- [ ] **GitHub/VSCode sync** — Sync snippets and themes to GitHub/GitLab
-- [ ] **Browser profile support** — Different AI settings per browser profile
-- [ ] **Collaborative editing** — Share editor state with team members in real-time
+1. **审查并删除低使用率功能模块**
+   - 快捷键管理器 → 只保留 manifest.json 的 `chrome.commands`，删掉 popup UI
+   - 主题编辑器 → 只保留 Light/Dark 切换按钮，删掉自定义色板/保存/管理面板
+   - CSS Rules Panel（如果存在）→ 合并到 Quick Commands 里
+
+2. **重构核心交互流程** — 当前点击"AI Web Editor"图标弹出 popup 再选功能，太慢
+   - 改为：右键元素 → 直接出现 AI 编辑面板（不需要先开 popup 再选编辑器 tab）
+   - 或者：选中文字后浮出 mini-toolbar（类似浏览器原生右键菜单的增强版）
+
+3. **CWS 发布前的真实截图** — 当前用的是模拟 HTML 页面生成的截图
+   - 需要在实际扩展中截取真图
+   - CWS 审核不通过的风险极高
+
+### P1 — AI 编辑做深（核心竞争力，v2.1~v2.5）
+
+4. **结构化页面理解**（护城河功能）
+   - 不是盲目传整个 HTML 给 LLM，而是先用规则分析页面结构（导航、文章区、侧边栏、表格）
+   - 识别元素语义：是按钮？标题？正文？图片描述？
+   - 只对需要编辑的区域调用 AI API，降低成本 + 提高精度
+
+5. **智能批量操作**（差异化场景）
+   - 检测到全站 N 个同类元素 → 提示"发现 X 个相同样式的按钮，是否统一修改？"
+   - 用户确认后一次性批量应用 AI 修改
+
+6. **Diff Preview 升级为 Diff Tree**
+   - 当前只对比文本差异 → 升级到 DOM 属性级（class、style、textContent、attributes）
+   - 显示哪些 CSS 属性被改、哪些 HTML 标签变了、哪些新节点被添加
+
+7. **翻译能力超越沉浸式翻译**
+   - 现有自动检测 + 多语言是好的基础
+   - 增强：在页面元素上直接展示翻译结果（非覆盖式，而是类似 Google Translate 的 inline tooltip）
+   - 支持"解释性翻译" — 不仅翻译文字，还解释文化背景差异
+
+### P2 — PMF 验证 + 杀手级场景（v2.5+）
+
+8. **找到并深耕一个杀手级场景** — 在以下方向中验证哪个有真实需求：
+   - A: **信息抽取** — 圈选电商页面数据 → 一键导出表格
+   - B: **无障碍改造** — 临时给页面添加 alt 文本、对比度调整（视障用户辅助）
+   - C: **社交媒体内容生成** — 选中产品描述 → AI 改写为小红书/抖音文案风格
+
+9. **缓存 + 离线能力**
+   - 当前每次编辑都要调 AI API，成本高且依赖网络
+   - 建立页面结构缓存，智能识别"上次已处理过的区域"
+   - Diff 结果本地缓存，支持快速恢复
+
+10. **Content script 性能优化**
+    - profile content.js 加载时间
+    - 审查事件监听器清理逻辑（内存泄漏排查）
+    - Service Worker 消息可靠性
 
 ---
 
-## 📦 Release Checklist (CWS)
+## 🎯 Version Roadmap
 
-- [ ] Review all 5 screenshots meet CWS quality standards
-- [ ] Update `privacy-policy_url` in manifest
-- [ ] Prepare store listing:
-  - [ ] Full description (~4000 chars)
-  - [ ] Short description (~132 chars)  
-  - [ ] Screenshots (desktop + mobile if applicable)
-  - [ ] Feature graphic (1400x560)
-  - [ ] Promotional video (optional)
+### v2.1 — 精简 + CWS 发布
+- [ ] 删除低使用率功能 UI（快捷键管理面板、主题编辑器自定义界面、CSS Rules Panel）
+- [ ] 保留 core：AI 编辑面板 + Quick Commands + 翻译（核心三件套）
+- [ ] 真实截图替换模拟截图
+- [ ] Chrome Web Store 提交
+
+### v2.2 — AI 结构化理解 + Diff Tree
+- [ ] 页面结构识别规则引擎
+- [ ] DOM 级 diff tree 对比
+- [ ] 智能批量操作提示
+
+### v2.3 — 杀手级场景验证
+- [ ] 选择 A/B/C 中的一个方向深入开发
+- [ ] 用户反馈收集机制（内置简单 survey）
+- [ ] PMF 指标定义和跟踪
+
+### v3.0+ — 商业化
+- [ ] PMF 验证后考虑轻量付费功能
+- [ ] API 用量优化（缓存策略落地）
+
+---
+
+## 📦 CWS Release Checklist (Updated)
+
+- [x] Privacy policy page ✅
+- [x] LICENSE (MIT) ✅
+- [x] README.md ✅
+- [x] CHANGELOG.md ✅
+- [x] Screenshots generated (simulated) — ⚠️ 需要替换为真实截图
+- [ ] CWS store listing preparation (description, feature graphic)
 - [ ] Submit for review
-- [ ] Monitor CWS feedback and iterate
 
 ---
 
-## 🐛 Bug Fixes / Issues
+## 🐛 Current Bugs / Known Issues
 
-*(Add discovered issues here with reproduction steps)*
+1. **Vision 模型不可用** — 后端 qwen3.6 是 gguf 纯文本模型，不支持 image_url 多模态输入。需要换用 Qwen2-VL 或类似的多模态模型。
+2. *(Add discovered issues here)*
+
+---
+
+## 📊 Feature Usage Analytics (TBD)
+
+*Need to implement basic usage tracking to determine which features users actually use, so we can make data-driven decisions about what to cut.*
+
+Suggested metrics:
+- Which Quick Commands are most used?
+- How often is Translate vs Edit vs Style triggered?
+- Average session duration
+- Features that are never opened
