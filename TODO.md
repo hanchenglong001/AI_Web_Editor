@@ -130,26 +130,36 @@
 | **CWS blocker** | ✅ RESOLVED: `privacy_policy_url` added (v2.1.0) |
 | **content.js size** | 3980 lines (⚠️ #1 tech debt) |
 | **background.js** | 566 lines |
-| **popup.js** | 618 lines |
-| **Content CSS** | 1670 lines (~42KB) |
-| **总行数** | ~6834 lines (v2.0 T+21 → +42% 膨胀, still same codebase) |
+## 📊 版本快照 (2026-05-30 T+31 — Cron Check #15)
+
+|||| 项目 | 状态 |\n||------|------||\n|| **当前版本** | **v2.1.0** ✅ ||\n|| **Git sync** | ✅ Up to date with origin/master, clean working tree ||\n|| **CWS blocker** | ✅ RESOLVED: `privacy_policy_url` added (v2.1.0) ||\n|| **content.js size** | 3980 lines (⚠️ #1 tech debt, no progress since T+27) ||\n|| **background.js** | 566 lines ||\n|| **popup.js** | 618 lines ||\n|| **Content CSS** | 1670 lines (~42KB) ||\n|| **总行数** | ~6834 lines — frozen codebase, no new features since T+27 ||
+|| **README version badge** | ⚠️ Still shows v2.0.0 (not updated to v2.1.0) ||
+|| **CWS screenshots** | 5 PNG files (~20KB each) — size suggests mock/placeholder images, NOT real extension captures ||
 
 ---
 
-## 🔍 Cron Check Summary (T+30 — 2026-05-30)
+## 🔍 Cron Check Summary (T+31 — 2026-05-30)
 
-1. ✅ Repository clean, fully synced with origin/master — no new functional commits since T+29
+1. ✅ Repository clean, fully synced with origin/master — no functional changes since T+30
 2. ✅ CWS blocker (`privacy_policy_url`) still resolved in v2.1.0 commit `7def34b`
-3. ⚠️ content.js unchanged at 3980 lines — no progress on low-usage feature removal yet
-4. manifest.json verified: v2.1.0, MV3, all required assets present (icons 16/48/128, CSP configured)
-5. Project is in stable state, awaiting next iteration cycle
+3. ⚠️ codebase completely frozen since T+27 — content.js still 3980 lines, no feature work happening
+4. ⚠️ README.md version badge still says v2.0.0 (should be v2.1.0)
+5. ⚠️ Screenshots are ~20KB PNG files — likely auto-generated mocks, not real extension screenshots for CWS review
+6. 🔴 No active development on P0 tasks (cut features + CWS submission prep) since last cron cycle
 
 ---
 
-## 🗺️ Next Actions (by priority)
+## 🗺️ Next Actions (by priority, T+31 update)
 
-1. 🔴 **v2.1: cut low-usage features** — remove keyboard shortcut manager popup UI, simplify theme editor to Light/Dark toggle only
-2. 🔴 **CWS submission prep** — real extension screenshots (not HTML mocks), store listing description, feature graphic (1400×560), $5 fee
-3. 🟡 **content.js modularization** — split into editor-core / commands / inspector / snippets / theming modules
-4. 🟢 **AI 结构化页面理解** (P1 #4) — DOM structure recognition rules engine before calling LLM
-5. 🟢 **Diff Tree upgrade** (P1 #6) — DOM attribute-level diff vs. current text-only diff
+1. 🔴 **Fix README version badge** — change v2.0.0 → v2.1.0 (5-min fix, should have been done at release)
+2. 🔴 **CWS submission prep (highest value)** — generate REAL screenshots using the capture scripts in `screenshots/`, write store listing description, create feature graphic (1400×560), prepare $5 CWS developer account fee
+3. 🔴 **v2.1: cut low-usage features** — remove keyboard shortcut manager popup UI, simplify theme editor to Light/Dark toggle only (enables leaner user experience)
+4. 🟡 **content.js modularization** — split into editor-core / commands / inspector / snippets / theming modules (currently 3980-line single IIFE is unmaintainable)
+5. 🟢 **AI 结构化页面理解** (P1 #4) — DOM structure recognition rules engine before calling LLM
+
+---
+
+## 🚨 Blockers for Progress
+
+- **No active development sprint planned** — cron docs-only commits since T+24, zero functional progress
+- **Recommend**: Start a focused v2.1 "cleanup + ship" sprint (2-3 weeks) targeting CWS submission
