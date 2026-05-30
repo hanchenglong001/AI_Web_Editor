@@ -4,8 +4,10 @@ node_modules/
 /.idea/
 
 # Generated files
-*.png  # generated icons from SVG source
+screenshots/*.png  # generated icons/screenshots from source
+screenshots/*.html # screenshot generation templates
 /*.ico
+!screenshots/README.txt
 
 # OS files
 .DS_Store

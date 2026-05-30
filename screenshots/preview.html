@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Web Editor Preview - Screenshot Simulator</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { 
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; 
+    background: #1a1b2e; 
+    color: #e0e0e0;
+    overflow-x: hidden;
+  }
+  
+  /* Screenshot canvas */
+  .canvas { width: 1280px; min-height: 720px; margin: 40px auto; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
+  
+  /* Fake webpage */
+  .fake-webpage { 
+    width: 1280px; min-height: 720px; background: #f5f6fa; padding: 40px; position: relative;
+  }
+  
+  .web-header { font-size: 28px; font-weight: bold; color: #333; margin-bottom: 15px; }
+  .web-sub { font-size: 14px; color: #666; margin-bottom: 30px; }
+  .web-text { line-height: 1.8; color: #444; font-size: 14px; max-width: 700px; }
+  .web-text p { margin-bottom: 12px; }
+  
+  /* Editor Panel */
+  .editor-panel { 
+    position: absolute; right: -380px; top: 60px; width: 340px; height: 580px;
+    background: #1e1f2e; border-radius: 12px; box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    display: flex; flex-direction: column; overflow: hidden; z-index: 100;
+  }
+  
+  .panel-header { 
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+    padding: 12px 16px; display: flex; align-items: center; gap: 10px;
+  }
+  .panel-header h3 { color: #fff; font-size: 15px; margin: 0; font-weight: 600; }
+  .panel-tabs { 
+    display: flex; background: #161724; border-bottom: 1px solid #2a2b3d; 
+  }
+  .panel-tab { 
+    padding: 8px 14px; font-size: 12px; color: #888; cursor: pointer; border-right: 1px solid #2a2b3d;
+  }
+  .panel-tab.active { color: #667eea; background: #1e1f2e; border-bottom: 2px solid #667eea; }
+  
+  .panel-content { flex: 1; padding: 14px; overflow-y: auto; font-size: 13px; }
+  .panel-section { margin-bottom: 14px; }
+  .panel-label { color: #888; font-size: 11px; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px; }
+  
+  textarea.editor-box { 
+    width: 100%; height: 120px; background: #13141f; border: 1px solid #2a2b3d; border-radius: 6px; 
+    color: #e0e0e0; padding: 10px; font-family: 'Consolas', monospace; font-size: 12px; resize: vertical;
+  }
+  
+  .btn-primary { 
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff; border: none; 
+    padding: 8px 16px; border-radius: 6px; font-size: 13px; cursor: pointer; width: 100%; margin-top: 8px;
+  }
+  
+  .quick-commands { 
+    background: #13141f; border: 1px solid #2a2b3d; border-radius: 6px; padding: 10px; margin-top: 8px; 
+  }
+  .qc-item { display: flex; align-items: center; gap: 8px; padding: 5px 8px; font-size: 12px; color: #aaa; border-radius: 4px; cursor: pointer; }
+  .qc-item:hover, .qc-item.selected { background: #667eea33; color: #fff; }
+  .qc-key { color: #555; font-size: 10px; margin-left: auto; }
+  
+  /* Highlight overlay */
+  .highlight-overlay { 
+    position: absolute; left: 240px; top: 230px; width: 460px; height: 80px;
+    border: 2px solid #667eea; background: rgba(102,126,234,0.08); border-radius: 4px;
+    box-shadow: 0 0 0 4px rgba(102,126,234,0.15);
+  }
+  
+  /* Right-click context menu */
+  .context-menu {
+    position: absolute; left: 180px; top: 200px; width: 240px; background: #fff; border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.2); z-index: 200; overflow: hidden;
+  }
+  .cm-header { 
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff; padding: 8px 14px;
+    font-size: 12px; font-weight: 600;
+  }
+  .cm-item { 
+    padding: 7px 14px; font-size: 12px; color: #333; cursor: pointer; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid #f0f0f0;
+  }
+  .cm-item:last-child { border-bottom: none; }
+  .cm-item:hover { background: #667eea11; }
+  
+  /* Translation badge */
+  .translate-badge {
+    position: absolute; left: 238px; top: 350px; background: #667eea; color: #fff; padding: 4px 10px;
+    border-radius: 12px; font-size: 11px; display: flex; align-items: center; gap: 4px;
+  }
+  
+  /* Theme editor */
+  .theme-presets { display: flex; gap: 8px; margin-top: 6px; }
+  .theme-swatch { 
+    width: 36px; height: 36px; border-radius: 6px; cursor: pointer; border: 2px solid transparent; 
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  }
+  .theme-swatch.dark { background: #1e1f2e; }
+  .theme-swatch.light { background: #ffffff; border-color: #ddd !important; }
+  .theme-swatch.ocean { background: linear-gradient(135deg, #1a365d, #2b6cb0); }
+  .theme-swatch.green { background: linear-gradient(135deg, #1b4332, #2d6a4f); }
+  
+  /* Screenshot label */
+  .screenshot-label { 
+    position: absolute; top: -40px; left: 20px; font-size: 18px; font-weight: 600; color: #fff;
+    background: linear-gradient(135deg, #667eea, #764ba2); padding: 6px 16px; border-radius: 6px;
+  }
+  
+  /* Canvas container */
+  .canvas-wrap { margin-bottom: 60px; }
+  
+  /* Screenshot 2: Context Menu (separate layout) */
+  .screenshot-2 .editor-panel { right: -400px; height: 500px; }
+  .screenshot-2 .context-menu { left: 350px; top: 120px; width: 260px; box-shadow: 0 8px 24px rgba(0,0,0,0.25); }
+  
+  /* Screenshot 3: Translation */
+  .screenshot-3 .translate-badge { left: 238px; top: 280px; background: #764ba2; padding: 6px 14px; font-size: 13px; }
+  
+  /* Screenshot 4: Theme Editor */
+  .screenshot-4 .panel-content { font-size: 12px; }
+</style>
+</head>
+<body>
+
+<!-- Screenshot 1: Main Editor Panel -->
+<div class="canvas-wrap">
+  <div class="screenshot-label">Main Editor Interface</div>
+  <div class="canvas screenshot-1" id="ss1">
+    <div class="fake-webpage">
+      <div class="web-header">AI Web Editor — Live Element Editing</div>
+      <div class="web-sub">Right-click any element to start editing with AI-powered commands</div>
+      <div class="web-text">
+        <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. This is a sample webpage for demonstration purposes.</p>
+        <p>Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. The AI Web Editor lets you modify any element on this page in real-time.</p>
+        <p>Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.</p>
+      </div>
+      <div class="highlight-overlay"></div>
+      
+      <!-- Editor Panel -->
+      <div class="editor-panel">
+        <div class="panel-header">
+          <h3>✦ AI Web Editor</h3>
+        </div>
+        <div class="panel-tabs">
+          <div class="panel-tab active">Editor</div>
+          <div class="panel-tab">Translate</div>
+          <div class="panel-tab">Theme</div>
+        </div>
+        <div class="panel-content">
+          <div class="panel-section">
+            <div class="panel-label">Selected Element</div>
+            <div style="color:#667eea;font-size:12px;">&lt;p&gt; class="web-text"&gt;</div>
+            <div style="color:#888;font-size:11px;margin-top:2px;">Sample paragraph text...</div>
+          </div>
+          <div class="panel-section">
+            <div class="panel-label">Edit Content</div>
+            <textarea class="editor-box" spellcheck="false">&lt;p&gt;Modified content with AI assistance. You can edit any text here and the page updates instantly.&lt;/p&gt;</textarea>
+          </div>
+          <div class="panel-section">
+            <div class="panel-label">Quick Commands</div>
+            <div class="quick-commands">
+              <div class="qc-item selected">/translate 🌐 <span class="qc-key">Ctrl+T</span></div>
+              <div class="qc-item">/shorten ✂️ <span class="qc-key">Ctrl+S</span></div>
+              <div class="qc-item">/style 🎨 <span class="qc-key">Ctrl+Shift+S</span></div>
+            </div>
+          </div>
+          <button class="btn-primary">Apply Changes</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Screenshot 2: Context Menu -->
+<div class="canvas-wrap screenshot-2">
+  <div class="screenshot-label">Right-click Context Menu</div>
+  <div class="canvas" id="ss2">
+    <div class="fake-webpage">
+      <div class="web-header">AI Web Editor Features</div>
+      <div class="web-sub">Quick actions at your fingertips</div>
+      <div class="web-text">
+        <p>The right-click context menu provides instant access to AI editing tools. Simply select any element and choose from the submenu.</p>
+        <ul style="color:#444;margin-left:20px;line-height:2;">
+          <li>Edit with AI — opens editor panel</li>
+          <li>Translate to Chinese/English</li>
+          <li>Shorten or expand content</li>
+        </ul>
+      </div>
+      
+      <!-- Context Menu -->
+      <div class="context-menu">
+        <div class="cm-header">✦ AI Web Editor</div>
+        <div class="cm-item">✨ Edit with AI</div>
+        <div class="cm-item">🇨🇳 Translate to Chinese</div>
+        <div class="cm-item">🇺🇸 Translate to English</div>
+        <div class="cm-item">✂️ Shorten Content</div>
+        <div class="cm-item">📋 Open in Editor Panel</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Screenshot 3: Translation Interface -->
+<div class="canvas-wrap screenshot-3">
+  <div class="screenshot-label">Multi-language Translate</div>
+  <div class="canvas" id="ss3">
+    <div class="fake-webpage">
+      <div class="web-header">AI Web Editor — Translate Mode</div>
+      <div class="web-sub">Detect and translate any language instantly</div>
+      <div class="web-text">
+        <p style="font-size:16px;line-height:1.8;">Bonjour le monde! Ceci est un exemple de texte en français qui peut être traduit automatiquement.</p>
+      </div>
+      
+      <!-- Editor Panel - Translate mode -->
+      <div class="editor-panel" style="right:-360px;height:520px;">
+        <div class="panel-header">
+          <h3>✦ AI Web Editor — Translate</h3>
+        </div>
+        <div class="panel-content">
+          <div class="panel-section">
+            <div class="panel-label">Detected Language</div>
+            <div style="color:#2ecc71;font-size:13px;margin:4px 0;">🌐 French (auto-detected)</div>
+          </div>
+          <div class="panel-section">
+            <div class="panel-label">Target Language</div>
+            <select style="width:100%;background:#13141f;border:1px solid #2a2b3d;color:#e0e0e0;padding:8px;border-radius:6px;font-size:13px;">
+              <option>🇨🇳 Simplified Chinese (推荐)</option>
+              <option>🇺🇸 English</option>
+              <option>🇯🇵 Japanese</option>
+              <option>🇰🇷 Korean</option>
+            </select>
+          </div>
+          <div class="panel-section">
+            <div class="panel-label">Original Text</div>
+            <textarea style="width:100%;height:80px;background:#13141f;border:1px solid #2a2b3d;color:#888;padding:10px;border-radius:6px;font-size:12px;">Bonjour le monde! Ceci est un exemple de texte en français...</textarea>
+          </div>
+          <div class="panel-section">
+            <div class="panel-label">Translated</div>
+            <textarea style="width:100%;height:80px;background:#13141f;border:1px solid #2a2b3d;color:#667eea;padding:10px;border-radius:6px;font-size:12px;">你好世界！这是法语文本的一个示例...</textarea>
+          </div>
+          <button class="btn-primary">Apply Translation</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Screenshot 4: Theme Editor -->
+<div class="canvas-wrap screenshot-4">
+  <div class="screenshot-label">Custom Theme Editor</div>
+  <div class="canvas" id="ss4">
+    <div class="fake-webpage">
+      <div class="web-header">AI Web Editor — Theme Editor</div>
+      <div class="web-sub">Create and manage custom themes for the editor panel</div>
+      
+      <!-- Editor Panel - Theme mode -->
+      <div class="editor-panel" style="right:-360px;height:520px;">
+        <div class="panel-header">
+          <h3>✦ AI Web Editor — Themes</h3>
+        </div>
+        <div class="panel-content">
+          <div class="panel-section">
+            <div class="panel-label">Preset Themes</div>
+            <div class="theme-presets">
+              <div class="theme-swatch dark" title="Dark"></div>
+              <div class="theme-swatch light" title="Light"></div>
+              <div class="theme-swatch ocean" title="Ocean"></div>
+              <div class="theme-swatch green" title="Green"></div>
+            </div>
+          </div>
+          <div class="panel-section">
+            <div class="panel-label">Customize Colors</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+              <div><span style="color:#888;font-size:11px;">Background</span><br><input type="color" value="#1e1f2e" style="width:100%;height:30px;border:none;border-radius:4px;cursor:pointer;margin-top:4px;"></div>
+              <div><span style="color:#888;font-size:11px;">Accent</span><br><input type="color" value="#667eea" style="width:100%;height:30px;border:none;border-radius:4px;cursor:pointer;margin-top:4px;"></div>
+            </div>
+          </div>
+          <div class="panel-section">
+            <div class="panel-label">Saved Themes</div>
+            <div style="color:#aaa;font-size:12px;">
+              <div style="padding:6px 0;border-bottom:1px solid #2a2b3d;display:flex;justify-content:space-between;align-items:center;">
+                <span>🌙 Dark Mode</span><button style="background:none;border:1px solid #444;color:#888;padding:2px 8px;border-radius:4px;font-size:10px;cursor:pointer;">Delete</button>
+              </div>
+              <div style="padding:6px 0;display:flex;justify-content:space-between;align-items:center;">
+                <span>🔵 Ocean Night</span><button style="background:none;border:1px solid #444;color:#888;padding:2px 8px;border-radius:4px;font-size:10px;cursor:pointer;">Delete</button>
+              </div>
+            </div>
+          </div>
+          <button class="btn-primary">Save Theme</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Screenshot 5: Keyboard Shortcuts -->
+<div class="canvas-wrap">
+  <div class="screenshot-label">Keyboard Shortcut Manager</div>
+  <div class="canvas" id="ss5">
+    <div class="fake-webpage">
+      <div class="web-header">AI Web Editor — Settings</div>
+      
+      <!-- Editor Panel - Keyboard shortcuts -->
+      <div class="editor-panel" style="right:-360px;height:520px;">
+        <div class="panel-header">
+          <h3>✦ AI Web Editor — Settings</h3>
+        </div>
+        <div class="panel-content">
+          <div class="panel-section">
+            <div class="panel-label">Keyboard Shortcuts</div>
+            <div style="color:#888;font-size:12px;">
+              <div style="padding:6px 0;border-bottom:1px solid #2a2b3d;display:flex;justify-content:space-between;align-items:center;">
+                <span>Toggle Editor Panel</span><kbd style="background:#13141f;border:1px solid #2a2b3d;padding:2px 6px;border-radius:3px;color:#aaa;font-size:11px;">Ctrl+Shift+E</kbd>
+              </div>
+              <div style="padding:6px 0;display:flex;justify-content:space-between;align-items:center;">
+                <span>Translate Selection</span><kbd style="background:#13141f;border:1px solid #2a2b3d;padding:2px 6px;border-radius:3px;color:#aaa;font-size:11px;">Ctrl+Shift+T</kbd>
+              </div>
+            </div>
+          </div>
+          <div class="panel-section">
+            <div class="panel-label">Record New Shortcut</div>
+            <button class="btn-primary" style="background:#2a2b3d;color:#fff;">📝 Record New Shortcut</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Simulate hover effects
+document.querySelectorAll('.qc-item, .cm-item').forEach(item => {
+  item.addEventListener('mouseenter', () => item.classList.add('selected'));
+  item.addEventListener('mouseleave', () => { if(!item.classList.contains('selected')) item.style.background=''; });
+});
+</script>
+</body>
+</html>

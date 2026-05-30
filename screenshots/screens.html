@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>Screenshot 1 - Main Editor</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:#f5f6fa;color:#333}
+.canvas{width:1280px;min-height:720px;margin:40px auto;display:flex;align-items:center;justify-content:center;position:relative}
+.webpage{padding:40px;width:100%}
+h1{font-size:28px;margin-bottom:15px}p{line-height:1.8;color:#444;font-size:14px;margin-bottom:12px}
+
+/* Editor Panel */
+.editor-panel{position:absolute;right:80px;top:60px;width:340px;height:580px;background:#1e1f2e;border-radius:12px;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,0.4)}
+.panel-header{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);padding:12px 16px;display:flex;align-items:center;gap:10px}
+.panel-header h3{color:#fff;font-size:15px;margin:0;font-weight:600}
+.panel-tabs{display:flex;background:#161724;border-bottom:1px solid #2a2b3d}
+.panel-tab{padding:8px 14px;font-size:12px;color:#888;border-right:1px solid #2a2b3d}
+.panel-tab.active{color:#667eea;background:#1e1f2e;border-bottom:2px solid #667eea}
+.panel-content{flex:1;padding:14px;font-size:13px;overflow-y:auto}
+.panel-section{margin-bottom:14px}
+.panel-label{color:#888;font-size:11px;text-transform:uppercase;margin-bottom:6px;letter-spacing:.5px}
+textarea.editor-box{width:100%;height:120px;background:#13141f;border:1px solid #2a2b3d;border-radius:6px;color:#e0e0e0;padding:10px;font-family:Consolas,monospace;font-size:12px;resize:none}
+.btn-primary{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff;border:none;padding:8px 16px;border-radius:6px;font-size:13px;width:100%;margin-top:8px;cursor:pointer}
+.quick-commands{background:#13141f;border:1px solid #2a2b3d;border-radius:6px;padding:10px;margin-top:8px}
+.qc-item{display:flex;align-items:center;gap:8px;padding:5px 8px;font-size:12px;color:#aaa;border-radius:4px}
+.qc-item.selected{background:#667eea33;color:#fff}
+.qc-key{color:#555;font-size:10px;margin-left:auto}
+
+.highlight-overlay{position:absolute;left:240px;top:200px;width:460px;height:80px;border:2px solid #667eea;background:rgba(102,126,234,0.08);border-radius:4px;box-shadow:0 0 0 4px rgba(102,126,234,0.15)}
+</style>
+</head>
+<body>
+<div class="canvas">
+  <div class="webpage">
+    <h1>AI Web Editor — Live Element Editing</h1>
+    <p style="color:#666;font-size:14px">Right-click any element to start editing with AI-powered commands</p>
+    <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+    <div class="highlight-overlay"></div>
+    
+    <div class="editor-panel">
+      <div class="panel-header"><h3>✦ AI Web Editor</h3></div>
+      <div class="panel-tabs">
+        <div class="panel-tab active">Editor</div>
+        <div class="panel-tab">Translate</div>
+        <div class="panel-tab">Theme</div>
+      </div>
+      <div class="panel-content">
+        <div class="panel-section">
+          <div class="panel-label">Selected Element</div>
+          <div style="color:#667eea;font-size:12px">&lt;p&gt; class="web-text"&gt;</div>
+          <div style="color:#888;font-size:11px;margin-top:2px">Sample paragraph text...</div>
+        </div>
+        <div class="panel-section">
+          <div class="panel-label">Edit Content</div>
+          <textarea class="editor-box" readonly>&lt;p&gt;Modified content with AI assistance.&lt;/p&gt;</textarea>
+        </div>
+        <div class="panel-section">
+          <div class="panel-label">Quick Commands</div>
+          <div class="quick-commands">
+            <div class="qc-item selected">/translate 🌐<span class="qc-key">Ctrl+T</span></div>
+            <div class="qc-item">/shorten ✂️<span class="qc-key">Ctrl+S</span></div>
+            <div class="qc-item">/style 🎨<span class="qc-key">Ctrl+Shift+S</span></div>
+          </div>
+        </div>
+        <button class="btn-primary" readonly disabled style="cursor:default">Apply Changes</button>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
