@@ -2,12 +2,12 @@
 
 ## 🔴 High Priority (马上做)
 
-### 0. 🚨 v1.5 — 目录结构清理 + CSP 修复 (立即修复，阻塞 CWS 发布)
-- [ ] **合并重复文件** — 根目录 `background.js` vs `background/background.js`、`content.css` vs `content/content.css`、`content-script.js` vs `content/content.js`、`popup.html/js` vs `popup/popup.html/js` 内容不一致，manifest.json 引用的是 flat 版本但 subdirectory 版本也有更新
-- [ ] **统一为一种目录结构** — 推荐保留 flat 结构（当前 manifest.json 引用的），删除 background/ content/ popup/ content-script/ 四个冗余子目录
-- [ ] **删除无用文件** — `frist.txt` (0字节空文件)
-- [ ] **CSP connect-src 补全** — manifest.json 的 CSP 缺少 Ollama (`http://localhost:11434`)、Azure endpoint，需改为动态注入或包含这些 URL
-- [ ] **版本号硬编码** — popup.html 中 `v1.0.0` 写死，应从 manifest.json 动态读取
+### 0. ✅ v1.5 — 目录结构清理 + CSP 修复 (已完成)
+- [x] **合并重复文件** — flat files (`background.js`, `content.css`, `content-script.js`, `popup.html/js`) → `src/` 子目录（manifest.json 引用 `src/background/`, `src/content/`, `src/content-script/`, `src/popup/`）
+- [x] **统一为 src/ 结构** — 所有源文件已迁移到 `src/`，根目录旧 flat 文件已删除
+- [x] **删除无用文件** — `frist.txt` ✅、`test-report.md` ✅、空子目录 ✅
+- [x] **CSP connect-src 补全** — 已添加 `http://localhost:*`、`http://127.0.0.1:*`、`https://generativelanguage.googleapis.com`
+- [x] **.gitignore** — 已添加 test-content.py, icons generated files
 
 ### 1. Chrome Web Store 发布流程
 - [ ] 创建完整的扩展图标（SVG → PNG 多尺寸, 48x48/128x128 高清）
@@ -86,10 +86,9 @@
 - [ ] popup 和面板 UI 支持英文/中文/日文切换
 - [ ] prompt 模板的本地化翻译包
 
-### 12. 🆕 CSP 动态注入方案 (v1.5 — 替代硬编码 fix)
-- [ ] 不直接写入 `http://localhost:11434`，改为读取用户配置的 API base URL 动态更新 CSP
-- [ ] manifest.json 的 `content_security_policy.extension_pages` connect-src 支持通配符或脚本注入
-- [ ] 考虑使用 `script-src 'unsafe-inline'` + service worker 运行时添加 header 的方案
+### 12. ✅ CSP 修复 (v1.5 DONE)
+- [x] CSP connect-src 已扩展: `http://localhost:*`、`http://127.0.0.1:*`（覆盖 Ollama、LM Studio）+ `https://generativelanguage.googleapis.com`（Gemini）
+- [ ] 未来如需支持 vLLM / Azure / 动态用户 endpoint，考虑改为 MV3 中 CSP 通配符方案
 
 ### 13. 🆕 Popup UI 优化 — 版本号动态读取
 - [ ] popup.js 中从 `chrome.runtime.getManifest().version` 读取版本号替换硬编码
@@ -113,71 +112,40 @@
 ### 2. HTTPS-only pages 的 API call 可能被 CORS 拦截
 - 需要确保 CSP 包含所有可能的 API endpoints
 
-### 3. Popup HTML 中的版本号硬编码
-- 应该从 manifest.json 动态读取
-
-### 4. 目录结构冗余 — v1.5 待清理
-- [ ] 根目录存在重复文件: `background.js` vs `background/background.js`, `content.css` vs `content/content.css`, `content-script.js` vs `content/content.js`, `popup.html/js` vs `popup/popup.html/js`
-- [ ] 统一为 flat 结构或 subdirectory 结构之一，避免混淆
-
-### 5. Service Worker background.js CSP 未包含 Ollama/Azure
-- [ ] manifest.json 的 CSP connect-src 缺少 `http://localhost:11434` (Ollama) 和 Azure endpoint
-- [ ] 自定义 API endpoint（如 vLLM、LM Studio）也需动态加入 CSP
-
 ---
 
-## 📊 版本快照 (2026-05-30 T+10 — Cron Check)
+## 📊 版本快照 (2026-05-30 T+14 — Cron Check)
 
 | 项目 | 状态 |
 |------|------|
-| 当前版本 | **v1.4.0** ✅ (待 v1.5 修复) |
-| Flat files latest | ✅ 最新（content-script.js 47KB, background.js 17KB, popup.js 5KB, popup.html 7KB, content.css 8KB — 含全部 v1.1~v1.4 功能） |
-| Subdirectory copies | ⚠️ Stale — 4 个冗余子目录共 ~39KB (background/: 5KB stale, content/: 8KB stale, content-script/: 22KB stale, popup/: 8KB stale) |
-| frist.txt | 🗑️ 已执行 `git rm` 删除 ✅ |
-| Working Tree | ✅ 干净（仅 TODO.md modified — 本次 cron check 更新） |
-| Git ahead of origin | ✅ **已同步** — T+4~T+9 commits 已全部 push，origin/master = HEAD (4604c43) |
+| 当前版本 | **v1.4.0** ✅ (v1.5 refactor DONE: flat → src/) |
+| Git sync | ✅ **完全同步** — HEAD = origin/master (396dac2), 0 ahead/behind |
+| Working Tree | ✅ 干净（无新增提交） |
+| Directory Structure | ✅ v1.5 DONE — clean `src/` structure, old flat files deleted |
+| CSP | ✅ connect-src: OpenAI + Together + Gemini + localhost:* + 127.0.0.1:* |
 | Quick Commands | 20+ 个（含 emoji fallback） |
-| API 支持 | OpenAI compatible + Together AI + Ollama + Azure（CSP 缺少 localhost:11434） |
+| API 支持 | OpenAI compatible + Together AI + Ollama + Azure/Gemini/Localhost |
 | Undo/Redo | ✅ v1.1 |
 | Export (HTML/CSS/Full Page) | ✅ v1.1/v1.4 |
 | Theme Toggle | ✅ v1.1 |
 | Usage Limits | ✅ v1.1, 可配置 |
 | Context Menu | ✅ v1.4 — rich submenu with element detection |
-## 📊 版本快照 (2026-05-30 T+11 — Cron Check)
-
-|| 项目 | 状态 ||------|------|| 当前版本 | **v1.4.0** ✅ (待 v1.5 修复) || Flat files latest | ✅ 最新（content-script.js ~22KB, background.js ~5KB, popup.js ~4KB, popup.html ~7KB, content.css ~8KB — 含全部 v1.1~v1.4 功能） || Subdirectory copies | ⚠️ Stale — 4 个冗余子目录共 ~39KB: background/background.js (5.1KB stale), content/content.css (7.8KB stale), content-script/content.js (21.8KB stale), popup/popup.html+popup.js (8.3KB stale) — 全部 5 个文件均与 root flat 版本有差异 || frist.txt | 🗑️ 已 `git rm` 删除，已 push ✅ || Working Tree | ⚠️ modified: TODO.md（本次 cron check） || Git branch | master, up to date with origin/master (4604c43) — 所有 commits 已 push || Quick Commands | 20+ 个（含 emoji fallback） || API 支持 | OpenAI compatible + Together AI + Ollama + Azure（CSP 缺少 localhost:11434） || Undo/Redo | ✅ v1.1 || Export (HTML/CSS/Full Page) | ✅ v1.1/v1.4 || Theme Toggle | ✅ v1.1 || Usage Limits | ✅ v1.1, 可配置 || Context Menu | ✅ v1.4 — rich submenu with element detection || Batch Edit (Multi-Select) | ✅ v1.3 — Shift+Click + Apply to All + index badge || CSP | ⚠️ connect-src 仅含 OpenAI + Together，缺 Ollama(localhost:11434)/Azure/LM Studio/vLLM |
+| Batch Edit (Multi-Select) | ✅ v1.3 — Shift+Click + Apply to All + index badge |
 
 ---
 
-## 📈 迭代方向评估 (2026-05-30 Cron Check T+12)
+## 📈 迭代方向评估 (2026-05-30 Cron Check T+14)
 
-**项目整体状态**: v1.4.0 功能稳定运行，远程仓库已完全同步（origin/master = HEAD = 25e4227）。无新提交。自 v1.4 发布以来进入"修 bug + 准备 CWS 发布"阶段。
+**项目整体状态**: v1.4.0 功能完整且稳定，代码结构已通过 v1.5 refactor 规范化（flat → `src/`）。CSP 已修复、旧文件已清理。项目进入"发布准备 + 功能迭代"阶段。
 
-**v1.5 修复应优先于更多功能迭代** — 目录冗余（4 子目录 ~39KB）和 CSP 限制是两个阻塞 Chrome Web Store 审核的硬伤，需立即清理。建议走 v1.4.1 hotfix → CWS 提交流程，v1.6 conversation mode 作为 v1.6 后续迭代。
+### 🔴 P0 — 发布前必须完成
+1. **版本号动态读取** — popup.html 中硬编码的 `v1.0.0` → `<span id="version-display"></span>`，popup.js 中动态填充 `chrome.runtime.getManifest().version`。~15min
+2. **Chrome Web Store 发布流程** — 图标、截图、banner、描述、打包 ZIP、提交审核。~1天
 
-### 🔴 P0 — 发布前必须修复
-1. **目录结构清理 (v1.5)** — 4 个冗余子目录全部 stale（与 root flat 文件均有差异）。统一保留 flat 结构，删除 subdirectories。预计 ~30min
-2. **CSP connect-src 补全** — 改为 `connect-src 'self' https: http:`（CWS MV3 可接受通配符）
-3. **版本号动态读取** — popup.js 已有 `chrome.runtime.getManifest().version` 代码，popup.html 待改为 `<span id="version-display">`
-
-### 🟡 P1 — 功能迭代 (优先级排序)
-1. **AI 对话式编辑模式 (Conversation Mode, v1.6)** — 多轮 refine 对话，核心差异化功能。预计 ~2-3 天
-2. **安全沙箱 Diff Preview** — AI 修改 diff 面板 + acceptance/reject（类似 GitHub PR review）。预计 ~1-2 天
-3. **Chrome Web Store 发布流程** — 图标、截图、banner、打包 ZIP、提交审核。预计 ~1 天
-4. **付费订阅集成 (Freemium)** — Stripe Payment Links / Gumroad，解锁 premium（daily limit → 无限）。预计 ~2 天
-5. **用户自定义 Prompt 模板库** — chrome.storage 保存/编辑/分享自己的快捷命令。预计 ~1-2 天
+### 🟡 P1 — 核心功能迭代（优先级排序）
+1. **AI 对话式编辑模式 (Conversation Mode, v1.6)** — 多轮 refine 对话，像 ChatGPT 一样持续改进内容。预计 ~2-3天
+2. **安全沙箱 Diff Preview** — AI 修改 diff 面板 + acceptance/reject（类似 GitHub PR review）。预计 ~1-2天
+3. **用户自定义 Prompt 模板库** — chrome.storage 保存/编辑/分享自己的快捷命令。预计 ~1-2天
 
 ### 🟢 P2 — 持续优化
-- i18n 多语言、Gemini/Claude provider、Performance 优化、Side Panel API、Shadow DOM 支持
-
----
-
-## 📊 版本快照 (2026-05-30 T+12 — Cron Check)
-
-|| 项目 | 状态 ||------|------|| 当前版本 | **v1.4.0** ✅ (待 v1.5 修复) || Git sync | ✅ **完全同步** — HEAD = origin/master (25e4227), 0 ahead/behind || Working Tree | ✅ 干净 || Flat files latest | ✅ 最新（含全部 v1.1~v1.4 功能） || Subdirectory copies | ⚠️ Stale — 4 个冗余子目录共 ~39KB，需 v1.5 清理 || Quick Commands | 20+ 个（含 emoji fallback） || API 支持 | OpenAI compatible + Together AI + Ollama + Azure（CSP 缺少 localhost:11434） || Undo/Redo | ✅ v1.1 || Export (HTML/CSS/Full Page) | ✅ v1.1/v1.4 || Theme Toggle | ✅ v1.1 || Usage Limits | ✅ v1.1, 可配置 || Context Menu | ✅ v1.4 — rich submenu with element detection || Batch Edit (Multi-Select) | ✅ v1.3 — Shift+Click + Apply to All + index badge || CSP | ⚠️ connect-src 仅含 OpenAI + Together，缺 Ollama/Azure/LM Studio/vLLM |
-
----
-
-## 📊 版本快照 (2026-05-30 T+13 — Cron Check)
-
-||| 项目 | 状态 ||------|------|| 当前版本 | **v1.4.0** ✅ (待 v1.5 修复) || Git sync | ✅ **完全同步** — HEAD = origin/master (35188de), 0 ahead/behind || Working Tree | ✅ 干净（无新增提交） || Flat files latest | ✅ 最新（含全部 v1.1~v1.4 功能） || Subdirectory copies | ⚠️ Stale — 4 个冗余子目录共 ~39KB，需 v1.5 清理 || Quick Commands | 20+ 个（含 emoji fallback） || API 支持 | OpenAI compatible + Together AI + Ollama + Azure（CSP 缺少 localhost:11434） || Undo/Redo | ✅ v1.1 || Export (HTML/CSS/Full Page) | ✅ v1.1/v1.4 || Theme Toggle | ✅ v1.1 || Usage Limits | ✅ v1.1, 可配置 || Context Menu | ✅ v1.4 — rich submenu with element detection || Batch Edit (Multi-Select) | ✅ v1.3 — Shift+Click + Apply to All + index badge || CSP | ⚠️ connect-src 仅含 OpenAI + Together，缺 Ollama/Azure/LM Studio/vLLM |
+- i18n 多语言、Side Panel API、Performance 优化、Shadow DOM 支持、付费订阅集成
