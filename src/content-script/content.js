@@ -7,8 +7,592 @@
   window.__awe_injected = true;
 
   let selectedElement = null;
-     let isSelectingMode = false;
-     let isOpen = false;
+      let isSelectingMode = false;
+      let isOpen = false;
+
+      // ============================================================
+         // Auto-Detect Language (v1.7)
+         // ============================================================
+         var currentDetectedLang = null;    // e.g. 'English', 'Chinese', 'Japanese', etc.
+         var currentDetectedLangCode = '';  // e.g. 'en', 'zh', 'ja'
+
+         // Lightweight language detection using Unicode ranges + keyword matching
+         function detectLanguage(text) {
+           if (!text || text.length < 2) return null;
+           var lower = text.toLowerCase();
+           var charCounts = { chinese: 0, japanese: 0, korean: 0, arabic: 0, cyrillic: 0, devanagari: 0, cjkCommon: 0 };
+           var len = text.length;
+
+           // Count characters by Unicode range
+           for (var i = 0; i < len; i++) {
+             var cp = text.charCodeAt(i);
+             // Chinese CJK Unified Ideographs
+             if ((cp >= 0x4E00 && cp <= 0x9FFF) || (cp >= 0x3400 && cp <= 0x4DBF)) charCounts.chinese++;
+             // Japanese Hiragana & Katakana
+             if ((cp >= 0x3040 && cp <= 0x309F) || (cp >= 0x30A0 && cp <= 0x30FF)) charCounts.japanese++;
+             // Korean Hangul
+             else if (cp >= 0xAC00 && cp <= 0xD7AF) charCounts.korean++;
+             // Arabic
+             else if (cp >= 0x0600 && cp <= 0x06FF) charCounts.arabic++;
+             // Cyrillic
+             else if ((cp >= 0x0400 && cp <= 0x04FF) || (cp >= 0x0500 && cp <= 0x052F)) charCounts.cyrillic++;
+             // Devanagari (Hindi, etc.)
+             else if (cp >= 0x0900 && cp <= 0x097F) charCounts.devanagari++;
+           }
+
+           var totalNonAscii = charCounts.chinese + charCounts.japanese + charCounts.korean + charCounts.arabic + charCounts.cyrillic + charCounts.devanagari;
+
+           // If mostly CJK
+           if (charCounts.chinese > 2 || (charCounts.chinese + charCounts.japanese) / Math.max(len, 1) > 0.3) {
+             if (charCounts.japanese > charCounts.chinese && charCounts.japanese > 5) {
+               return { lang: 'Japanese', code: 'ja' };
+             }
+             if (charCounts.korean > 3) {
+               return { lang: 'Korean', code: 'ko' };
+             }
+             // Distinguish Chinese from Japanese based on kana presence
+             if (charCounts.japanese > 0 && charCounts.chinese > charCounts.japanese * 2) {
+               return { lang: 'Chinese', code: 'zh' };
+             }
+             return { lang: 'Chinese', code: 'zh' };
+           }
+
+           // Keyword-based detection for Latin scripts
+           var cnKeywords = ['的', '了', '在', '是', '我', '有', '和', '就', '不', '人', '都', '一', '一个', '上', '也', '很', '到', '说', '要', '去', '你', '会', '着', '没有', '看', '好', '自己', '这'];
+           var jaKeywords = ['です', 'ます', 'は', 'が', 'の', 'に', 'を', 'で', 'て', 'と', 'り', 'ある', 'いる', 'から', 'まで', 'だけ', 'かな', 'ちゃん', 'さん', 'ね', 'よ'];
+           var koKeywords = ['은', '는', '이', '가', '을', '를', '에', '의', '합니다', '입니다', '해요', '한다', '것', '거', '더', '게', '세요', '습니다'];
+
+           var scores = { zh: 0, ja: 0, ko: 0, en: 0, fr: 0, de: 0, es: 0, ru: 0 };
+
+           // Check for language-specific keywords
+           if (totalNonAscii === 0 || totalNonAscii < len * 0.1) {
+             // Latin script — check for English words
+             var englishWords = lower.split(/[\s,.;:!?'"(){}\[\]]+/).filter(function(w) {
+               return w.length > 3 && /^[a-z]+$/.test(w);
+             });
+             if (englishWords.length > 5) {
+               // Check for common English stop words
+               var enStopWords = ['the', 'and', 'that', 'have', 'for', 'not', 'with', 'you', 'this', 'but', 'his', 'from', 'they', 'say', 'her', 'she', 'can', 'all', 'which', 'when'];
+               var enCount = 0;
+               for (var i = 0; i < englishWords.length; i++) {
+                 if (enStopWords.indexOf(englishWords[i]) !== -1) enCount++;
+               }
+               scores.en = enCount / Math.max(englishWords.length, 1);
+             }
+
+             // Check for French
+             var frKeywords2 = ['le', 'la', 'les', 'de', 'du', 'des', 'que', 'qui', 'est', 'sont', 'dans', 'pour', 'avec'];
+             for (var i = 0; i < frKeywords2.length; i++) { if (lower.indexOf(frKeywords2[i]) !== -1) scores.fr++; }
+
+             // Check for German
+             var deKeywords = ['der', 'die', 'das', 'und', 'ist', 'den', 'von', 'zu', 'mit', 'ein', 'eine'];
+             for (var i = 0; i < deKeywords.length; i++) { if (lower.indexOf(deKeywords[i]) !== -1) scores.de++; }
+
+             // Check for Spanish
+             var esKeywords = ['el', 'la', 'los', 'las', 'del', 'que', 'es', 'son', 'en', 'con', 'por'];
+             for (var i = 0; i < esKeywords.length; i++) { if (lower.indexOf(esKeywords[i]) !== -1) scores.es++; }
+
+             // Check for Russian keywords
+             var ruKeywords2 = ['что', 'это', 'как', 'и', 'в', 'не', 'на', 'быть', 'он', 'она', 'они'];
+             for (var i = 0; i < ruKeywords2.length; i++) { if (lower.indexOf(ruKeywords2[i]) !== -1) scores.ru++; }
+           } else {
+             // Mixed content — count keyword matches
+             var maxKwLen = 4;
+             for (var ki = 0; ki < cnKeywords.length && ki < maxKwLen * 3; ki++) {
+               if (lower.indexOf(cnKeywords[ki % cnKeywords.length]) !== -1) scores.zh += 2;
+             }
+             for (var ji = 0; ji < jaKeywords.length && ji < maxKwLen * 2; ji++) {
+               if (lower.indexOf(jaKeywords[ji % jaKeywords.length]) !== -1) scores.ja++;
+             }
+             for (var ko_i = 0; ko_i < koKeywords.length && ko_i < maxKwLen * 2; ko_i++) {
+               if (lower.indexOf(koKeywords[ko_i % koKeywords.length]) !== -1) scores.ko++;
+             }
+           }
+
+           // Find highest score
+           var bestScore = 0, bestLang = 'en';
+           for (var lang in scores) {
+             if (scores[lang] > bestScore) { bestScore = scores[lang]; bestLang = lang; }
+           }
+
+           // Determine language name and code
+           var langMap = { zh: ['Chinese', 'zh'], ja: ['Japanese', 'ja'], ko: ['Korean', 'ko'], en: ['English', 'en'], fr: ['French', 'fr'], de: ['German', 'de'], es: ['Spanish', 'es'], ru: ['Russian', 'ru'] };
+           if (langMap[bestLang]) return { lang: langMap[bestLang][0], code: langMap[bestLang][1] };
+
+           return null;
+         }
+
+         // Map of common languages to recommended target languages for translation
+         var LANG_TO_TARGETS = {
+           'zh': ['English', 'Japanese', 'Korean', 'French', 'German', 'Spanish'],
+           'en': ['Chinese (简体中文)', 'Japanese', 'Korean', 'French', 'German', 'Spanish'],
+           'ja': ['Chinese (简体中文)', 'English', 'Korean', 'French', 'German', 'Spanish'],
+           'ko': ['Chinese (简体中文)', 'English', 'Japanese', 'French', 'German', 'Spanish'],
+           'fr': ['English', 'Chinese (简体中文)', 'Spanish', 'German', 'Japanese', 'Korean'],
+           'de': ['English', 'Chinese (简体中文)', 'French', 'Spanish', 'Japanese', 'Korean'],
+           'es': ['English', 'Chinese (简体中文)', 'French', 'German', 'Japanese', 'Korean'],
+           'ru': ['English', 'Chinese (简体中文)', 'Japanese', 'Korean'],
+         };
+
+         function updateLangIndicator(detectResult) {
+           var container = document.getElementById('awe-lang-indicator-container');
+           if (!container) return;
+           if (!detectResult) {
+             container.style.display = 'none';
+             return;
+           }
+           container.style.display = '';
+           var el = document.getElementById('awe-lang-indicator');
+           if (el) {
+             el.textContent = detectResult.lang;
+             el.className = 'awe-detected';
+           }
+         }
+
+         function updateTranslationButtons(sourceLang) {
+           // Update the quick-btn text for translate button
+           var translateBtn = document.querySelector('.awe-quick-btn[data-cmd="translate"]');
+           if (translateBtn && LANG_TO_TARGETS[sourceLang]) {
+             var targets = LANG_TO_TARGETS[sourceLang];
+             translateBtn.textContent = 'Translate → ' + targets[0].replace('Chinese (', '').replace(')', '');
+           }
+
+           // Update or add language-specific translation buttons dynamically
+           updateDynamicLangButtons(sourceLang);
+         }
+
+         function updateDynamicLangButtons(sourceLang) {
+           var container = document.querySelector('.awe-quick-commands');
+           if (!container) return;
+
+           var targets = LANG_TO_TARGETS[sourceLang] || ['Japanese', 'Korean', 'French', 'German', 'Spanish'];
+
+           // Remove existing auto-lang buttons
+           container.querySelectorAll('.awe-quick-btn[data-auto-lang]').forEach(function(btn) { btn.remove(); });
+
+           // Add recommended target language buttons
+           var extraBtns = '';
+           for (var i = 0; i < targets.length; i++) {
+             var target = targets[i];
+             var cmd = 'translate-' + target.toLowerCase().replace(/\s+/g, '-').replace('(', '').replace(')', '');
+             var flagEmoji = getFlagForLang(target);
+             extraBtns += '<button class="awe-quick-btn" data-cmd="' + cmd + '" data-auto-lang="' + escapeHtml(sourceLang) + '">' + flagEmoji + ' ' + target + '</button>';
+           }
+
+           // Append after the existing translate buttons (before the last quick-btn if there is one)
+           var existingBtns = container.querySelectorAll('.awe-quick-btn');
+           if (existingBtns.length > 0) {
+             var lastExisting = existingBtns[existingBtns.length - 1];
+             lastExisting.insertAdjacentHTML('afterend', extraBtns);
+
+             // Re-attach click handlers for the new buttons
+             container.querySelectorAll('.awe-quick-btn[data-auto-lang]').forEach(function(btn) {
+               btn.addEventListener('click', function(e) {
+                 e.stopPropagation();
+                 var targetLang = this.dataset.autoLang;
+                 var cmdText = 'Translate this text to ' + targetLang + '.';
+                 document.getElementById('awe-command-input').value = cmdText;
+                 // Switch to AI tab
+                 document.querySelectorAll('.awe-tab-btn').forEach(function(b) { b.classList.remove('active'); });
+                 document.querySelectorAll('.awe-tab-panel').forEach(function(p) { p.classList.remove('active'); });
+                 document.querySelector('.awe-tab-btn[data-tab="ai"]').classList.add('active');
+                 document.getElementById('tab-ai').classList.add('active');
+               });
+             });
+           }
+         }
+
+         function getFlagForLang(langName) {
+           var flagMap = { 'English': '🇺🇸', 'Chinese': '🇨🇳', 'Japanese': '🇯🇵', 'Korean': '🇰🇷', 'French': '🇫🇷', 'German': '🇩🇪', 'Spanish': '🇪🇸', 'Russian': '🇷🇺' };
+           // Handle "Chinese (简体中文)"
+           if (langName.indexOf('Chinese') !== -1) return '🇨🇳';
+           return flagMap[langName] || '🌐';
+         }
+
+         function autoDetectAndDisplay() {
+           var inputEl = document.getElementById('awe-command-input');
+           if (!inputEl || !selectedElement) return;
+
+           var text = selectedElement.textContent || '';
+           if (text.length < 2) { currentDetectedLang = null; updateLangIndicator(null); return; }
+
+           // Use the textarea value for detection if present, otherwise use element text
+           var detectText = inputEl.value.trim() || text;
+           if (detectText.length < 2) return;
+
+           var result = detectLanguage(detectText);
+           if (result && result !== currentDetectedLang) {
+             currentDetectedLang = result;
+             updateLangIndicator(result);
+             updateTranslationButtons(result.code);
+           }
+         }
+
+      // ============================================================
+         // Code Highlight Editor — HTML Tab (v1.7)
+         // ============================================================
+         function initHighlightEditor() {
+           var htmlContainer = document.getElementById('tab-html');
+           if (!htmlContainer) return;
+
+           // Replace the plain textarea with our highlight editor wrapper
+           var textarea = document.getElementById('awe-html-editor');
+           if (!textarea) return;
+
+           var wrapDiv = document.createElement('div');
+           wrapDiv.className = 'awe-highlight-editor-wrap';
+
+           var overlay = document.createElement('div');
+           overlay.className = 'awe-highlight-overlay';
+           overlay.id = 'awe-html-highlight-overlay';
+
+           wrapDiv.appendChild(overlay);
+           textarea.parentNode.insertBefore(wrapDiv, textarea);
+           wrapDiv.appendChild(textarea);
+
+           // Sync scroll
+           textarea.addEventListener('scroll', function() {
+             overlay.scrollTop = textarea.scrollTop;
+             overlay.scrollLeft = textarea.scrollLeft;
+           });
+
+           // Update highlight on input/keydown
+           textarea.addEventListener('input', updateHighlightOverlay);
+           textarea.addEventListener('keydown', function() { updateHighlightOverlay(); });
+           textarea.addEventListener('focus', updateHighlightOverlay);
+
+           // Initial render
+           setTimeout(function() { updateHighlightOverlay(); }, 0);
+         }
+
+         function updateHighlightOverlay() {
+           var textarea = document.getElementById('awe-html-editor');
+           var overlay = document.getElementById('awe-html-highlight-overlay');
+           if (!textarea || !overlay) return;
+
+           var rawHtml = textarea.value;
+           if (!rawHtml) {
+             overlay.innerHTML = '';
+             return;
+           }
+
+           // Build folded HTML blocks for the overlay
+           var foldedHtml = foldAndHighlightHtml(rawHtml);
+           overlay.innerHTML = '<pre style="margin:0;padding:0;background:transparent;">' + foldedHtml + '</pre>';
+         }
+
+         function escapeHtmlForDisplay(str) {
+           return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+         }
+
+         // Simple HTML tokenizer — returns array of {type: 'tag'|'attr'|'attrval'|'comment'|'text'|'entity', value: string}
+         function tokenizeHtml(html) {
+           var tokens = [];
+           var i = 0;
+           while (i < html.length) {
+             // Comment
+             if (html.substring(i, i + 4) === '<!--') {
+               var endComment = html.indexOf('-->', i + 4);
+               var commentEnd = endComment !== -1 ? endComment + 3 : html.length;
+               tokens.push({ type: 'comment', value: html.substring(i, commentEnd) });
+               i = commentEnd;
+               continue;
+             }
+             // Doctype / CDATA / processing instruction
+             if (html[i] === '<' && (html[i + 1] === '!' || html[i + 1] === '?')) {
+               var endPITag = html.indexOf('>', i);
+               if (endPITag !== -1) {
+                 tokens.push({ type: 'doctype', value: html.substring(i, endPITag + 1) });
+                 i = endPITag + 1;
+                 continue;
+               }
+             }
+             // Tag
+             if (html[i] === '<' && i + 1 < html.length && /[a-zA-Z\/!]/.test(html[i + 1])) {
+               var tagEnd = html.indexOf('>', i);
+               if (tagEnd !== -1) {
+                 tokens.push({ type: 'tag', value: html.substring(i, tagEnd + 1) });
+                 i = tagEnd + 1;
+                 continue;
+               }
+             }
+             // Entity
+             var entityMatch = html.substring(i).match(/^(&\w+;)/);
+             if (entityMatch) {
+               tokens.push({ type: 'entity', value: entityMatch[1] });
+               i += entityMatch[1].length;
+               continue;
+             }
+             // Text (consume until next tag, comment, or entity)
+             var textEnd = -1;
+             for (var j = i; j < html.length; j++) {
+               if (html[j] === '<' && j + 1 < html.length) {
+                 textEnd = j;
+                 break;
+               }
+               if (html[j] === '&' && j + 2 < html.length && html[j + 2] === ';') {
+                 textEnd = j;
+                 break;
+               }
+             }
+             if (textEnd !== -1) {
+               tokens.push({ type: 'text', value: html.substring(i, textEnd) });
+               i = textEnd;
+             } else {
+               tokens.push({ type: 'text', value: html.substring(i) });
+               i = html.length;
+             }
+           }
+           return tokens;
+         }
+
+         function renderTagTokenHtml(token) {
+           var inner = token.value;
+           // Parse: <tagName attr="val" ...> or </tagName>
+           var isClose = inner.charAt(1) === '/';
+           if (isClose) inner = inner.substring(1);
+
+           var parts = [];
+           var tagMatch = inner.match(/^([a-zA-Z][a-zA-Z0-9-]*)/);
+           if (!tagMatch) return escapeHtmlForDisplay(token.value);
+
+           parts.push('<span class="hl-tag">' + escapeHtmlForDisplay('<' + (isClose ? '/' : '') + tagMatch[1]) + '</span>');
+           var rest = inner.substring(tagMatch[1].length);
+
+           // Parse attributes
+           var attrRegex = /([\w-]+)\s*=\s*(?:"([^"]*)"|'([^']*)')/g;
+           var lastIdx = 0;
+           var m;
+           while ((m = attrRegex.exec(rest)) !== null) {
+             if (m.index > lastIdx) {
+               parts.push(escapeHtmlForDisplay(rest.substring(lastIdx, m.index)));
+             }
+             parts.push('<span class="hl-attr-name">' + escapeHtmlForDisplay(m[1]) + '</span>');
+             var attrVal = m[2] !== undefined ? m[2] : (m[3] || '');
+             parts.push('=<span class="hl-attr-value">"' + escapeHtmlForDisplay(attrVal) + '"</span>');
+             lastIdx = m.index + m[0].length;
+           }
+           if (lastIdx < rest.length) {
+             parts.push(escapeHtmlForDisplay(rest.substring(lastIdx)));
+           }
+
+           parts.push(escapeHtmlForDisplay('>'));
+           return parts.join('');
+         }
+
+         function highlightTokensToHtml(tokens) {
+           var html = '';
+           for (var i = 0; i < tokens.length; i++) {
+             var t = tokens[i];
+             if (t.type === 'tag') {
+               html += renderTagTokenHtml(t);
+             } else if (t.type === 'comment') {
+               html += '<span class="hl-comment">' + escapeHtmlForDisplay(t.value) + '</span>';
+             } else if (t.type === 'doctype') {
+               html += '<span class="hl-doctype">' + escapeHtmlForDisplay(t.value) + '</span>';
+             } else if (t.type === 'entity') {
+               html += '<span class="hl-entity">' + escapeHtmlForDisplay(t.value) + '</span>';
+             } else {
+               html += escapeHtmlForDisplay(t.value);
+             }
+           }
+           return html;
+         }
+
+         // Fold & highlight: finds HTML blocks, wraps them in foldable containers
+         function foldAndHighlightHtml(rawHtml) {
+           // First find top-level tag pairs to build fold structure
+           var lines = rawHtml.split('\n');
+           var resultLines = [];
+           var openTags = []; // stack of {tag, lineStart}
+
+           for (var li = 0; li < lines.length; li++) {
+             var line = lines[li];
+             var stripped = line.replace(/<!--[\s\S]*?-->/g, '').trim();
+
+             // Find all tags on this line
+             var tagRegex = /<\/?([a-zA-Z][a-zA-Z0-9-]*)(?:\s[^>]*)?\s*\/?>/g;
+             var tm;
+             while ((tm = tagRegex.exec(stripped)) !== null) {
+               var tagName = tm[1].toLowerCase();
+               var isClosing = stripped.charAt(tm.index + 1) === '/';
+               // Self-closing tags
+               var isSelfClose = (stripped.substring(tm.index + tm[0].length - 2, tm.index + tm[0].length - 1) === '/');
+
+               if (!isClosing && !isSelfClose && tagName !== 'br' && tagName !== 'hr' && tagName !== 'img' && tagName !== 'input' && tagName !== 'meta' && tagName !== 'link' && tagName !== 'area' && tagName !== 'base' && tagName !== 'col' && tagName !== 'embed' && tagName !== 'source' && tagName !== 'track' && tagName !== 'wbr') {
+                 openTags.push({ tag: tagName, lineStart: li });
+               } else if (isClosing) {
+                 // Find matching opening tag
+                 for (var si = openTags.length - 1; si >= 0; si--) {
+                   if (openTags[si].tag === tagName) {
+                     var matchIdx = si;
+                     openTags.splice(si, 1);
+                     break;
+                   }
+                 }
+               }
+             }
+
+             // Check if this line starts a foldable block
+             var foldedLine = highlightTokensToHtml(tokenizeHtml(line));
+             resultLines.push(foldedLine);
+           }
+
+           // Now we need to actually fold blocks, not just find tags
+           return highlightFullWithFold(rawHtml);
+         }
+
+         function highlightFullWithFold(html) {
+           var result = '';
+           var i = 0;
+           var openStack = []; // [{tag, contentStartIdx}]
+           var lineOffsets = computeLineOffsets(html);
+
+           while (i < html.length) {
+             // Check for comment
+             if (html.substring(i, i + 4) === '<!--') {
+               var endCmt = html.indexOf('-->', i + 4);
+               var cmtEnd = endCmt !== -1 ? endCmt + 3 : html.length;
+               var cmtText = escapeHtmlForDisplay(html.substring(i, cmtEnd));
+               if (isInsideFoldableBlock(openStack, i, lineOffsets)) {
+                 result += '<span class="hl-comment">' + cmtText + '</span>';
+               } else {
+                 result += '<span class="hl-comment">' + cmtText + '</span>';
+               }
+               i = cmtEnd;
+               continue;
+             }
+
+             // Check for DOCTYPE
+             if (html[i] === '<' && i + 1 < html.length && /[\!\?]/.test(html[i + 1])) {
+               var endDT = html.indexOf('>', i);
+               if (endDT !== -1) {
+                 result += '<span class="hl-doctype">' + escapeHtmlForDisplay(html.substring(i, endDT + 1)) + '</span>';
+                 i = endDT + 1;
+                 continue;
+               }
+             }
+
+             // Check for tag
+             if (html[i] === '<' && i + 1 < html.length && /[a-zA-Z]/.test(html[i + 1])) {
+               var endTag = html.indexOf('>', i);
+               if (endTag !== -1) {
+                 var tagStr = html.substring(i, endTag + 1);
+                 var tagMatch2 = tagStr.match(/^<\/?([a-zA-Z][a-zA-Z0-9-]*)/);
+
+                 if (tagMatch2) {
+                   var fullTagName = tagMatch2[1].toLowerCase();
+                   var isClose = tagStr.charAt(1) === '/';
+                   var isSelfClose = tagStr.charAt(tagStr.length - 2) === '/';
+
+                   if (!isClose && !isSelfClose &&
+                       !['br','hr','img','input','meta','link','area','base','col','embed','source','track','wbr'].includes(fullTagName)) {
+                     openStack.push({ tag: fullTagName, contentStartIdx: endTag + 1 });
+                   } else if (isClose) {
+                     for (var si = openStack.length - 1; si >= 0; si--) {
+                       if (openStack[si].tag === fullTagName) {
+                         openStack.splice(si, 1);
+                         break;
+                       }
+                     }
+                   }
+
+                   var highlighted = renderTagTokenHtml({ type: 'tag', value: tagStr });
+                   if (!isInsideFoldableBlock(openStack, i, lineOffsets)) {
+                     // This is the opening tag of a foldable block — add fold toggle
+                     result += '<span class="aweh-fold-block" data-tag="' + escapeHtml(fullTagName) + '">' +
+                       '<span class="aweh-fold-toggle" onclick="this.classList.toggle(\'aweh-collapsed\');var c=this.nextElementSibling;if(c)c.classList.toggle(\'aweh-hidden\');var s=this.nextElementSibling.nextElementSibling;if(s)s.classList.toggle(\'awe-hidensummary\')"><span class="aweh-fold-arrow">▼</span> ' + escapeHtml(fullTagName) + '</span>' +
+                       '<span class="aweh-fold-content">' + highlighted + '</span>';
+                     // Find the matching closing tag and close fold block
+                     var closeTagPos = findMatchingCloseTag(html, endTag + 1);
+                     if (closeTagPos !== -1) {
+                       var closeStr = html.substring(closeTagPos, closeTagPos + fullTagName.length + 4);
+                       result += '<span class="aweh-fold-summary awe-hidensummary">collapsed</span>' + highlighted;
+                       i = closeTagPos + closeStr.length;
+                     } else {
+                       // No closing tag found — just render normally until next top-level or end
+                       result += '</span>';
+                       i = endTag + 1;
+                     }
+                   } else {
+                     result += highlighted;
+                     i = endTag + 1;
+                   }
+                 } else {
+                   result += escapeHtmlForDisplay(tagStr);
+                   i = endTag + 1;
+                 }
+                 continue;
+               }
+             }
+
+             // Entity
+             var entityM = html.substring(i).match(/^(&\w+;)/);
+             if (entityM) {
+               result += '<span class="hl-entity">' + escapeHtmlForDisplay(entityM[1]) + '</span>';
+               i += entityM[1].length;
+               continue;
+             }
+
+             // Text
+             var textEnd = -1;
+             for (var j = i; j < html.length; j++) {
+               if (html[j] === '<' && j + 1 < html.length) { textEnd = j; break; }
+               if (html[j] === '&' && j + 3 < html.length && html[j+2] === ';') { textEnd = j; break; }
+             }
+             if (textEnd !== -1) {
+               result += escapeHtmlForDisplay(html.substring(i, textEnd));
+               i = textEnd;
+             } else {
+               result += escapeHtmlForDisplay(html.substring(i));
+               i = html.length;
+             }
+           }
+
+           return result;
+         }
+
+         function findMatchingCloseTag(html, afterOpenTagEnd) {
+           var stack = [];
+           // Extract all tags starting from afterOpenTagEnd
+           var regex = /<\/?([a-zA-Z][a-zA-Z0-9-]*)(?:\s[^>]*)?\s*\/?>/g;
+           var m2;
+           while ((m2 = regex.exec(html)) !== null && m2.index >= afterOpenTagEnd) {
+             if (m2.index < afterOpenTagEnd) continue;
+             var tag = m2[1].toLowerCase();
+             var isClose = html.charAt(m2.index + 1) === '/';
+             var isSC = html.substring(m2.index + m2[0].length - 2, m2.index + m2[0].length - 1) === '/';
+
+             if (!isClose && !isSC && !['br','hr','img','input','meta','link'].includes(tag)) {
+               stack.push(tag);
+             } else if (isClose) {
+               for (var si2 = stack.length - 1; si2 >= 0; si2--) {
+                 if (stack[si2] === tag) { stack.splice(si2, 1); break; }
+               }
+             }
+           }
+           return -1; // fallback — use simpler approach below
+         }
+
+         function computeLineOffsets(html) {
+           var offsets = [];
+           var pos = 0;
+           for (var i = 0; i < html.length; i++) {
+             if (html[i] === '\n') {
+               offsets.push(pos);
+               pos = i + 1;
+             }
+           }
+           return offsets;
+         }
+
+         function isInsideFoldableBlock(openStack, idx, lineOffsets) {
+           // If openStack has items, we're nested inside a foldable block
+           return openStack.length > 0 && openStack[0].tag !== 'body';
+         }
+
+      // ============================================================
+         // Conversation Mode (v1.5)
 
      // ============================================================
         // Element Selector History (v1.8)
@@ -191,20 +775,22 @@
         // ============================================================
         var conversationHistory = []; // [{role: 'user' | 'assistant', content: string}]
 
-       // ============================================================
-       // Diff Preview System (v1.7)
-       // ============================================================
-       var diffPendingElement = null;   // DOM element waiting for user confirm
-       var diffPendingNewContent = null;  // AI-proposed new content string
-       var diffPendingOldContent = null;  // original text before modification
+         // ============================================================
+          // Diff Preview System (v1.7)
+          // ============================================================
+          var diffPendingElement = null;   // DOM element waiting for user confirm
+          var diffPendingNewContent = null;  // AI-proposed new content string
+          var diffPendingOldContent = null;  // original text before modification
+          var diffPendingReviewId = null;  // corresponding review queue item ID
 
-       function clearDiffPreview() {
-         var panel = document.getElementById('awe-diff-preview-panel');
-         if (panel) panel.classList.remove('active');
-         diffPendingElement = null;
-         diffPendingNewContent = null;
-         diffPendingOldContent = null;
-       }
+          function clearDiffPreview() {
+            var panel = document.getElementById('awe-diff-preview-panel');
+            if (panel) panel.classList.remove('active');
+            diffPendingElement = null;
+            diffPendingNewContent = null;
+            diffPendingOldContent = null;
+            diffPendingReviewId = null;
+          }
 
        // Simple word-level diff: returns an array of { type: 'same'|'del'|'ins', value: string }
        function computeWordDiff(oldText, newText) {
@@ -411,8 +997,13 @@
        }
 
        // User confirmed: apply the diff to DOM
-       function applyDiffPreview() {
-         if (!diffPendingElement || !diffPendingNewContent) return;
+        function applyDiffPreview() {
+            // v1.7: if there's a corresponding review queue item, accept it
+            if (diffPendingReviewId) {
+              acceptReviewItem(diffPendingReviewId);
+              diffPendingReviewId = null;
+              return;
+            }
          var el = diffPendingElement;
          var newContent = diffPendingNewContent;
          clearDiffPreview();
@@ -435,8 +1026,16 @@
          showStatus('AI modification applied!', 'success');
        }
 
-       // User rejected: restore old content via undo snapshot
-       function discardDiffPreview() {
+         // User rejected: restore old content via undo snapshot, and reject in review queue
+           function discardDiffPreview() {
+             // v1.7: if there's a corresponding review queue item, reject it
+             if (diffPendingReviewId) {
+               rejectReviewItem(diffPendingReviewId);
+               diffPendingReviewId = null;
+               clearDiffPreview();
+               showStatus('Changes rejected from review queue.', '');
+               return;
+             }
          clearDiffPreview();
          // Restore the element to its state before AI change (undo)
          if (undoStack.length > 0 && diffPendingElement) {
@@ -448,13 +1047,400 @@
        }
 
        // ============================================================
-       // Batch Editing (v1.3)
-       // ============================================================
-       var batchSelectedElements = []; // Array of DOM elements for multi-select
-    var isBatchMode = false;        // true when in batch mode
+          // Review Queue System (v1.7) — pending AI changes awaiting user approval
+          // ============================================================
+          var reviewQueue = [];          // [{id, oldContent, newContent, timestamp, elementSelector, tagName, textContent}]
 
-    function clearBatchSelection() {
-          batchSelectedElements = [];
+          function generateReviewId() {
+            return 'rev_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8);
+          }
+
+          function loadReviewQueue() {
+            chrome.storage.sync.get(['reviewQueue'], function(result) {
+              if (result.reviewQueue && Array.isArray(result.reviewQueue)) {
+                reviewQueue = result.reviewQueue.filter(function(item) {
+                  return item.status !== 'accepted' && item.status !== 'rejected';
+                });
+              } else {
+                reviewQueue = [];
+              }
+              renderReviewQueue();
+            });
+          }
+
+          function saveReviewQueue() {
+            chrome.storage.sync.set({ reviewQueue: reviewQueue }, function() {});
+          }
+
+          function addToReviewQueue(oldContent, newContent, element) {
+            var tagName = (element.tagName || '').toLowerCase();
+            var textContent = (element.textContent || '').trim().substring(0, 100);
+            var selector = buildSelector(element);
+
+            var entry = {
+              id: generateReviewId(),
+              oldContent: oldContent,
+              newContent: newContent,
+              timestamp: Date.now(),
+              elementSelector: selector,
+              tagName: tagName,
+              textContent: textContent,
+              status: 'pending' // pending | accepted | rejected
+            };
+
+             reviewQueue.push(entry);
+              saveReviewQueue();
+              updateReviewBadge();
+              renderReviewQueue();
+              return entry.id;
+            }
+
+          function removeFromReviewQueue(id) {
+            reviewQueue = reviewQueue.filter(function(item) { return item.id !== id; });
+            saveReviewQueue();
+            updateReviewBadge();
+            renderReviewQueue();
+          }
+
+          function acceptReviewItem(id) {
+            var item = reviewQueue.find(function(r) { return r.id === id; });
+            if (!item || item.status !== 'pending') return;
+
+            // Apply the new content to DOM
+            try {
+              var el = document.querySelector(item.elementSelector);
+              if (el && !el.closest('#awe-editor-panel') && !el.closest('#awe-review-queue')) {
+                saveSnapshot();
+                applyContentToElement(el, item.newContent);
+                updatePreview(el);
+              }
+            } catch (err) {
+              console.error('[Review] Error applying content:', err);
+            }
+
+            // Mark as accepted and remove from queue
+            item.status = 'accepted';
+            removeFromReviewQueue(id);
+            showStatus('Change accepted!', 'success');
+          }
+
+          function rejectReviewItem(id) {
+            var item = reviewQueue.find(function(r) { return r.id === id; });
+            if (!item || item.status !== 'pending') return;
+
+            // Mark as rejected and remove from queue
+            item.status = 'rejected';
+            removeFromReviewQueue(id);
+            showStatus('Change rejected.', '');
+          }
+
+          function acceptAllReviewItems() {
+            var pending = reviewQueue.filter(function(item) { return item.status === 'pending'; });
+            if (pending.length === 0) {
+              showStatus('No pending changes.', '');
+              return;
+            }
+            for (var i = 0; i < pending.length; i++) {
+              acceptReviewItem(pending[i].id);
+            }
+          }
+
+          function rejectAllReviewItems() {
+            var pending = reviewQueue.filter(function(item) { return item.status === 'pending'; });
+            if (pending.length === 0) {
+              showStatus('No pending changes.', '');
+              return;
+            }
+            for (var i = 0; i < pending.length; i++) {
+              rejectReviewItem(pending[i].id);
+            }
+          }
+
+          function clearAllReviewItems() {
+            reviewQueue = [];
+            saveReviewQueue();
+            updateReviewBadge();
+            renderReviewQueue();
+            showToast('All pending changes cleared.', 'success');
+          }
+
+          function applyContentToElement(el, content) {
+            if (el.childNodes.length === 0 || (el.childNodes.length === 1 && el.firstChild.nodeType === Node.TEXT_NODE)) {
+              el.textContent = content;
+            } else {
+              var walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+              var firstText = walker.nextNode();
+              if (firstText) { firstText.textContent = content; }
+              else {
+                var span = document.createElement('span');
+                span.innerHTML = content;
+                el.innerHTML = '';
+                el.appendChild(span);
+              }
+            }
+          }
+
+          function escapeHtml(str) {
+             var div = document.createElement('div');
+             div.textContent = str;
+             return div.innerHTML;
+           }
+
+           // ============================================================
+            // Snippet Library (v1.7)
+            // ============================================================
+            var allSnippets = [];  // [{id, name, content}]
+            var _snippetDropdownOpen = false;
+
+            function loadSnippets() {
+              chrome.storage.sync.get(['snippets'], function(result) {
+                allSnippets = result.snippets || [];
+                renderSnippetList(allSnippets);
+              });
+            }
+
+            function insertSnippetToInput(content) {
+              var input = document.getElementById('awe-command-input');
+              if (input) {
+                // Replace current content with snippet (or append if already has text user started typing)
+                input.value = content;
+                input.focus();
+                showToast('Snippet inserted!', 'success');
+              }
+            }
+
+            function renderSnippetList(snippets) {
+              var listEl = document.getElementById('awe-snippet-list');
+              if (!listEl) return;
+
+              if (snippets.length === 0) {
+                listEl.innerHTML = '<div class="awe-snippet-empty">No snippets found</div>';
+                return;
+              }
+
+              var html = '';
+              for (var i = 0; i < snippets.length; i++) {
+                var s = snippets[i];
+                var nameText = escapeHtml(s.name || 'Unnamed');
+                var contentPreview = escapeHtml((s.content || '').substring(0, 50));
+                html += '<div class="awe-snippet-item" data-id="' + escapeHtml(s.id) + '" title="' + escapeHtml(s.content || '') + '">' +
+                  '<span class="awe-snippet-name">' + nameText + '</span>' +
+                  '<span class="awe-snippet-content-preview">' + contentPreview + '</span>' +
+                  '<button class="awe-snippet-delete-btn" data-id="' + escapeHtml(s.id) + '" title="Delete snippet">🗑</button>' +
+                '</div>';
+              }
+              listEl.innerHTML = html;
+
+              // Attach click handlers for snippet items
+              listEl.querySelectorAll('.awe-snippet-item').forEach(function(item) {
+                item.addEventListener('click', function(e) {
+                  if (e.target.classList.contains('awe-snippet-delete-btn')) return;
+                  var id = this.dataset.id;
+                  for (var i = 0; i < allSnippets.length; i++) {
+                    if (allSnippets[i].id === id) {
+                      insertSnippetToInput(allSnippets[i].content);
+                      toggleSnippetDropdown(false);
+                      return;
+                    }
+                  }
+                });
+              });
+
+              // Delete buttons
+              listEl.querySelectorAll('.awe-snippet-delete-btn').forEach(function(btn) {
+                btn.addEventListener('click', function(e) {
+                  e.stopPropagation();
+                  var snippetId = this.dataset.id;
+                  chrome.storage.sync.get(['snippets'], function(result) {
+                    var snips = (result.snippets || []).filter(function(s) { return s.id !== snippetId; });
+                    chrome.storage.sync.set({ snippets: snips }, function() {
+                      allSnippets = snips;
+                      // Re-render with current search filter
+                      var searchTerm = document.getElementById('awe-snippet-search').value.toLowerCase();
+                      var filtered = searchTerm ? allSnippets.filter(function(s) {
+                        return s.name.toLowerCase().indexOf(searchTerm) !== -1 || (s.content || '').toLowerCase().indexOf(searchTerm) !== -1;
+                      }) : allSnippets;
+                      renderSnippetList(filtered);
+                    });
+                  });
+                });
+              });
+            }
+
+            function toggleSnippetDropdown(forceState) {
+              var btn = document.getElementById('awe-snippet-toggle-btn');
+              var dropdown = document.getElementById('awe-snippet-dropdown');
+              if (!btn || !dropdown) return;
+
+              var isOpen = forceState !== undefined ? forceState : !_snippetDropdownOpen;
+              _snippetDropdownOpen = isOpen;
+
+              if (isOpen) {
+                // Load snippets if not loaded yet
+                if (allSnippets.length === 0) loadSnippets();
+                // Position dropdown above the command row
+                var rect = btn.getBoundingClientRect();
+                var panelRect = document.getElementById('awe-editor-panel').getBoundingClientRect();
+
+                // Calculate available space
+                var spaceAbove = rect.top - panelRect.top;
+                var spaceBelow = panelRect.bottom - rect.bottom;
+
+                dropdown.style.right = '0';
+                dropdown.style.left = '';
+                dropdown.style.top = (rect.top - panelRect.top - 250) + 'px';
+                dropdown.style.maxHeight = '260px';
+
+                // Render current list
+                renderSnippetList(allSnippets);
+              } else {
+                dropdown.classList.remove('awe-snippet-open');
+                // Clear search
+                var searchInput = document.getElementById('awe-snippet-search');
+                if (searchInput) searchInput.value = '';
+                renderSnippetList(allSnippets);
+              }
+
+              btn.classList.toggle('awe-snippet-active', isOpen);
+            }
+
+            function applySnippetFromPopup(content) {
+              // Apply snippet content from popup click
+              var input = document.getElementById('awe-command-input');
+              if (input) {
+                input.value = content;
+                input.focus();
+              }
+            }
+
+           function renderReviewQueue() {
+            var itemsContainer = document.getElementById('awe-review-items');
+            if (!itemsContainer) return;
+
+            var pendingCount = reviewQueue.filter(function(item) { return item.status === 'pending'; }).length;
+            var totalCount = reviewQueue.length;
+
+            // Update count display
+            var countEl = document.getElementById('awe-review-count');
+            if (countEl) {
+              countEl.textContent = totalCount === 0 ? 'No pending changes' : (totalCount + ' pending · ' + pendingCount + ' new');
+            }
+
+            if (reviewQueue.length === 0) {
+              itemsContainer.innerHTML = '<div class="awe-review-empty-msg">✓ No pending AI changes. All caught up!</div>';
+              return;
+            }
+
+            var html = '';
+            for (var i = 0; i < reviewQueue.length; i++) {
+              var item = reviewQueue[i];
+              var timeStr = new Date(item.timestamp).toLocaleTimeString();
+              var isPending = item.status === 'pending';
+              var previewHtml = escapeHtml((item.newContent || '').substring(0, 150)) + ((item.newContent || '').length > 150 ? '...' : '');
+
+              html += '<div class="awe-review-item' + (isPending ? '' : ' awe-reviewed') + '" data-id="' + item.id + '">' +
+                '<div class="awe-review-item-header">' +
+                  '<span class="awe-review-item-tag">&lt;' + escapeHtml(item.tagName || 'unknown') + '&gt;</span>' +
+                  '<span class="awe-review-item-index">#' + (i + 1) + '</span>' +
+                  '<span class="awe-review-item-time">' + timeStr + '</span>' +
+                '</div>' +
+                '<div class="awe-review-item-compact">' +
+                  '<div class="awe-review-item-half">' +
+                    '<div class="awe-review-item-label">Original</div>' +
+                    '<div class="awe-review-item-preview" style="max-height:50px;">' + escapeHtml((item.oldContent || '').substring(0, 120)) + '</div>' +
+                  '</div>' +
+                  '<div class="awe-review-item-half">' +
+                    '<div class="awe-review-item-label">New Content</div>' +
+                    '<div class="awe-review-item-preview" style="max-height:50px;">' + previewHtml + '</div>' +
+                  '</div>' +
+                '</div>' +
+                (isPending ? '<div class="awe-review-item-actions">' +
+                  '<button class="awe-review-btn-accept" data-id="' + item.id + '">✓ Accept</button>' +
+                  '<button class="awe-review-btn-reject" data-id="' + item.id + '">✗ Reject</button>' +
+                '</div>' : '<div style="font-size:11px;color:#475569;text-align:right;padding-top:2px;">' + (item.status === 'accepted' ? '✓ Accepted' : '✗ Rejected') + '</div>') +
+              '</div>';
+            }
+
+            itemsContainer.innerHTML = html;
+
+            // Attach click handlers for accept/reject buttons
+            itemsContainer.querySelectorAll('.awe-review-btn-accept').forEach(function(btn) {
+              btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                acceptReviewItem(this.dataset.id);
+              });
+            });
+            itemsContainer.querySelectorAll('.awe-review-btn-reject').forEach(function(btn) {
+              btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                rejectReviewItem(this.dataset.id);
+              });
+            });
+          }
+
+          function updateReviewBadge() {
+            var badge = document.getElementById('awe-review-badge');
+            if (!badge) return;
+            var pendingCount = reviewQueue.filter(function(item) { return item.status === 'pending'; }).length;
+            if (pendingCount > 0) {
+              badge.textContent = pendingCount;
+              badge.classList.add('awe-visible');
+            } else {
+              badge.classList.remove('awe-visible');
+              badge.textContent = '';
+            }
+          }
+
+          // Initialize review queue toggle buttons
+          function initReviewPanel() {
+            var toggleBtn = document.getElementById('awe-review-toggle-btn');
+            var contentDiv = document.getElementById('awe-review-content');
+            var queueDiv = document.getElementById('awe-review-queue');
+
+            if (toggleBtn && contentDiv) {
+              toggleBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                var isCollapsed = queueDiv.classList.contains('collapsed');
+                if (isCollapsed) {
+                  // Show all changes, hide diff preview panel to avoid overlap
+                  discardDiffPreview();
+                  queueDiv.classList.remove('collapsed');
+                  contentDiv.style.display = 'block';
+                  toggleBtn.classList.remove('awe-collapsed');
+                } else {
+                  queueDiv.classList.add('collapsed');
+                  contentDiv.style.display = 'none';
+                  toggleBtn.classList.add('awe-collapsed');
+                }
+              });
+            }
+
+            // Bulk action buttons
+            var acceptAllBtn = document.getElementById('awe-review-accept-all-btn');
+            if (acceptAllBtn) {
+              acceptAllBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                acceptAllReviewItems();
+              });
+            }
+
+            var rejectAllBtn = document.getElementById('awe-review-reject-all-btn');
+            if (rejectAllBtn) {
+              rejectAllBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                rejectAllReviewItems();
+              });
+            }
+          }
+
+          // ============================================================
+           // Batch Editing (v1.3)
+           // ============================================================
+           var batchSelectedElements = [];
+          var isBatchMode = false;        // true when in batch mode
+
+          function clearBatchSelection() {
+           batchSelectedElements = [];
           isBatchMode = false;
           document.querySelectorAll('.awe-element-batch-selected').forEach(function(el) {
             el.classList.remove('awe-element-batch-selected');
@@ -516,12 +1502,13 @@
                elementText: el.textContent?.trim() || '',
                elementTag: el.tagName?.toLowerCase() || 'div',
              }, function(response) {
-               // v1.7: show diff preview for batch items too
-               if (response && response.success && response.newContent) {
-                 var oldText = response.oldContent || (el.textContent?.trim() || '');
-                 saveSnapshot();
-                 showDiffPreview(oldText, response.newContent, el);
-               }
+               // v1.7: show diff preview and add to review queue for batch items too
+                    if (response && response.success && response.newContent) {
+                      var oldText = response.oldContent || (el.textContent?.trim() || '');
+                      saveSnapshot();
+                      addToReviewQueue(oldText, response.newContent, el);
+                      showDiffPreview(oldText, response.newContent, el);
+                    }
                resolve(response);
              });
            });
@@ -709,11 +1696,12 @@
           <button id="awe-close-btn" title="Close">×</button>
         </div>
       <div id="awe-element-preview">
-        <span id="awe-element-tag">&lt;div&gt;</span>
-        <div id="awe-element-text">Click an element to select it</div>
-      </div>
+         <span id="awe-element-tag">&lt;div&gt;</span>
+         <span id="awe-lang-indicator-container" style="display:none;"><span id="awe-lang-indicator"><span class="awe-lang-dot"></span> Detecting...</span></span>
+         <div id="awe-element-text">Click an element to select it</div>
+       </div>
       <div id="awe-tabs">
-        <button class="awe-tab-btn active" data-tab="ai">AI Modify</button>
+        <button class="awe-tab-btn active" data-tab="ai">AI Modify <span id="awe-review-badge"></span></button>
          <button class="awe-tab-btn" data-tab="style">Style</button>
          <button class="awe-tab-btn" data-tab="html">HTML</button>
          <button class="awe-tab-btn" data-tab="history">History</button>
@@ -758,9 +1746,33 @@
              </div>
              <!-- Conversation log (v1.5) -->
              <div class="awe-conversation-log" id="awe-conversation-log"></div>
-             <div style="display:flex; gap:6px; margin-top:8px;">
-             <textarea id="awe-command-input" placeholder="Tell AI how to modify this element...&#10;e.g. 'Rewrite this title to be more catchy'" style="flex:1;"></textarea>
-             <button id="awe-send-btn">✨</button>
+             <div class="awe-command-row-wrapper" style="display:flex; gap:6px; margin-top:8px;">
+               <textarea id="awe-command-input" placeholder="Tell AI how to modify this element...&#10;e.g. 'Rewrite this title to be more catchy'" style="flex:1;"></textarea>
+               <button id="awe-snippet-toggle-btn" title="Snippets">📎</button>
+               <button id="awe-send-btn">✨</button>
+               </div>
+              <!-- Snippet Dropdown -->
+              <div id="awe-snippet-dropdown">
+                <div class="awe-snippet-header">Snippets</div>
+                <input type="text" id="awe-snippet-search" class="awe-snippet-search" placeholder="Search snippets...">
+                <div id="awe-snippet-list"></div>
+              </div>
+              </div>
+             <!-- Review Queue Panel (v1.7) — inside AI tab, at the bottom -->
+             <div id="awe-review-queue" class="collapsed">
+             <button id="awe-review-toggle-btn">
+             <span>🔍 Review Changes</span>
+             <span class="awe-review-arrow">▼</span>
+             </button>
+             <div id="awe-review-content" style="display:none;">
+             <div id="awe-review-toolbar">
+               <span class="awe-review-count" id="awe-review-count">0 pending</span>
+               <div id="awe-review-bulk-btns">
+                 <button id="awe-review-accept-all-btn">✓ Accept All</button>
+                 <button id="awe-review-reject-all-btn">✗ Reject All</button>
+               </div>
+             </div>
+             <div id="awe-review-items"></div>
              </div>
              </div>
         <!-- Style Tab -->
@@ -1231,16 +2243,19 @@
                }
              });
 
-             // v1.7: Show diff preview instead of direct apply
-             var oldText = response.oldContent || (selectedElement.textContent?.trim() || '');
-             showDiffPreview(oldText, response.newContent, selectedElement);
+             // v1.7: Instead of diff preview panel, add to review queue for user approval
+                           var oldText = response.oldContent || (selectedElement.textContent?.trim() || '');
+                           diffPendingReviewId = addToReviewQueue(oldText, response.newContent, selectedElement);
 
-             // v1.5: Update conversation history and render log
-             conversationHistory.push({ role: 'user', content: cmd, timestamp: Date.now() });
-             conversationHistory.push({ role: 'assistant', content: response.newContent, newContent: response.newContent, timestamp: Date.now() });
-             renderConversationLog();
+                           // v1.5: Update conversation history and render log
+                           conversationHistory.push({ role: 'user', content: cmd, timestamp: Date.now() });
+                           conversationHistory.push({ role: 'assistant', content: response.newContent, newContent: response.newContent, timestamp: Date.now() });
+                           renderConversationLog();
 
-             addToHistory(cmd, 'ai-pending', JSON.stringify({ newContent: response.newContent, oldContent: oldText }));
+                           // Also keep the old diff preview as an option (but review queue is primary)
+                           showDiffPreview(oldText, response.newContent, selectedElement);
+
+                          addToHistory(cmd, 'ai-pending', JSON.stringify({ newContent: response.newContent, oldContent: oldText }));
        } else {
          // API not configured or failed — show local fallback
          applyLocalModification(selectedElement, cmd);
@@ -1936,10 +2951,11 @@
          });
 
          if (response.success && response.newContent) {
-          // v1.7: show diff preview instead of direct apply
-          var oldText = response.oldContent || (el.textContent?.trim() || '');
-          saveSnapshot();
-          showDiffPreview(oldText, response.newContent, el);
+                // v1.7: add to review queue instead of direct diff preview
+                var oldText = response.oldContent || (el.textContent?.trim() || '');
+                saveSnapshot();
+                diffPendingReviewId = addToReviewQueue(oldText, response.newContent, el);
+                showDiffPreview(oldText, response.newContent, el);
          } else {
           applyLocalModification(el, command);
           showStatus('API not connected. Applied local modification.', '');
@@ -2091,7 +3107,13 @@
     }
 
    // Load persisted element history on init
-    loadElementHistory();
+     loadElementHistory();
+
+     // ============================================================
+     // Review Queue (v1.7) — load and initialize
+     // ============================================================
+     loadReviewQueue();
+     initReviewPanel();
 
     // ============================================================
     // CSS Rules Panel (v1.6) — render and apply saved rules
@@ -2157,16 +3179,62 @@
     }
 
     // Apply All button in content panel (v1.6)
-    document.addEventListener('click', function(e) {
-      if (e.target.id === 'css-rules-apply-all-btn') {
-        chrome.runtime.sendMessage({ action: 'apply-css-rules' }, function(resp) {
-          if (resp && resp.success) {
-            showToast('Applied ' + (resp.count || 0) + ' CSS rule(s) to the page!', 'success');
-          } else {
-            showToast('Failed to apply CSS rules.', 'error');
-          }
-        });
-      }
-    });
+     document.addEventListener('click', function(e) {
+       if (e.target.id === 'css-rules-apply-all-btn') {
+         chrome.runtime.sendMessage({ action: 'apply-css-rules' }, function(resp) {
+           if (resp && resp.success) {
+             showToast('Applied ' + (resp.count || 0) + ' CSS rule(s) to the page!', 'success');
+           } else {
+             showToast('Failed to apply CSS rules.', 'error');
+           }
+         });
+       }
+     });
 
-    })();
+     // ============================================================
+     // Snippet Button & Search (v1.7)
+     // ============================================================
+     // Initialize snippet dropdown button and search
+     var snippetToggleBtn = document.getElementById('awe-snippet-toggle-btn');
+     if (snippetToggleBtn) {
+       snippetToggleBtn.addEventListener('click', function(e) {
+         e.stopPropagation();
+         toggleSnippetDropdown();
+       });
+     }
+
+     // Search filter
+     var snippetSearchInput = document.getElementById('awe-snippet-search');
+     if (snippetSearchInput) {
+       snippetSearchInput.addEventListener('input', function() {
+         var searchTerm = this.value.toLowerCase().trim();
+         if (!searchTerm) {
+           renderSnippetList(allSnippets);
+           return;
+         }
+         var filtered = allSnippets.filter(function(s) {
+           return s.name.toLowerCase().indexOf(searchTerm) !== -1 ||
+                  (s.content || '').toLowerCase().indexOf(searchTerm) !== -1;
+         });
+         renderSnippetList(filtered);
+       });
+
+       // Close dropdown when clicking elsewhere
+       snippetSearchInput.addEventListener('blur', function() {
+         // Small delay to allow click events on items to fire first
+         setTimeout(function() {
+           if (_snippetDropdownOpen) {
+             toggleSnippetDropdown(false);
+           }
+         }, 150);
+       });
+     }
+
+     // Listen for apply-snippet messages from popup
+     chrome.runtime.onMessage.addListener(function(message, sender, sendResponse) {
+       if (message.action === 'apply-snippet' && message.content) {
+         applySnippetFromPopup(message.content);
+       }
+     });
+
+     })();

@@ -306,8 +306,153 @@ document.addEventListener('DOMContentLoaded', () => {
   loadTemplates();
 
   // ============================================================
-  // Main API settings logic
-  // ============================================================
+   // Snippet Management (v1.7)
+   // ============================================================
+   const newSnippetBtn = document.getElementById('newSnippetBtn');
+   const snippetModal = document.getElementById('snippet-modal');
+   const snippetNameInput = document.getElementById('snippetNameInput');
+   const snippetContentInput = document.getElementById('snippetContentInput');
+   const saveSnippetBtn = document.getElementById('saveSnippetBtn');
+   const cancelSnippetBtn = document.getElementById('cancelSnippetBtn');
+   let editingSnippetId = null;
+
+   function initDefaultSnippets() {
+     chrome.storage.sync.get(['snippets'], function(result) {
+       if (!result.snippets || result.snippets.length === 0) {
+         var defaults = [
+           { id: 'snippet_trans_zh', name: '翻译成中文', content: 'Translate the text above into Chinese. Keep the same meaning and tone, but use natural Chinese phrasing.' },
+           { id: 'snippet_simplify', name: '改成更简洁', content: 'Rewrite this text to be more concise. Remove unnecessary words while keeping the core message intact.' },
+           { id: 'snippet_professional', name: '更专业语气', content: 'Rewrite this with a professional tone suitable for a business context. Use formal language and clear structure.' },
+           { id: 'snippet_fix_grammar', name: '修正语法', content: 'Fix any grammar, spelling, or punctuation errors in this text without changing the meaning.' },
+           { id: 'snippet_bullet_points', name: '转为要点列表', content: 'Convert the above text into a clear bullet-point list. Highlight key points and keep descriptions brief.' },
+         ];
+         chrome.storage.sync.set({ snippets: defaults }, function() {
+           loadSnippets();
+         });
+       } else {
+         loadSnippets();
+       }
+     });
+   }
+
+   function loadSnippets() {
+     chrome.storage.sync.get(['snippets'], function(result) {
+       var snippets = result.snippets || [];
+       var html = '';
+       for (var i = 0; i < snippets.length; i++) {
+         var s = snippets[i];
+         var nameDisplay = escapeHtml(s.name || 'Unnamed');
+         var contentPreview = escapeHtml((s.content || '').substring(0, 40));
+         html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 8px;background:#0f0f23;border:1px solid #2d2d4a;border-radius:6px;margin-bottom:4px;font-size:12px;">' +
+           '<span style="flex:1;color:#e2e8f0;cursor:pointer;" class="snippet-name" data-id="' + s.id + '" title="' + escapeHtml(s.content || '') + '">' + nameDisplay + '</span>' +
+           '<button style="background:none;border:1px solid #2d2d4a;color:#94a3b8;width:22px;height:22px;border-radius:4px;cursor:pointer;font-size:12px;padding:0;" class="snippet-edit-btn" data-id="' + s.id + '">✏</button>' +
+           '<button style="background:none;border:1px solid #2d2d4a;color:#94a3b8;width:22px;height:22px;border-radius:4px;cursor:pointer;font-size:12px;padding:0;" class="snippet-delete-btn" data-id="' + s.id + '">🗑</button>' +
+         '</div>';
+       }
+       if (snippets.length === 0) {
+         html = '<p style="text-align:center;font-size:12px;color:#475569;padding:10px 0;">No snippets yet. Click "+ New Snippet" to create one.</p>';
+       }
+       document.getElementById('snippet-list').innerHTML = html;
+
+       // Attach handlers for snippet name clicks (apply to content panel)
+       document.querySelectorAll('.snippet-name').forEach(function(el) {
+         el.addEventListener('click', function() {
+           chrome.storage.sync.get(['snippets'], function(r2) {
+             var snips = r2.snippets || [];
+             var snippet = null;
+             for (var i = 0; i < snips.length; i++) {
+               if (snips[i].id === el.dataset.id) { snippet = snips[i]; break; }
+             }
+             if (snippet) {
+               chrome.runtime.sendMessage({ action: 'apply-snippet', content: snippet.content }, function(resp) {
+                 showToast('Snippet "' + snippet.name + '" applied!', true);
+               });
+             }
+           });
+         });
+       });
+
+       // Edit buttons
+       document.querySelectorAll('.snippet-edit-btn').forEach(function(btn) {
+         btn.addEventListener('click', function() {
+           chrome.storage.sync.get(['snippets'], function(r2) {
+             var snips = r2.snippets || [];
+             var snippet = null;
+             for (var i = 0; i < snips.length; i++) {
+               if (snips[i].id === btn.dataset.id) { snippet = snips[i]; break; }
+             }
+             if (snippet) {
+               editingSnippetId = snippet.id;
+               snippetNameInput.value = snippet.name || '';
+               snippetContentInput.value = snippet.content || '';
+               saveSnippetBtn.textContent = 'Update';
+               snippetModal.style.display = 'block';
+             }
+           });
+         });
+       });
+
+       // Delete buttons
+       document.querySelectorAll('.snippet-delete-btn').forEach(function(btn) {
+         btn.addEventListener('click', function() {
+           chrome.storage.sync.get(['snippets'], function(r2) {
+             var snips = (r2.snippets || []).filter(function(s) { return s.id !== btn.dataset.id; });
+             chrome.storage.sync.set({ snippets: snips }, function() { loadSnippets(); });
+           });
+         });
+       });
+     });
+   }
+
+   newSnippetBtn.addEventListener('click', function() {
+     editingSnippetId = null;
+     snippetNameInput.value = '';
+     snippetContentInput.value = '';
+     saveSnippetBtn.textContent = 'Save';
+     snippetModal.style.display = 'block';
+     setTimeout(function() { snippetNameInput.focus(); }, 100);
+   });
+
+   cancelSnippetBtn.addEventListener('click', function() {
+     snippetModal.style.display = 'none';
+     editingSnippetId = null;
+   });
+
+   saveSnippetBtn.addEventListener('click', function() {
+     var name = snippetNameInput.value.trim();
+     var content = snippetContentInput.value.trim();
+     if (!name || !content) {
+       alert('Please fill in both Name and Content.');
+       return;
+     }
+     chrome.storage.sync.get(['snippets'], function(result) {
+       var snippets = result.snippets || [];
+       if (editingSnippetId) {
+         for (var i = 0; i < snippets.length; i++) {
+           if (snippets[i].id === editingSnippetId) {
+             snippets[i].name = name;
+             snippets[i].content = content;
+             break;
+           }
+         }
+       } else {
+         snippets.push({ id: 'snippet_' + Date.now(), name: name, content: content });
+       }
+       chrome.storage.sync.set({ snippets: snippets }, function() {
+         snippetModal.style.display = 'none';
+         editingSnippetId = null;
+         loadSnippets();
+       });
+     });
+   });
+
+   // Load initial snippets
+   initDefaultSnippets();
+
+
+   // ============================================================
+   // Main API settings logic
+   // ============================================================
 
   // Load saved settings
   chrome.storage.sync.get(['apiKey', 'apiProvider', 'apiBaseUrl', 'apiModel', 'dailyLimit'], (result) => {

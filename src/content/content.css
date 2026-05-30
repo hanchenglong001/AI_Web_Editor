@@ -178,6 +178,48 @@
   overflow-y: auto;
 }
 
+/* Language indicator (v1.7) */
+#awe-lang-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 600;
+  margin-left: 8px;
+  background: rgba(99, 102, 241, 0.15);
+  color: #a5b4fc;
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  cursor: default;
+  transition: all 0.2s;
+}
+
+#awe-lang-indicator .awe-lang-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #22c55e;
+  animation: aweLangPulse 2s ease infinite;
+}
+
+@keyframes aweLangPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+#awe-lang-indicator.awe-detected {
+  background: rgba(34, 197, 94, 0.1);
+  color: #86efac;
+  border-color: rgba(34, 197, 94, 0.3);
+}
+
+#awe-lang-indicator.awe-unknown {
+  background: rgba(245, 158, 11, 0.1);
+  color: #fbbf24;
+  border-color: rgba(245, 158, 11, 0.3);
+}
+
 /* Tab bar */
 #awe-tabs {
   display: flex;
@@ -297,6 +339,18 @@
 .awe-quick-btn:hover {
   background: rgba(99, 102, 241, 0.2);
   color: #c7d2fe;
+}
+
+/* Quick-btn for detected target languages */
+.awe-quick-btn[data-auto-lang] {
+  background: rgba(34, 197, 94, 0.1);
+  border-color: rgba(34, 197, 94, 0.3);
+  color: #86efac;
+}
+
+.awe-quick-btn[data-auto-lang]:hover {
+  background: rgba(34, 197, 94, 0.2);
+  color: #bbf7d0;
 }
 
 /* Style controls */
@@ -477,19 +531,19 @@
  /* ============================================================
      Conversation Mode Styles (v1.5)
      ============================================================ */
-  #awe-conversation-log { max-height:150px; overflow-y:auto; margin-bottom:8px; }
+ #awe-conversation-log { max-height:150px; overflow-y:auto; margin-bottom:8px; }
 
-  .awe-message-user { background:#6366f1; color:white; padding:8px 12px; border-radius:8px 8px 0 8px; margin:4px 0; font-size:13px; }
-  .awe-message-assistant { background:#0f0f23; color:#e2e8f0; padding:8px 12px; border-radius:8px 8px 8px 0; margin:4px 0; font-size:13px; }
+ .awe-message-user { background:#6366f1; color:white; padding:8px 12px; border-radius:8px 8px 0 8px; margin:4px 0; font-size:13px; }
+ .awe-message-assistant { background:#0f0f23; color:#e2e8f0; padding:8px 12px; border-radius:8px 8px 8px 0; margin:4px 0; font-size:13px; }
 
-  /* ============================================================
+ /* ============================================================
      Batch Editing Styles (v1.3)
      ============================================================ */
-  .awe-element-batch-selected { outline:3px solid #22c55e !important; outline-offset:2px !important; background-color:rgba(34,197,94,0.1) !important; position:relative!important; }
+ .awe-element-batch-selected { outline:3px solid #22c55e !important; outline-offset:2px !important; background-color:rgba(34,197,94,0.1) !important; position:relative!important; }
 
-  /* Context Menu (v1.3) */
-   #awe-context-menu { display:none; position:fixed; z-index:2147483647; background:#1a1a2e; border:1px solid #2d2d4a; border-radius:8px; padding:4px; min-width:200px; box-shadow:0 8px 24px rgba(0,0,0,0.5); }
-   #awe-context-menu button:hover { background:#2d2d4a!important; }
+ /* Context Menu (v1.3) */
+  #awe-context-menu { display:none; position:fixed; z-index:2147483647; background:#1a1a2e; border:1px solid #2d2d4a; border-radius:8px; padding:4px; min-width:200px; box-shadow:0 8px 24px rgba(0,0,0,0.5); }
+  #awe-context-menu button:hover { background:#2d2d4a!important; }
 
    /* ============================================================
       Diff Preview Panel (v1.7)
@@ -498,6 +552,144 @@
      position: fixed;
      bottom: 100px;
      right: 24px;
+
+     /* ============================================================
+        Code Highlight Editor — HTML Tab (v1.7)
+        ============================================================ */
+
+   /* Container for the highlighted editor overlay */
+   .awe-highlight-editor-wrap {
+     position: relative;
+     width: 100%;
+     border-radius: 6px;
+     overflow: hidden;
+     background: #0f0f23;
+     border: 1px solid #2d2d4a;
+   }
+
+   /* The highlight overlay div sits above the textarea */
+   .awe-highlight-overlay {
+     position: absolute;
+     top: 0;
+     left: 0;
+     right: 0;
+     bottom: 0;
+     z-index: 1;
+     overflow: hidden;
+     pointer-events: none;
+     padding: 8px;
+     font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', Consolas, monospace;
+     font-size: 12px;
+     line-height: 1.6;
+     white-space: pre-wrap;
+     word-wrap: break-word;
+     color: transparent;
+   }
+
+   /* The textarea (fully transparent but editable) */
+   #awe-html-editor {
+     background: transparent !important;
+     color: transparent !important;
+     caret-color: #e2e8f0 !important;
+     border: none !important;
+     outline: none !important;
+     position: relative;
+     z-index: 2;
+     resize: vertical;
+   }
+
+   /* Overlay line numbers gutter */
+   .awe-highlight-overlay .line-num {
+     display: inline-block;
+     min-width: 30px;
+     text-align: right;
+     padding-right: 8px;
+     margin-right: 8px;
+     border-right: 1px solid #2d2d4a;
+     color: transparent !important;
+     user-select: none;
+   }
+
+   /* Syntax highlight colors (dark theme) */
+   .awe-highlight-overlay .hl-tag { color: #f472b6; text-shadow: 0 0 0 #f472b6; font-weight: 600; }
+   .awe-highlight-overlay .hl-attr-name { color: #a78bfa; text-shadow: 0 0 0 #a78bfa; }
+   .awe-highlight-overlay .hl-attr-value { color: #34d399; text-shadow: 0 0 0 #34d399; }
+   .awe-highlight-overlay .hl-comment { color: #64748b; text-shadow: 0 0 0 #64748b; font-style: italic; }
+   .awe-highlight-overlay .hl-doctype { color: #64748b; text-shadow: 0 0 0 #64748b; font-style: italic; }
+   .awe-highlight-overlay .hl-entity { color: #fbbf24; text-shadow: 0 0 0 #fbbf24; }
+   .awe-highlight-overlay .hl-text { color: #e2e8f0; text-shadow: 0 0 0 #e2e8f0; }
+
+   /* Foldable code blocks */
+   .awe-highlight-overlay .aweh-fold-block {
+     position: relative;
+     margin-bottom: 2px;
+   }
+
+   .awe-highlight-overlay .aweh-fold-toggle {
+     display: inline-flex;
+     align-items: center;
+     gap: 4px;
+     cursor: pointer;
+     user-select: none;
+     position: absolute;
+     left: 0;
+     top: 0;
+     z-index: 3;
+     padding: 1px 4px;
+     border-radius: 3px;
+     background: rgba(99, 102, 241, 0.15);
+     color: #a5b4fc;
+     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+     font-size: 10px;
+     line-height: 1;
+   }
+
+   .awe-highlight-overlay .aweh-fold-toggle:hover {
+     background: rgba(99, 102, 241, 0.3);
+   }
+
+   .awe-highlight-overlay .aweh-fold-toggle .aweh-fold-arrow {
+     display: inline-block;
+     transition: transform 0.2s;
+     font-size: 8px;
+     line-height: 1;
+   }
+
+   .awe-highlight-overlay .aweh-fold-toggle.aweh-collapsed .aweh-fold-arrow {
+     transform: rotate(-90deg);
+   }
+
+   .awe-highlight-overlay .aweh-fold-content {
+     display: block;
+     padding-left: 28px;
+   }
+
+   .awe-highlight-overlay .aweh-fold-content.aweh-hidden {
+     display: none;
+   }
+
+   /* Fold summary line */
+   .awe-highlight-overlay .aweh-fold-summary {
+     color: #64748b;
+     font-size: 10px;
+     font-style: italic;
+     padding-left: 28px;
+     display: none;
+   }
+
+   .awe-highlight-overlay .aweh-fold-content.aweh-hidden ~ .awe-highlight-overlay .aweh-fold-summary,
+   .awe-highlight-overlay .aweh-fold-block.aweh-collapsed .awe-highlight-overlay .aweh-fold-summary {
+     display: inline;
+   }
+
+   /* Light theme overrides */
+   #awe-editor-panel.theme-light .awe-highlight-overlay .hl-tag { color: #be185d; text-shadow: 0 0 0 #be185d; }
+   #awe-editor-panel.theme-light .awe-highlight-overlay .hl-attr-name { color: #7c3aed; text-shadow: 0 0 0 #7c3aed; }
+   #awe-editor-panel.theme-light .awe-highlight-overlay .hl-attr-value { color: #059669; text-shadow: 0 0 0 #059669; }
+   #awe-editor-panel.theme-light .awe-highlight-overlay .hl-comment { color: #94a3b8; text-shadow: 0 0 0 #94a3b8; }
+   #awe-editor-panel.theme-light .awe-highlight-overlay .hl-entity { color: #d97706; text-shadow: 0 0 0 #d97706; }
+   #awe-editor-panel.theme-light .awe-highlight-overlay .hl-text { color: #1e293b; text-shadow: 0 0 0 #1e293b; }
+
      width: 420px;
      max-height: 55vh;
      background: #1a1a2e;
@@ -982,8 +1174,453 @@
     }
 
     /* Selection highlight style for translated element */
-    .awe-element-translating {
-      outline: 2px solid #22c55e !important;
-      outline-offset: 2px !important;
-      background-color: rgba(34, 197, 94, 0.08) !important;
-    }
+     .awe-element-translating {
+       outline: 2px solid #22c55e !important;
+       outline-offset: 2px !important;
+       background-color: rgba(34, 197, 94, 0.08) !important;
+     }
+
+     /* ============================================================
+        Review Queue Panel (v1.7)
+        ============================================================ */
+     #awe-review-queue {
+       border-top: 1px solid #2d2d4a;
+       background: #12122a;
+       max-height: 300px;
+       overflow-y: auto;
+       transition: max-height 0.3s ease;
+     }
+
+
+     #awe-review-queue.collapsed {
+       max-height: 40px;
+       overflow: hidden;
+     }
+
+     #awe-review-toggle-btn {
+       display: flex;
+       align-items: center;
+       justify-content: space-between;
+       width: 100%;
+       padding: 8px 20px;
+       background: none;
+       border: none;
+       color: #94a3b8;
+       font-size: 12px;
+       font-weight: 600;
+       cursor: pointer;
+       transition: color 0.2s, background 0.2s;
+     }
+
+     #awe-review-toggle-btn:hover {
+       background: rgba(99, 102, 241, 0.05);
+       color: #c7d2fe;
+     }
+
+     #awe-review-toggle-btn .awe-review-arrow {
+       transition: transform 0.3s ease;
+       font-size: 10px;
+     }
+
+     #awe-review-toggle-btn.awe-collapsed .awe-review-arrow {
+       transform: rotate(-90deg);
+     }
+
+     #awe-review-toolbar {
+       display: flex;
+       justify-content: space-between;
+       align-items: center;
+       padding: 6px 20px;
+       border-bottom: 1px solid #2d2d4a;
+       background: #0f0f23;
+     }
+
+     #awe-review-toolbar .awe-review-count {
+       font-size: 11px;
+       color: #6366f1;
+       font-weight: 600;
+     }
+
+     #awe-review-bulk-btns {
+       display: flex;
+       gap: 4px;
+     }
+
+     #awe-review-bulk-btns button {
+       padding: 3px 10px;
+       border: 1px solid #2d2d4a;
+       border-radius: 4px;
+       font-size: 11px;
+       font-weight: 600;
+       cursor: pointer;
+       transition: all 0.15s;
+     }
+
+     #awe-review-accept-all-btn {
+       background: rgba(34, 197, 94, 0.1);
+       color: #86efac;
+       border-color: rgba(34, 197, 94, 0.3) !important;
+     }
+
+     #awe-review-accept-all-btn:hover {
+       background: rgba(34, 197, 94, 0.2);
+     }
+
+     #awe-review-reject-all-btn {
+       background: rgba(239, 68, 68, 0.1);
+       color: #fca5a5;
+       border-color: rgba(239, 68, 68, 0.3) !important;
+     }
+
+     #awe-review-reject-all-btn:hover {
+       background: rgba(239, 68, 68, 0.2);
+     }
+
+     .awe-review-item {
+       border-bottom: 1px solid #1e1e3a;
+       padding: 10px 16px;
+       animation: aweSlideInItem 0.2s ease-out;
+     }
+
+     @keyframes aweSlideInItem {
+       from { opacity: 0; transform: translateY(-8px); }
+       to { opacity: 1; transform: translateY(0); }
+     }
+
+     .awe-review-item:last-child {
+       border-bottom: none;
+     }
+
+     .awe-review-item-header {
+       display: flex;
+       align-items: center;
+       gap: 8px;
+       margin-bottom: 6px;
+     }
+
+     .awe-review-item-tag {
+       font-family: monospace;
+       font-size: 11px;
+       color: #6366f1;
+       background: rgba(99, 102, 241, 0.1);
+       padding: 1px 6px;
+       border-radius: 3px;
+       font-weight: 600;
+     }
+
+     .awe-review-item-index {
+       font-size: 10px;
+       color: #475569;
+     }
+
+     .awe-review-item-time {
+       font-size: 10px;
+       color: #475569;
+       margin-left: auto;
+     }
+
+     .awe-review-item-preview {
+       background: #0f0f23;
+       border: 1px solid #2d2d4a;
+       border-radius: 6px;
+       padding: 8px 10px;
+       font-size: 12px;
+       color: #94a3b8;
+       line-height: 1.5;
+       max-height: 60px;
+       overflow-y: auto;
+       white-space: pre-wrap;
+       word-break: break-word;
+       margin-bottom: 8px;
+     }
+
+     .awe-review-item-preview .awe-diff-delete {
+       background: rgba(239, 68, 68, 0.15);
+       color: #fca5a5;
+       text-decoration: line-through;
+       padding: 1px 2px;
+       border-radius: 2px;
+     }
+
+     .awe-review-item-preview .awe-diff-insert {
+       background: rgba(34, 197, 94, 0.15);
+       color: #86efac;
+       text-decoration: underline;
+       padding: 1px 2px;
+       border-radius: 2px;
+     }
+
+     .awe-review-item-label {
+       font-size: 10px;
+       font-weight: 600;
+       color: #94a3b8;
+       text-transform: uppercase;
+       letter-spacing: 0.5px;
+       margin-bottom: 4px;
+     }
+
+     .awe-review-item-compact {
+       display: flex;
+       gap: 16px;
+       margin-bottom: 8px;
+     }
+
+     .awe-review-item-half {
+       flex: 1;
+     }
+
+     .awe-review-item-actions {
+       display: flex;
+       gap: 6px;
+       justify-content: flex-end;
+     }
+
+     .awe-review-btn-accept, .awe-review-btn-reject {
+       padding: 4px 14px;
+       border: none;
+       border-radius: 6px;
+       font-size: 12px;
+       font-weight: 600;
+       cursor: pointer;
+       transition: all 0.15s;
+     }
+
+     .awe-review-btn-accept {
+       background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+       color: white;
+     }
+
+     .awe-review-btn-accept:hover {
+       opacity: 0.9;
+       transform: scale(1.02);
+     }
+
+     .awe-review-btn-reject {
+       background: rgba(100, 116, 139, 0.2);
+       color: #94a3b8;
+       border: 1px solid #2d2d4a !important;
+     }
+
+     .awe-review-btn-reject:hover {
+       background: rgba(239, 68, 68, 0.15);
+       color: #fca5a5;
+       border-color: rgba(239, 68, 68, 0.3) !important;
+     }
+
+     /* Accepted/Rejected state */
+     .awe-review-item.awe-reviewed {
+       opacity: 0.4;
+       pointer-events: none;
+     }
+
+     .awe-review-item.awe-accepted {
+       border-left: 3px solid #22c55e;
+     }
+
+     .awe-review-item.awa-rejected {
+       border-left: 3px solid #ef4444;
+     }
+
+     .awe-review-empty-msg {
+       padding: 16px 20px;
+       text-align: center;
+       font-size: 12px;
+       color: #475569;
+     }
+
+     /* Review badge on AI tab button */
+     #awe-review-badge {
+       display: none;
+       background: #ef4444;
+       color: white;
+       font-size: 10px;
+       font-weight: 700;
+       min-width: 18px;
+       height: 18px;
+       border-radius: 9px;
+       padding: 0 5px;
+       align-items: center;
+       justify-content: center;
+       margin-left: 4px;
+     }
+
+     #awe-review-badge.awe-visible {
+       display: inline-flex;
+       animation: awePulse 1s ease infinite;
+     }
+
+     @keyframes awePulse {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.1); }
+      }
+
+     /* ============================================================
+        Snippet Library (v1.7)
+        ============================================================ */
+     #awe-snippet-dropdown {
+       display: none;
+       position: absolute;
+       bottom: 100%;
+       left: 0;
+       right: 0;
+       background: #1a1a2e;
+       border: 1px solid #2d2d4a;
+       border-bottom: none;
+       border-radius: 8px 8px 0 0;
+       box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.3);
+       max-height: 260px;
+       overflow-y: auto;
+       z-index: 999;
+     }
+
+     #awe-snippet-dropdown.awe-snippet-open {
+       display: block;
+       animation: aweSlideDown 0.2s ease-out;
+     }
+
+     @keyframes aweSlideDown {
+       from { opacity: 0; transform: translateY(-8px); }
+       to { opacity: 1; transform: translateY(0); }
+     }
+
+     #awe-snippet-dropdown .awe-snippet-header {
+       padding: 8px 12px;
+       font-size: 11px;
+       font-weight: 600;
+       color: #94a3b8;
+       text-transform: uppercase;
+       letter-spacing: 0.5px;
+       border-bottom: 1px solid #2d2d4a;
+       display: flex;
+       justify-content: space-between;
+       align-items: center;
+     }
+
+     #awe-snippet-dropdown .awe-snippet-search {
+       width: 100%;
+       padding: 6px 10px;
+       background: #0f0f23;
+       border: none;
+       border-bottom: 1px solid #2d2d4a;
+       color: #e2e8f0;
+       font-size: 12px;
+       outline: none;
+       box-sizing: border-box;
+     }
+
+     #awe-snippet-dropdown .awe-snippet-search::placeholder {
+       color: #475569;
+     }
+
+     #awe-snippet-list {
+       max-height: 200px;
+       overflow-y: auto;
+     }
+
+     #awe-snippet-list::-webkit-scrollbar {
+       width: 4px;
+     }
+
+     #awe-snippet-list::-webkit-scrollbar-thumb {
+       background: #2d2d4a;
+       border-radius: 2px;
+     }
+
+     .awe-snippet-item {
+       display: flex;
+       align-items: center;
+       gap: 8px;
+       padding: 8px 12px;
+       cursor: pointer;
+       transition: background 0.15s;
+       border-bottom: 1px solid #1e1e3a;
+     }
+
+     .awe-snippet-item:last-child {
+       border-bottom: none;
+     }
+
+     .awe-snippet-item:hover {
+       background: rgba(99, 102, 241, 0.15);
+     }
+
+     .awe-snippet-item .awe-snippet-name {
+       font-size: 13px;
+       color: #e2e8f0;
+       font-weight: 500;
+       flex: 1;
+       white-space: nowrap;
+       overflow: hidden;
+       text-overflow: ellipsis;
+     }
+
+     .awe-snippet-item .awe-snippet-content-preview {
+       font-size: 10px;
+       color: #475569;
+       max-width: 200px;
+       white-space: nowrap;
+       overflow: hidden;
+       text-overflow: ellipsis;
+     }
+
+     .awe-snippet-item .awe-snippet-delete-btn {
+       background: none;
+       border: none;
+       color: #475569;
+       cursor: pointer;
+       font-size: 12px;
+       padding: 2px 4px;
+       border-radius: 4px;
+       opacity: 0;
+       transition: all 0.15s;
+       flex-shrink: 0;
+     }
+
+     .awe-snippet-item:hover .awe-snippet-delete-btn {
+       opacity: 1;
+     }
+
+     .awe-snippet-item .awe-snippet-delete-btn:hover {
+       color: #ef4444;
+       background: rgba(239, 68, 68, 0.1);
+     }
+
+     .awe-snippet-empty {
+       padding: 16px 12px;
+       text-align: center;
+       font-size: 12px;
+       color: #475569;
+     }
+
+     /* Snippet button in input area */
+     #awe-snippet-toggle-btn {
+       background: rgba(99, 102, 241, 0.1);
+       border: 1px solid rgba(99, 102, 241, 0.3);
+       color: #a5b4fc;
+       width: 36px;
+       height: 36px;
+       border-radius: 8px;
+       cursor: pointer;
+       font-size: 16px;
+       display: flex;
+       align-items: center;
+       justify-content: center;
+       transition: all 0.15s;
+       flex-shrink: 0;
+       margin-top: auto;
+     }
+
+     #awe-snippet-toggle-btn:hover {
+       background: rgba(99, 102, 241, 0.2);
+       color: #c7d2fe;
+     }
+
+     #awe-snippet-toggle-btn.awe-snippet-active {
+       background: rgba(99, 102, 241, 0.25);
+       border-color: #6366f1;
+       color: #c7d2fe;
+     }
+
+     .awe-command-row-wrapper {
+       position: relative;
+     }
