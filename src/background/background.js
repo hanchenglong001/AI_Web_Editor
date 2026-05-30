@@ -39,6 +39,75 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     handleTestConnection(message.apiKey, message.provider, message.baseUrl, sendResponse);
     return true;
   }
+
+  // ============================================================
+  // Daily Usage Tracking (v1.1)
+  // ============================================================
+  if (message.action === 'get-daily-usage') {
+    chrome.storage.sync.get(['dailyUsage', 'lastResetDate', 'dailyLimit'], function(result) {
+      var today = new Date().toISOString().substring(0, 10); // YYYY-MM-DD
+      var lastDate = result.lastResetDate || '';
+      var count = 0;
+      if (result.dailyUsage !== undefined && lastDate === today) {
+        count = result.dailyUsage;
+      } else if (lastDate !== today) {
+        // Day changed — reset counter
+        chrome.storage.sync.set({ dailyUsage: 0, lastResetDate: today }, function() {});
+        count = 0;
+      }
+      sendResponse({ count: count, limit: result.dailyLimit || 50 });
+    });
+    return true;
+  }
+
+  if (message.action === 'increment-usage') {
+    chrome.storage.sync.get(['dailyUsage', 'lastResetDate', 'dailyLimit'], function(result) {
+      var today = new Date().toISOString().substring(0, 10);
+      var lastDate = result.lastResetDate || '';
+      var count = (result.dailyUsage || 0);
+      var limit = result.dailyLimit || 50;
+
+      if (lastDate !== today) {
+        // Reset if new day
+        chrome.storage.sync.set({ dailyUsage: 1, lastResetDate: today }, function() {});
+        sendResponse({ count: 1, limit: limit, exceeded: false });
+      } else if (count >= limit) {
+        sendResponse({ count: count, limit: limit, exceeded: true });
+      } else {
+        chrome.storage.sync.set({ dailyUsage: count + 1 }, function() {});
+        sendResponse({ count: count + 1, limit: limit, exceeded: false });
+      }
+    });
+    return true;
+  }
+
+  // ============================================================
+  // Model Management (v1.2)
+  // ============================================================
+  if (message.action === 'get-model') {
+    chrome.storage.sync.get(['apiModel'], function(result) {
+      sendResponse({ model: result.apiModel || 'gpt-4o-mini' });
+    });
+    return true;
+  }
+
+  if (message.action === 'save-model') {
+    chrome.storage.sync.set({ apiModel: message.model }, function() {
+      sendResponse({ success: true });
+    });
+    return true;
+  }
+
+  // ============================================================
+  // Daily Limit Management (v1.2)
+  // ============================================================
+  if (message.action === 'save-daily-limit') {
+    chrome.storage.sync.set({ dailyLimit: message.limit }, function() {
+      sendResponse({ success: true });
+    });
+    return true;
+  }
+
   return false;
 });
 
@@ -60,12 +129,13 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
 async function handleAIModify(command, elementText, elementTag, sendResponse) {
   // Read full API config from storage
   const result = await new Promise((resolve) => {
-    chrome.storage.sync.get(['apiKey', 'apiProvider', 'apiBaseUrl'], resolve);
+    chrome.storage.sync.get(['apiKey', 'apiProvider', 'apiBaseUrl', 'apiModel'], resolve);
   });
 
   const apiKey = result.apiKey;
   const provider = result.apiProvider || 'openai';
   const baseUrl = (result.apiBaseUrl || '').trim();
+  const apiModel = result.apiModel || 'gpt-4o-mini';
 
   if (!apiKey) {
     sendResponse({ success: false, newContent: null, needsApiKey: true });
@@ -75,17 +145,17 @@ async function handleAIModify(command, elementText, elementTag, sendResponse) {
   try {
     let response;
     if (provider === 'openai') {
-      response = await callOpenAICompatible(command, elementText, 'https://api.openai.com/v1', apiKey);
+      response = await callOpenAICompatible(command, elementText, 'https://api.openai.com/v1', apiKey, apiModel);
     } else if (provider === 'custom') {
       const targetUrl = buildEndpointUrl(baseUrl);
       console.log(`[AI Web Editor] Using custom API: ${targetUrl}`);
-      response = await callOpenAICompatible(command, elementText, targetUrl, apiKey);
+      response = await callOpenAICompatible(command, elementText, targetUrl, apiKey, apiModel);
     } else if (provider === 'google') {
-      response = await callGoogleGenerativeAI(command, elementText, apiKey);
+      response = await callGoogleGenerativeAI(command, elementText, apiKey, apiModel);
     } else {
       // Default to openai-compatible with baseUrl or OpenAI
       const targetUrl = baseUrl ? buildEndpointUrl(baseUrl) : 'https://api.openai.com/v1';
-      response = await callOpenAICompatible(command, elementText, targetUrl, apiKey);
+      response = await callOpenAICompatible(command, elementText, targetUrl, apiKey, apiModel);
     }
 
     const content = extractAIContent(response);
@@ -110,13 +180,14 @@ function buildEndpointUrl(baseUrl) {
 // API Call Functions
 // ============================================================
 
-async function callOpenAICompatible(command, elementText, apiUrl, apiKey) {
+async function callOpenAICompatible(command, elementText, apiUrl, apiKey, model) {
   const systemPrompt = `You are a helpful AI that rewrites webpage content. 
 The user has selected an element on a webpage and wants you to modify it.
 Only return the NEW content for this element. Do NOT include markdown formatting like backticks or code blocks.
 Do NOT explain your changes — just give me the modified text.`;
 
-  console.log(`[AI Web Editor] Calling API: ${apiUrl}`);
+  const modelName = model || 'gpt-4o-mini';
+  console.log(`[AI Web Editor] Calling API: ${apiUrl} with model: ${modelName}`);
 
   const response = await fetch(apiUrl, {
     method: 'POST',
@@ -125,7 +196,7 @@ Do NOT explain your changes — just give me the modified text.`;
       'Authorization': `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model: 'gpt-4o-mini',
+      model: modelName,
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: `Command: "${command}"\n\nCurrent content:\n${elementText || '(empty element)'}\n\nPlease rewrite this according to the command.` },
@@ -142,12 +213,13 @@ Do NOT explain your changes — just give me the modified text.`;
   return response.json();
 }
 
-async function callGoogleGenerativeAI(command, elementText, apiKey) {
+async function callGoogleGenerativeAI(command, elementText, apiKey, model) {
   const systemPrompt = `You are a helpful AI that rewrites webpage content. 
 Only return the NEW content. No explanations.`;
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`;
-  console.log(`[AI Web Editor] Calling Google Gemini API`);
+  const modelName = model || 'gemini-pro';
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+  console.log(`[AI Web Editor] Calling Google Gemini API with model: ${modelName}`);
 
   const response = await fetch(url, {
     method: 'POST',

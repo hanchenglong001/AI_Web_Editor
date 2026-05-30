@@ -4,13 +4,17 @@ document.addEventListener('DOMContentLoaded', () => {
   const providerSelect = document.getElementById('provider');
   const apiBaseUrlInput = document.getElementById('apiBaseUrl');
   const apiKeyInput = document.getElementById('apiKeyInput');
+  const modelInput = document.getElementById('modelInput');
+  const dailyLimitInput = document.getElementById('dailyLimit');
   const saveBtn = document.getElementById('saveBtn');
   const statusEl = document.getElementById('apiStatus');
 
   // Load saved settings
-  chrome.storage.sync.get(['apiKey', 'apiProvider', 'apiBaseUrl'], (result) => {
+  chrome.storage.sync.get(['apiKey', 'apiProvider', 'apiBaseUrl', 'apiModel', 'dailyLimit'], (result) => {
     if (result.apiProvider) providerSelect.value = result.apiProvider;
     if (result.apiBaseUrl) apiBaseUrlInput.value = result.apiBaseUrl;
+    if (result.apiModel) modelInput.value = result.apiModel;
+    if (result.dailyLimit) dailyLimitInput.value = result.dailyLimit;
     if (result.apiKey) {
       apiKeyInput.placeholder = '(key saved)';
       statusEl.textContent = '● Connected — API ready';
@@ -32,12 +36,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const apiKey = apiKeyInput.value.trim();
     const provider = providerSelect.value;
     const baseUrl = apiBaseUrlInput.value.trim();
+    const apiModel = modelInput.value.trim() || 'gpt-4o-mini';
+    const dailyLimit = parseInt(dailyLimitInput.value) || 50;
 
     if (provider === 'custom' && !baseUrl) {
       statusEl.textContent = '● Error: Base URL required for Custom provider';
       statusEl.className = 'status disconnected';
       return;
     }
+
+    // Save model and daily limit to storage
+    chrome.storage.sync.set({ apiModel, dailyLimit }, function() {});
 
     if (!apiKey) {
       // Allow saving without key — will use local fallback
@@ -46,7 +55,7 @@ document.addEventListener('DOMContentLoaded', () => {
         apiProvider: provider,
         apiBaseUrl: baseUrl || '',
       });
-      statusEl.textContent = '● Saved (local mode only)';
+      statusEl.textContent = '● Saved (local mode only, model: ' + apiModel + ')';
       statusEl.className = 'status disconnected';
       return;
     }
@@ -56,6 +65,8 @@ document.addEventListener('DOMContentLoaded', () => {
       apiKey,
       apiProvider: provider,
       apiBaseUrl: baseUrl || '',
+      apiModel,
+      dailyLimit,
     });
 
     saveBtn.textContent = 'Saving...';
@@ -71,17 +82,17 @@ document.addEventListener('DOMContentLoaded', () => {
       });
 
       if (response?.success) {
-        statusEl.textContent = '● Connected — API ready';
+        statusEl.textContent = '● Connected — API ready (model: ' + apiModel + ')';
         statusEl.className = 'status connected';
         showToast('API connected successfully!', true);
       } else {
         // Still save — connection might work but test failed
-        statusEl.textContent = '● Saved (use in extension)';
+        statusEl.textContent = '● Saved (use in extension, model: ' + apiModel + ')';
         statusEl.className = 'status disconnected';
       }
     } catch (err) {
       console.log('[Popup] Could not verify:', err);
-      statusEl.textContent = '● Saved (use in extension)';
+      statusEl.textContent = '● Saved (use in extension, model: ' + apiModel + ')';
       statusEl.className = 'status disconnected';
     }
 

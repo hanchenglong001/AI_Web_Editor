@@ -185,14 +185,40 @@
         <!-- AI Tab -->
         <div class="awe-tab-panel active" id="tab-ai">
           <div class="awe-quick-commands">
-            <button class="awe-quick-btn" data-cmd="rewrite">Rewrite</button>
-            <button class="awe-quick-btn" data-cmd="simplify">Simplify</button>
-            <button class="awe-quick-btn" data-cmd="translate">Translate (ZH)</button>
-            <button class="awe-quick-btn" data-cmd="longer">Make Longer</button>
-            <button class="awe-quick-btn" data-cmd="shorter">Make Shorter</button>
-            <button class="awe-quick-btn" data-cmd="tone-professional">Professional Tone</button>
-            <button class="awe-quick-btn" data-cmd="funnier">Make it Fun</button>
-          </div>
+               <button class="awe-quick-btn" data-cmd="rewrite">Rewrite</button>
+               <button class="awe-quick-btn" data-cmd="simplify">Simplify</button>
+               <button class="awe-quick-btn" data-cmd="translate">Translate (ZH)</button>
+               <button class="awe-quick-btn" data-cmd="longer">Make Longer</button>
+               <button class="awe-quick-btn" data-cmd="shorter">Make Shorter</button>
+               <button class="awe-quick-btn" data-cmd="tone-professional">Professional Tone</button>
+               <button class="awe-quick-btn" data-cmd="funnier">Make it Fun</button>
+               <!-- Translations (v1.2) -->
+               <button class="awe-quick-btn" data-cmd="translate-es">🇪🇸 Spanish</button>
+               <button class="awe-quick-btn" data-cmd="translate-fr">🇫🇷 French</button>
+               <button class="awe-quick-btn" data-cmd="translate-ja">🇯🇵 Japanese</button>
+               <button class="awe-quick-btn" data-cmd="translate-ko">🇰🇷 Korean</button>
+               <button class="awe-quick-btn" data-cmd="translate-de">🇩🇪 German</button>
+               <!-- Email/Professional (v1.2) -->
+               <button class="awe-quick-btn" data-cmd="email-professional">📧 Professional Email</button>
+               <button class="awe-quick-btn" data-cmd="fix-grammar">✍️ Fix Grammar</button>
+               <!-- Code (v1.2) -->
+               <button class="awe-quick-btn" data-cmd="explain-code">💻 Explain Code</button>
+               <button class="awe-quick-btn" data-cmd="add-comments">📝 Add Comments</button>
+               <!-- Social Media (v1.2) -->
+               <button class="awe-quick-btn" data-cmd="tweet-style">🐦 Tweet Style</button>
+               <button class="awe-quick-btn" data-cmd="weibo-style">📱 Weibo</button>
+               <button class="awe-quick-btn" data-cmd="linkedin-style">💼 LinkedIn</button>
+               <!-- Format (v1.2) -->
+               <button class="awe-quick-btn" data-cmd="numbered-list">🔢 Numbered List</button>
+               <button class="awe-quick-btn" data-cmd="bullet-points">📊 Bullet Points</button>
+               <button class="awe-quick-btn" data-cmd="seo-meta">🏷️ SEO Meta</button>
+               <button class="awe-quick-btn" data-cmd="markdown">📝 Markdown</button>
+               <button class="awe-quick-btn" data-cmd="plain-english">👤 Plain English</button>
+               <!-- Creative (v1.2) -->
+               <button class="awe-quick-btn" data-cmd="poem">✒️ Poetic</button>
+               <button class="awe-quick-btn" data-cmd="story">📖 Make it a Story</button>
+               <button class="awe-quick-btn" data-cmd="bullet-points-cn">🔵 精简要点（中文）</button>
+             </div>
           <textarea id="awe-command-input" placeholder="Tell AI how to modify this element...&#10;e.g. 'Rewrite this title to be more catchy' or 'Translate to Chinese'"></textarea>
           <button id="awe-send-btn">✨ Apply AI Modification</button>
         </div>
@@ -273,7 +299,8 @@
         </div>
       </div>
       <div id="awe-status-msg"></div>
-    `;
+       <div id="awe-usage-stats" style="font-size:12px; color:#475569; text-align:center; padding:6px 0; border-top:1px solid #2d2d4a;">Today: loading...</div>
+      `;
     document.body.appendChild(panel);
   }
 
@@ -434,18 +461,44 @@
     }
 
     // Quick command buttons
-    var quickBtn = e.target.closest('.awe-quick-btn');
-    if (quickBtn && selectedElement) {
-      var cmd = quickBtn.dataset.cmd;
-      var commands = {
-        'rewrite': 'Rewrite this content to be more engaging and clear.',
-        'simplify': 'Simplify the text so it is easier to understand.',
-        'translate': 'Translate this text to Chinese (简体中文).',
-        'longer': 'Expand and make this content longer and more detailed.',
-        'shorter': 'Make this content much shorter and concise.',
-        'tone-professional': 'Rewrite in a professional, formal tone.',
-        'funnier': 'Make this content funnier and more entertaining.',
-      };
+      var quickBtn = e.target.closest('.awe-quick-btn');
+      if (quickBtn && selectedElement) {
+        var cmd = quickBtn.dataset.cmd;
+        var commands = {
+          'rewrite': 'Rewrite this content to be more engaging and clear.',
+          'simplify': 'Simplify the text so it is easier to understand.',
+          'translate': 'Translate this text to Chinese (简体中文).',
+          'longer': 'Expand and make this content longer and more detailed.',
+          'shorter': 'Make this content much shorter and concise.',
+          'tone-professional': 'Rewrite in a professional, formal tone.',
+          'funnier': 'Make this content funnier and more entertaining.',
+          // Translations (v1.2)
+          'translate-es': 'Traduce este texto al español.',
+          'translate-fr': "Traduis ce texte en français.",
+          'translate-ja': 'このテキストを日本語に翻訳してください。',
+          'translate-ko': '이 텍스트를 한국어로 번역해주세요.',
+          'translate-de': 'Übersetzen Sie diesen Text ins Deutsche.',
+          // Email/Professional (v1.2)
+          'email-professional': 'Write a professional, formal business email based on this content.',
+          'fix-grammar': 'Fix all grammar and spelling errors while preserving the original meaning.',
+          // Code (v1.2)
+          'explain-code': 'Explain what this code does in simple terms.',
+          'add-comments': 'Add clear, concise comments to explain each part of this content.',
+          // Social Media (v1.2)
+          'tweet-style': 'Rewrite as a catchy tweet under 280 characters.',
+          'weibo-style': '重写为微博风格的短文，使用合适的 Emoji。',
+          'linkedin-style': 'Write a professional LinkedIn post based on this content.',
+          // Format (v1.2)
+          'numbered-list': 'Convert this content into a numbered list with key points.',
+          'bullet-points': 'Summarize this as bullet points with the most important information.',
+          'seo-meta': 'Write an SEO-friendly meta description (150 characters) for this content.',
+          'markdown': 'Convert this plain text into well-formatted Markdown.',
+          'plain-english': 'Rewrite in simple, easy-to-understand language for a general audience.',
+          // Creative (v1.2)
+          'poem': 'Rewrite as a beautiful short poem.',
+          'story': 'Turn this content into a short narrative story.',
+          'bullet-points-cn': '将这段内容总结为3-5条中文要点。',
+        };
       document.getElementById('awe-command-input').value = commands[cmd] || '';
       // Switch to AI tab
       document.querySelectorAll('.awe-tab-btn').forEach(function(b) { b.classList.remove('active'); });
@@ -534,7 +587,19 @@
       });
 
       if (response.success && response.newContent) {
-        // For text content modifications
+           // Increment daily usage counter
+           chrome.runtime.sendMessage({ action: 'increment-usage' }, function(usageResp) {
+             updateUsageStats();
+           });
+
+           // Check if limit exceeded after increment
+           chrome.runtime.sendMessage({ action: 'get-daily-usage' }, function(limitResp) {
+             if (limitResp && limitResp.count >= limitResp.limit) {
+               showStatus('⚠️ Daily usage limit reached (' + limitResp.count + '/' + limitResp.limit + ')', 'error');
+             }
+           });
+
+           // For text content modifications
         if (selectedElement.childNodes.length === 0 || (selectedElement.childNodes.length === 1 && selectedElement.firstChild.nodeType === Node.TEXT_NODE)) {
           selectedElement.textContent = response.newContent;
         } else {
@@ -693,8 +758,24 @@
   }
 
   // ============================================================
-  // Status & Toast
-  // ============================================================
+   // Status & Toast
+   // ============================================================
+
+   // ============================================================
+   // Daily Usage Stats (v1.1)
+   // ============================================================
+
+   function updateUsageStats() {
+     chrome.runtime.sendMessage({ action: 'get-daily-usage' }, function(response) {
+       var el = document.getElementById('awe-usage-stats');
+       if (!el || !response) return;
+       el.textContent = "Today: " + response.count + "/" + response.limit + " uses";
+     });
+   }
+
+   // ============================================================
+   // Status & Toast
+   // ============================================================
 
   function showStatus(msg, type) {
     var el = document.getElementById('awe-status-msg');
@@ -775,6 +856,9 @@
   createEditorPanel();
 
   // Apply saved theme (v1.1)
-  applyTheme(currentTheme);
+   applyTheme(currentTheme);
 
-})();
+   // Load daily usage stats (v1.1)
+   updateUsageStats();
+
+  })();
