@@ -132,16 +132,17 @@
 | **background.js** | 566 lines |
 | **popup.js** | 618 lines |
 | **Content CSS** | 1670 lines (~42KB) |
-| **总行数** | ~6834 lines (vs. v2.0 T+21 ~4794 → +42% 膨胀) |
+| **总行数** | ~6834 lines (v2.0 T+21 → +42% 膨胀, still same codebase) |
 
 ---
 
-## 🔍 Cron Check Summary (T+28 — 2026-05-30)
+## 🔍 Cron Check Summary (T+29 — 2026-05-30)
 
-1. ✅ Repository clean, fully synced with origin/master
-2. ✅ CWS blocker (`privacy_policy_url`) resolved in v2.1.0 commit `7def34b`
-3. ⚠️ content.js has NOT been shrunk — still 3980 lines, low-usage features still present (keyboard shortcut manager UI, theme editor custom palette)
-4. Priority remains: cut → CWS publish → go deep on AI editing
+1. ✅ Repository clean, fully synced with origin/master — no new commits since last check
+2. ✅ CWS blocker (`privacy_policy_url`) still resolved in v2.1.0 commit `7def34b`
+3. ⚠️ content.js unchanged at 3980 lines — no progress on low-usage feature removal yet
+4. No branch divergence, no uncommitted changes — project is in stable state
+5. Priority remains: **cut → CWS publish → go deep on AI editing**
 
 ---
 
