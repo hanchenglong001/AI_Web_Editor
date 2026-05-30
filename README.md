@@ -3,7 +3,7 @@
 基于 LLM/AI 的浏览器网页元素实时编辑 Chrome 扩展，支持多模型、右键菜单、全局快捷键。
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-2.1.0-blue.svg)](CHANGELOG.md)
 
 ## 功能特性
 

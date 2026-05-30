@@ -17,7 +17,7 @@
 
 这些方向会分散资源，阻碍核心竞争力的建立：
 
-|| # | 功能 | 为什么不推荐 | 替代方案 |
+| # | 功能 | 为什么不推荐 | 替代方案 |
 |---|------|-------------|---------|
 | ❌ 1 | **付费订阅后端** | 在核心产品没验证 PMF 之前做商业化太早 | 先免费积累用户，v3.0+ 再考虑 |
 | ❌ 2 | **更多功能堆叠** (v2.0 已有十几个功能) | 工具箱合集 = 没有特色，用户记不住卖点 | 砍功能，做精品 |
@@ -120,51 +120,54 @@
 ## 🐛 Known Issues & Technical Debt
 
 1. **content.js = 3980 lines single IIFE** (~177KB) — #1 technical debt, needs modularization for v2.1+
-4. **Popup version hardcoded** in HTML — should use `chrome.runtime.getManifest()`
-5. **Shadow DOM pages** not supported by content script injection
-6. **Memory leak risk** — event listeners cleanup logic unverified
+2. **Popup version hardcoded** in HTML — should use `chrome.runtime.getManifest()`
+3. **Shadow DOM pages** not supported by content script injection
+4. **Memory leak risk** — event listeners cleanup logic unverified
 
 ---
 
-## 📊 版本快照 (2026-05-30 T+28 — Cron Check #14)
+## 📊 版本快照 (2026-05-30 T+36 — Cron Check #20)
+## 📊 版本快照 (2026-05-30 T+37 — Cron Check #21)
 
-||| 项目 | 状态 |
-|------|------|
-| **当前版本** | **v2.1.0** ✅ |
-| **Git sync** | ✅ Up to date with origin/master, clean working tree |
-| **CWS blocker** | ✅ RESOLVED: `privacy_policy_url` added (v2.1.0) |
-| **content.js size** | 3980 lines (⚠️ #1 tech debt) |
-| **background.js** | 566 lines |
-## 📊 版本快照 (2026-05-30 T+31 — Cron Check #15)
-
-|||| 项目 | 状态 |\n||------|------||\n|| **当前版本** | **v2.1.0** ✅ ||\n|| **Git sync** | ✅ Up to date with origin/master, clean working tree ||\n|| **CWS blocker** | ✅ RESOLVED: `privacy_policy_url` added (v2.1.0) ||\n|| **content.js size** | 3980 lines (⚠️ #1 tech debt, no progress since T+27) ||\n|| **background.js** | 566 lines ||\n|| **popup.js** | 618 lines ||\n|| **Content CSS** | 1670 lines (~42KB) ||\n|| **总行数** | ~6834 lines — frozen codebase, no new features since T+27 ||
-|| **README version badge** | ⚠️ Still shows v2.0.0 (not updated to v2.1.0) ||
-|| **CWS screenshots** | 5 PNG files (~20KB each) — size suggests mock/placeholder images, NOT real extension captures ||
-
----
-
-## 🔍 Cron Check Summary (T+31 — 2026-05-30)
-
-1. ✅ Repository clean, fully synced with origin/master — no functional changes since T+30
-2. ✅ CWS blocker (`privacy_policy_url`) still resolved in v2.1.0 commit `7def34b`
-3. ⚠️ codebase completely frozen since T+27 — content.js still 3980 lines, no feature work happening
-4. ⚠️ README.md version badge still says v2.0.0 (should be v2.1.0)
-5. ⚠️ Screenshots are ~20KB PNG files — likely auto-generated mocks, not real extension screenshots for CWS review
-6. 🔴 No active development on P0 tasks (cut features + CWS submission prep) since last cron cycle
+|| 项目 | 状态 ||------|------|| **当前版本** | **v2.1.0** ✅ || **Git sync** | ⚠️ Working tree dirty (README.md, TODO.md pending commit) || **CWS blocker** | ✅ RESOLVED: `privacy_policy_url` added (v2.1.0) || **content.js size** | 3980 lines / 180KB (⚠️ frozen since T+27 — 11 consecutive cycles) || **background.js** | 566 lines || **popup.js** | 618 lines || **Content CSS** | 1670 lines (~42KB) || **总行数** | ~7012 lines (incl. README + CHANGELOG) — frozen codebase, no new features since T+27 || **README version badge** | ✅ v2.1.0 (stable) || **CWS screenshots** | 5 PNG mock images in ./screenshots/ — still simulated, not real extension captures || **CWS publish manifest** | .cws-publish-manifest.json exists, version 2.0.0 (needs bump to 2.1.0) || **Last functional commit** | 7def34b feat: bump to v2.1.0 — privacy_policy_url added || **Last cron docs commit** | 229db9f docs: cron check T+31 |
+||------|------|
+||| **当前版本** | **v2.1.0** ✅ |
+||| **Git sync** | ✅ Up to date with origin/master (working tree dirty) ||| **CWS blocker** | ✅ RESOLVED: `privacy_policy_url` added (v2.1.0) |
+||| **content.js size** | 3980 lines / 180KB (⚠️ #1 tech debt, frozen since T+27 — 11 consecutive cycles) |
+||| **background.js** | 566 lines |
+||| **popup.js** | 618 lines |
+||| **Content CSS** | 1670 lines (~42KB) |
+||| **总行数** | ~7012 lines (incl. README + CHANGELOG) — frozen codebase, no new features since T+27 |
+||| **README version badge** | ✅ v2.1.0 (stable) |
+||| **CWS screenshots** | 5 PNG mock images in ./screenshots/ — still simulated, not real extension captures |
+||| **CWS publish manifest** | .cws-publish-manifest.json exists, version 2.0.0 (needs bump to 2.1.0) |
+||| **Last functional commit** | 7def34b feat: bump to v2.1.0 — privacy_policy_url added |
+||| **Last cron docs commit** | 229db9f docs: cron check T+31 |
 
 ---
 
-## 🗺️ Next Actions (by priority, T+31 update)
+## 🔍 Cron Check Summary (T+37 — 2026-05-30)
 
-1. 🔴 **Fix README version badge** — change v2.0.0 → v2.1.0 (5-min fix, should have been done at release)
-2. 🔴 **CWS submission prep (highest value)** — generate REAL screenshots using the capture scripts in `screenshots/`, write store listing description, create feature graphic (1400×560), prepare $5 CWS developer account fee
-3. 🔴 **v2.1: cut low-usage features** — remove keyboard shortcut manager popup UI, simplify theme editor to Light/Dark toggle only (enables leaner user experience)
-4. 🟡 **content.js modularization** — split into editor-core / commands / inspector / snippets / theming modules (currently 3980-line single IIFE is unmaintainable)
-5. 🟢 **AI 结构化页面理解** (P1 #4) — DOM structure recognition rules engine before calling LLM
+1. ✅ `privacy_policy_url` confirmed in manifest.json, CWS blocker fully resolved
+2. ⚠️ **11th consecutive freeze** — codebase unchanged since T+27 (May 29), all progress has been docs-only cron commits
+3. 🔴 **CWS submission still pending**: no real screenshots, no store listing description, no feature graphic (1400×560), .cws-publish-manifest.json still version 2.0.0
+4. 📌 **No active development sprint** — project effectively dormant for 11+ cron cycles
+5. ✅ manifest.json CSP verified — covers OpenAI, Gemini, DashScope (Qwen), custom backend, localhost
+
+---
+
+## 🗺️ Next Actions (by priority, T+37 update)
+
+1. 🔴 **CWS submission prep (highest value)** — generate REAL screenshots with extension loaded, write store listing description, create feature graphic (1400×560), bump .cws-publish-manifest.json to v2.1.0, prepare $5 CWS fee
+2. 🔴 **v2.1: cut low-usage features** — remove keyboard shortcut manager popup UI, simplify theme editor to Light/Dark toggle only (PRINCIPLE: 做深不做广)
+3. 🟡 **content.js modularization** — split into editor-core / commands / inspector / snippets / theming modules (3980-line single IIFE)
+4. 🟢 **AI 结构化页面理解** (P1 #4) — DOM structure recognition rules engine before calling LLM
+5. 🟢 **Diff Preview → Diff Tree upgrade** — DOM attribute-level diff (class, style, textContent, attributes)
 
 ---
 
 ## 🚨 Blockers for Progress
 
-- **No active development sprint planned** — cron docs-only commits since T+24, zero functional progress
+- **No active development sprint planned** — cron docs-only commits since T+24, zero functional progress over 11+ cycles
 - **Recommend**: Start a focused v2.1 "cleanup + ship" sprint (2-3 weeks) targeting CWS submission
+- ⚠️ **Escalation**: If no human-driven development begins soon, project is effectively dormant — consider archiving or pivoting strategy
