@@ -121,33 +121,34 @@
 
 ---
 
-## 📊 版本快照 (2026-05-30 T+27 — Cron Check #13)
+## 📊 版本快照 (2026-05-30 T+28 — Cron Check #14)
 
-|| 项目 | 状态 |
+||| 项目 | 状态 |
 |------|------|
-| **当前版本** | **v2.1.0** ✅ bumped |
+| **当前版本** | **v2.1.0** ✅ |
 | **Git sync** | ✅ Up to date with origin/master, clean working tree |
-| **CWS blocker** | ✅ RESOLVED: `privacy_policy_url` added |
+| **CWS blocker** | ✅ RESOLVED: `privacy_policy_url` added (v2.1.0) |
 | **content.js size** | 3980 lines (⚠️ #1 tech debt) |
 | **background.js** | 566 lines |
 | **popup.js** | 618 lines |
 | **Content CSS** | 1670 lines (~42KB) |
+| **总行数** | ~6834 lines (vs. v2.0 T+21 ~4794 → +42% 膨胀) |
 
 ---
 
-## 🔍 Cron Check Summary (T+27 — 2026-05-30)
+## 🔍 Cron Check Summary (T+28 — 2026-05-30)
 
-1. ✅ `privacy_policy_url` added to manifest.json, version bumped to v2.1.0 — CWS blocker RESOLVED
-2. ✅ Committed and pushed to origin/master (commit: feat: bump to v2.1.0)
-3. Remaining CWS tasks: real screenshots + store listing ($5 fee still needed)
-4. Priority shifts to v2.1 feature cleanup (cut low-usage features) per "做深不做广" strategy
+1. ✅ Repository clean, fully synced with origin/master
+2. ✅ CWS blocker (`privacy_policy_url`) resolved in v2.1.0 commit `7def34b`
+3. ⚠️ content.js has NOT been shrunk — still 3980 lines, low-usage features still present (keyboard shortcut manager UI, theme editor custom palette)
+4. Priority remains: cut → CWS publish → go deep on AI editing
 
 ---
 
 ## 🗺️ Next Actions (by priority)
 
-1. 🔴 **CWS Submission preparation** — capture real screenshots, write store listing description, create feature graphic
-2. 🟡 **v2.1: cut low-usage features** — remove keyboard shortcut manager UI, simplify theme editor (Light/Dark only)
+1. 🔴 **v2.1: cut low-usage features** — remove keyboard shortcut manager popup UI, simplify theme editor to Light/Dark toggle only
+2. 🔴 **CWS submission prep** — real extension screenshots (not HTML mocks), store listing description, feature graphic (1400×560), $5 fee
 3. 🟡 **content.js modularization** — split into editor-core / commands / inspector / snippets / theming modules
-4. 🟢 **AI 结构化页面理解** (P1 #4) — build DOM structure recognition rules engine
-5. 🟢 **Diff Tree upgrade** (P1 #6) — DOM attribute-level diff instead of text-only
+4. 🟢 **AI 结构化页面理解** (P1 #4) — DOM structure recognition rules engine before calling LLM
+5. 🟢 **Diff Tree upgrade** (P1 #6) — DOM attribute-level diff vs. current text-only diff
