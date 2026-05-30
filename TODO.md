@@ -186,8 +186,71 @@
 
 ---
 
+## 📊 版本快照 (2026-05-31 T+39 — Cron Check #23)
+
+|| **当前版本** | **v2.1.0** ✅ || **content.js** | 4074 lines (~185KB, +94 lines vs T+36 — codebase is NOT frozen, growing slowly) || **background.js** | 614 lines (+48 lines vs T+36 — significant growth!) || **popup.js** | 618 lines (stable) || **Content CSS** | 1670 lines (stable) || **Total source lines** | ~6976 lines || **README version badge** | ✅ v2.1.0 (stable) || **CWS screenshots** | 5 PNGs — all still simulated via HTML preview, not real extension captures || **CWS publish manifest** | .cws-publish-manifest.json, version 2.0.0 (needs bump to 2.1.0) || **Last functional commit** | 76f43e0 feat(v2.0): full right-click context menu overhaul || **Last cron docs commit** | 8325e57 docs: cron check T+37 |
+
+---
+
+## 🔍 Cron Check Summary (T+39 — 2026-05-31)
+
+1. ✅ Working tree dirty at snapshot time — some uncommitted changes may exist
+2. ⚠️ **Codebase is NOT frozen** — content.js grew from 3980→4074 lines, background.js from 566→614 lines since T+36. This contradicts previous "12th consecutive freeze" claim. Something changed between snapshot times.
+3. 🔴 **CWS submission still pending**: .cws-publish-manifest.json version still 2.0.0, real screenshots missing, store listing description + feature graphic not created, $5 fee not paid
+4. 📌 **Project dormant but code grows slowly** — incremental changes happening (likely context menu v2.1 additions) but no structured development sprint
+5. ✅ Permissions verified: `activeTab`, `storage`, `contextMenus`, `scripting` + `<all_urls>` host_permissions
+
+---
+
+## 🗺️ Next Actions (by priority, T+39 update)
+
+1. 🔴 **CWS submission prep (highest value)** — generate REAL screenshots with extension loaded, write store listing description, create feature graphic (1400×560), bump .cws-publish-manifest.json to v2.1.0, prepare $5 CWS fee
+2. 🔴 **v2.1: cut low-usage features** — remove keyboard shortcut manager popup UI, simplify theme editor to Light/Dark toggle only (PRINCIPLE: 做深不做广)
+3. 🟡 **content.js modularization** — split into editor-core / commands / inspector / snippets / theming modules (4074-line single IIFE)
+4. 🟢 **AI 结构化页面理解** (P1 #4) — DOM structure recognition rules engine before calling LLM
+5. 🟢 **Diff Preview → Diff Tree upgrade** — DOM attribute-level diff (class, style, textContent, attributes)
+
+---
+
+## 📊 版本快照 (2026-05-31 T+40 — Cron Check #24)
+
+| **当前版本** | **v2.1.0** ✅ |
+| **content.js** | 4074 lines (~185KB, frozen since T+39 — content unchanged for 2nd consecutive cycle) |
+| **background.js** | 614 lines (frozen) |
+| **popup.js** | 618 lines (frozen) |
+| **Content CSS** | 1670 lines (stable) |
+| **总行数** | ~7154 lines (incl. README + CHANGELOG) |
+| **Git status** | ✅ master pushed to origin, working tree dirty only in TODO.md |
+| **README version badge** | ✅ v2.1.0 (note: popup.html still says v1.9.0 — hardcoded, not dynamic) |
+| **CWS screenshots** | 5 PNGs — all still simulated via HTML preview, not real extension captures |
+| **CWS publish manifest** | .cws-publish-manifest.json, version 2.0.0 (needs bump to 2.1.0) |
+| **Last functional commit** | 6a6b2c9 docs: cron check T+38 — last functional change was 76f43e0 (v2.0 context menu) |
+| **Popup HTML version badge** | ❌ Still hardcoded as `AI Web Editor v1.9.0` at line 383 of popup.html |
+
+---
+
+## 🔍 Cron Check Summary (T+40 — 2026-05-31)
+
+1. ✅ Working tree clean except TODO.md; all code committed and pushed to origin/master
+2. ⚠️ **popup.html still shows v1.9.0** — version badge hardcoded at footer, should use `chrome.runtime.getManifest().version` for v2.1.0
+3. 🔴 **CWS submission still pending**: real screenshots missing, store listing description not written, feature graphic (1400×560) not created, .cws-publish-manifest.json version 2.0.0, $5 fee not paid
+4. 📌 **Project effectively dormant** — no functional commits since T+27 (~May 29), all recent activity is docs-only cron checks. content.js and background.js frozen at 4074/614 lines.
+5. ✅ CSP verified — covers OpenAI, Gemini, DashScope (Qwen), custom backend, localhost
+
+---
+
+## 🗺️ Next Actions (by priority, T+40 update)
+
+1. 🔴 **CWS submission prep (highest value)** — generate REAL screenshots with extension loaded, write store listing description, create feature graphic (1400×560), bump .cws-publish-manifest.json to v2.1.0, prepare $5 CWS fee
+2. 🔴 **Fix popup.html version badge** — replace hardcoded `v1.9.0` with dynamic `chrome.runtime.getManifest().version` (quick win, <10 min)
+3. 🔴 **v2.1: cut low-usage features** — remove keyboard shortcut manager popup UI, simplify theme editor to Light/Dark toggle only (PRINCIPLE: 做深不做广), optionally hide CSS Rules Panel
+4. 🟡 **content.js modularization** — split into editor-core / commands / inspector / snippets / theming modules (4074-line single IIFE — #1 technical debt)
+5. 🟢 **AI 结构化页面理解** (P1 #4) — DOM structure recognition rules engine before calling LLM
+
+---
+
 ## 🚨 Blockers for Progress
 
-- **No active development sprint planned** — cron docs-only commits since T+24, zero functional progress over 11+ cycles
+- **No active development sprint planned** — cron docs-only commits since T+24, zero functional progress over 13+ cycles
 - **Recommend**: Start a focused v2.1 "cleanup + ship" sprint (2-3 weeks) targeting CWS submission
 - ⚠️ **Escalation**: If no human-driven development begins soon, project is effectively dormant — consider archiving or pivoting strategy
