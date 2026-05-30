@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="UTF-8">
+<title>Right-click Context Menu</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:#f5f6fa;color:#333;width:1280px;margin:0 auto}
+.webpage{padding:40px;height:720px;position:relative}
+h1{font-size:28px;margin-bottom:15px}p,ul li{line-height:1.8;color:#444;font-size:14px;margin-bottom:12px}
+.context-menu{position:absolute;left:350px;top:120px;width:260px;background:#fff;border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,0.25);overflow:hidden;z-index:10}
+.cm-header{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff;padding:8px 14px;font-size:12px;font-weight:600}
+.cm-item{padding:7px 14px;font-size:12px;color:#333;cursor:pointer;display:flex;align-items:center;gap:8px;border-bottom:1px solid #f0f0f0}
+.cm-item:last-child{border-bottom:none}
+.cm-icon{font-size:14px}
+</style></head><body>
+<div class="webpage">
+<h1>Right-click Context Menu</h1>
+<p style="color:#666;font-size:14px">One-click access to all AI editing tools at your fingertips</p>
+<ul style="margin-left:20px;line-height:2.2">
+<li>Edit with AI — opens editor panel</li>
+<li>Translate to Chinese/English</li>
+<li>Shorten or expand content</li>
+</ul>
+
+<div class="context-menu">
+<div class="cm-header">✦ AI Web Editor</div>
+<div class="cm-item"><span class="cm-icon">✨</span>Edit with AI</div>
+<div class="cm-item"><span class="cm-icon">🇨🇳</span>Translate to Chinese</div>
+<div class="cm-item"><span class="cm-icon">🇺🇸</span>Translate to English</div>
+<div class="cm-item"><span class="cm-icon">✂️</span>Shorten Content</div>
+<div class="cm-item"><span class="cm-icon">📋</span>Open in Editor Panel</div>
+</div>
+</div></body></html>

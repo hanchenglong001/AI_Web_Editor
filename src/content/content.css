@@ -9,7 +9,7 @@
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  background: linear-gradient(135deg, var(--awe-header-start) 0%, var(--awe-header-end) 100%);
   color: white;
   border: none;
   cursor: pointer;
@@ -52,23 +52,67 @@
   background-color: rgba(99, 102, 241, 0.08) !important;
 }
 
-/* AI Editor Panel */
+/* ============================================================
+   Custom Theme CSS Variables (v1.9)
+   Default Dark theme values — overridden by apply-custom-theme
+   ============================================================ */
 #awe-editor-panel {
+  --awe-bg: #1a1a2e;
+  --awe-fg: #e2e8f0;
+  --awe-border: #2d2d4a;
+  --awe-accent: #6366f1;
+  --awe-accent-light: #8b5cf6;
+  --awe-header-start: #6366f1;
+  --awe-header-end: #8b5cf6;
+  --awe-body-bg: #0f0f23;
+  --awe-tabs-bg: #12122a;
+  --awe-muted: #94a3b8;
+  --awe-muted-dim: #475569;
+  --awe-panel-width: 380px;
+  --awe-pos-top: 50%;
+  --awe-pos-right: 24px;
+  --awe-pos-bottom: auto;
+  --awe-pos-left: auto;
   position: fixed;
-  top: 50%;
-  right: 24px;
+  top: var(--awe-pos-top);
+  right: var(--awe-pos-right);
+  bottom: var(--awe-pos-bottom);
+  left: var(--awe-pos-left);
   transform: translateY(-50%);
-  width: 380px;
+  width: var(--awe-panel-width);
   max-height: 80vh;
-  background: #1a1a2e;
+  background: var(--awe-bg);
   border-radius: 16px;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
   z-index: 2147483647;
   display: none;
   flex-direction: column;
   overflow: hidden;
-  color: #e2e8f0;
+  color: var(--awe-fg);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Position variants (set via CSS variables) */
+#awe-editor-panel[data-position="bottom-right"] {
+  --awe-pos-top: auto !important;
+  --awe-pos-bottom: 24px !important;
+  --awe-pos-right: 24px !important;
+  --awe-pos-left: auto !important;
+  transform: none !important;
+}
+#awe-editor-panel[data-position="bottom-left"] {
+  --awe-pos-top: auto !important;
+  --awe-pos-bottom: 24px !important;
+  --awe-pos-right: auto !important;
+  --awe-pos-left: 24px !important;
+  transform: none !important;
+}
+#awe-editor-panel[data-position="top-left"] {
+  --awe-pos-top: 24px !important;
+  --awe-pos-bottom: auto !important;
+  --awe-pos-right: auto !important;
+  --awe-pos-left: 24px !important;
+  transform: none !important;
 }
 
 #awe-editor-panel.active {
@@ -90,7 +134,7 @@
 /* Panel header */
 #awe-panel-header {
   padding: 12px 16px;
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  background: linear-gradient(135deg, var(--awe-header-start) 0%, var(--awe-header-end) 100%);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -148,15 +192,15 @@
 /* Element preview */
 #awe-element-preview {
   padding: 16px 20px;
-  background: #0f0f23;
-  border-bottom: 1px solid #2d2d4a;
+  background: var(--awe-body-bg);
+  border-bottom: 1px solid var(--awe-border);
 }
 
 #awe-element-tag {
   font-family: monospace;
   font-size: 12px;
-  color: #6366f1;
-  background: rgba(99, 102, 241, 0.1);
+  color: var(--awe-accent);
+  background: color-mix(in srgb, var(--awe-accent) 10%, transparent);
   padding: 2px 8px;
   border-radius: 4px;
   display: inline-block;
@@ -165,7 +209,7 @@
 
 #awe-element-text {
   font-size: 13px;
-  color: #94a3b8;
+  color: var(--awe-muted);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -190,7 +234,7 @@
   margin-left: 8px;
   background: rgba(99, 102, 241, 0.15);
   color: #a5b4fc;
-  border: 1px solid rgba(99, 102, 241, 0.3);
+  border: 1px solid color-mix(in srgb, var(--awe-accent) 30%, transparent);
   cursor: default;
   transition: all 0.2s;
 }
@@ -223,8 +267,8 @@
 /* Tab bar */
 #awe-tabs {
   display: flex;
-  background: #12122a;
-  border-bottom: 1px solid #2d2d4a;
+  background: var(--awe-tabs-bg);
+  border-bottom: 1px solid var(--awe-border);
 }
 
 .awe-tab-btn {
@@ -241,12 +285,12 @@
 }
 
 .awe-tab-btn:hover {
-  color: #94a3b8;
+  color: var(--awe-muted);
 }
 
 .awe-tab-btn.active {
-  color: #6366f1;
-  border-bottom-color: #6366f1;
+  color: var(--awe-accent);
+  border-bottom-color: var(--awe-accent);
 }
 
 /* Tab content */
@@ -269,8 +313,8 @@
   width: 100%;
   min-height: 80px;
   max-height: 200px;
-  background: #0f0f23;
-  border: 1px solid #2d2d4a;
+  background: var(--awe-body-bg);
+  border: 1px solid var(--awe-border);
   border-radius: 8px;
   color: #e2e8f0;
   padding: 12px;
@@ -281,12 +325,12 @@
 }
 
 #awe-command-input:focus {
-  border-color: #6366f1;
+  border-color: var(--awe-accent);
   box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
 }
 
 #awe-command-input::placeholder {
-  color: #475569;
+  color: var(--awe-muted-dim);
 }
 
 /* Send button */
@@ -294,7 +338,7 @@
   width: 100%;
   padding: 12px;
   margin-top: 12px;
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  background: linear-gradient(135deg, var(--awe-header-start) 0%, var(--awe-header-end) 100%);
   border: none;
   border-radius: 8px;
   color: white;
@@ -327,8 +371,8 @@
 
 .awe-quick-btn {
   padding: 4px 10px;
-  background: rgba(99, 102, 241, 0.1);
-  border: 1px solid rgba(99, 102, 241, 0.3);
+  background: color-mix(in srgb, var(--awe-accent) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--awe-accent) 30%, transparent);
   border-radius: 16px;
   color: #a5b4fc;
   font-size: 11px;
@@ -337,7 +381,7 @@
 }
 
 .awe-quick-btn:hover {
-  background: rgba(99, 102, 241, 0.2);
+  background: color-mix(in srgb, var(--awe-accent) 20%, transparent);
   color: #c7d2fe;
 }
 
@@ -361,7 +405,7 @@
 .awe-style-group label {
   display: block;
   font-size: 12px;
-  color: #94a3b8;
+  color: var(--awe-muted);
   margin-bottom: 6px;
   font-weight: 500;
 }
@@ -375,8 +419,8 @@
 .awe-style-input {
   flex: 1;
   padding: 8px 12px;
-  background: #0f0f23;
-  border: 1px solid #2d2d4a;
+  background: var(--awe-body-bg);
+  border: 1px solid var(--awe-border);
   border-radius: 6px;
   color: #e2e8f0;
   font-size: 13px;
@@ -384,7 +428,7 @@
 }
 
 .awe-style-input:focus {
-  border-color: #6366f1;
+  border-color: var(--awe-accent);
 }
 
 .awe-style-input[type="color"] {
@@ -396,7 +440,7 @@
 
 .awe-apply-btn {
   padding: 8px 16px;
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  background: linear-gradient(135deg, var(--awe-header-start) 0%, var(--awe-header-end) 100%);
   border: none;
   border-radius: 6px;
   color: white;
@@ -412,8 +456,8 @@
 /* History */
 .awe-history-item {
   padding: 10px 12px;
-  background: rgba(99, 102, 241, 0.05);
-  border: 1px solid #2d2d4a;
+  background: color-mix(in srgb, var(--awe-accent) 5%, transparent);
+  border: 1px solid var(--awe-border);
   border-radius: 8px;
   margin-bottom: 8px;
   cursor: pointer;
@@ -421,7 +465,7 @@
 }
 
 .awe-history-item:hover {
-  background: rgba(99, 102, 241, 0.1);
+  background: color-mix(in srgb, var(--awe-accent) 10%, transparent);
 }
 
 .awe-history-command {
@@ -432,14 +476,14 @@
 
 .awe-history-time {
   font-size: 11px;
-  color: #475569;
+  color: var(--awe-muted-dim);
 }
 
 /* Status messages */
 #awe-status-msg {
   padding: 8px 20px;
   font-size: 12px;
-  background: #12122a;
+  background: var(--awe-tabs-bg);
   text-align: center;
   color: #f59e0b;
   display: none;
@@ -480,7 +524,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 12px 0;
-  border-bottom: 1px solid #2d2d4a;
+  border-bottom: 1px solid var(--awe-border);
 }
 
 .awe-settings-row:last-child {
@@ -495,8 +539,8 @@
 .awe-settings-input {
   width: 180px;
   padding: 6px 10px;
-  background: #0f0f23;
-  border: 1px solid #2d2d4a;
+  background: var(--awe-body-bg);
+  border: 1px solid var(--awe-border);
   border-radius: 6px;
   color: #e2e8f0;
   font-size: 12px;
@@ -504,7 +548,7 @@
 }
 
 .awe-settings-input:focus {
-  border-color: #6366f1;
+  border-color: var(--awe-accent);
 }
 
 /* Toast notification */
@@ -514,7 +558,7 @@
    right: 24px;
    padding: 12px 20px;
    background: #1a1a2e;
-   border: 1px solid #2d2d4a;
+   border: 1px solid var(--awe-border);
    border-radius: 8px;
    color: #e2e8f0;
    font-size: 13px;
@@ -533,7 +577,7 @@
      ============================================================ */
  #awe-conversation-log { max-height:150px; overflow-y:auto; margin-bottom:8px; }
 
- .awe-message-user { background:#6366f1; color:white; padding:8px 12px; border-radius:8px 8px 0 8px; margin:4px 0; font-size:13px; }
+ .awe-message-user { background:var(--awe-accent); color:white; padding:8px 12px; border-radius:8px 8px 0 8px; margin:4px 0; font-size:13px; }
  .awe-message-assistant { background:#0f0f23; color:#e2e8f0; padding:8px 12px; border-radius:8px 8px 8px 0; margin:4px 0; font-size:13px; }
 
  /* ============================================================
@@ -563,8 +607,8 @@
      width: 100%;
      border-radius: 6px;
      overflow: hidden;
-     background: #0f0f23;
-     border: 1px solid #2d2d4a;
+     background: var(--awe-body-bg);
+     border: 1px solid var(--awe-border);
    }
 
    /* The highlight overlay div sits above the textarea */
@@ -686,7 +730,7 @@
    #awe-editor-panel.theme-light .awe-highlight-overlay .hl-tag { color: #be185d; text-shadow: 0 0 0 #be185d; }
    #awe-editor-panel.theme-light .awe-highlight-overlay .hl-attr-name { color: #7c3aed; text-shadow: 0 0 0 #7c3aed; }
    #awe-editor-panel.theme-light .awe-highlight-overlay .hl-attr-value { color: #059669; text-shadow: 0 0 0 #059669; }
-   #awe-editor-panel.theme-light .awe-highlight-overlay .hl-comment { color: #94a3b8; text-shadow: 0 0 0 #94a3b8; }
+   #awe-editor-panel.theme-light .awe-highlight-overlay .hl-comment { color: var(--awe-muted); text-shadow: 0 0 0 #94a3b8; }
    #awe-editor-panel.theme-light .awe-highlight-overlay .hl-entity { color: #d97706; text-shadow: 0 0 0 #d97706; }
    #awe-editor-panel.theme-light .awe-highlight-overlay .hl-text { color: #1e293b; text-shadow: 0 0 0 #1e293b; }
 
@@ -754,7 +798,7 @@
    #awe-diff-body .diff-section-label {
      font-size: 11px;
      font-weight: 600;
-     color: #94a3b8;
+     color: var(--awe-muted);
      text-transform: uppercase;
      letter-spacing: 0.5px;
      margin-bottom: 6px;
@@ -775,8 +819,8 @@
    #awe-diff-body .diff-new-label::before { background: #22c55e; }
 
    .diff-text-wrap {
-     background: #0f0f23;
-     border: 1px solid #2d2d4a;
+     background: var(--awe-body-bg);
+     border: 1px solid var(--awe-border);
      border-radius: 8px;
      padding: 10px 12px;
      font-size: 13px;
@@ -828,7 +872,7 @@
    }
 
    .diff-unchanged {
-     color: #94a3b8;
+     color: var(--awe-muted);
      padding: 2px 4px;
      display: block;
      margin-bottom: 1px;
@@ -837,7 +881,7 @@
    #awe-diff-footer {
      padding: 10px 16px;
      border-top: 1px solid #2d2d4a;
-     background: #12122a;
+     background: var(--awe-tabs-bg);
      display: flex;
      gap: 8px;
      justify-content: flex-end;
@@ -863,8 +907,8 @@
 
    #awe-diff-discard-btn {
      background: rgba(100, 116, 139, 0.2);
-     color: #94a3b8;
-     border: 1px solid #2d2d4a;
+     color: var(--awe-muted);
+     border: 1px solid var(--awe-border);
    }
 
    #awe-diff-discard-btn:hover { background: rgba(100, 116, 139, 0.3); }
@@ -908,7 +952,7 @@
 
    .awe-history-entry-tag {
      font-family: monospace;
-     color: #6366f1;
+     color: var(--awe-accent);
      font-weight: 600;
      white-space: nowrap;
      flex-shrink: 0;
@@ -923,7 +967,7 @@
    }
 
    .awe-history-entry-text {
-      color: #94a3b8;
+      color: var(--awe-muted);
       font-size: 12px;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -981,7 +1025,7 @@
     /* Bubble header — source text */
     #awe-translate-bubble .awe-tb-header {
       padding: 10px 14px 8px;
-      border-bottom: 1px solid #2d2d4a;
+      border-bottom: 1px solid var(--awe-border);
     }
 
     #awe-translate-bubble .awe-tb-source-text {
@@ -1018,7 +1062,7 @@
     #awe-translate-bubble .awe-tb-translation-label {
       font-size: 10px;
       font-weight: 600;
-      color: #94a3b8;
+      color: var(--awe-muted);
       text-transform: uppercase;
       letter-spacing: 0.5px;
       margin-bottom: 4px;
@@ -1040,7 +1084,7 @@
       gap: 8px;
       padding: 10px 14px;
       font-size: 12px;
-      color: #94a3b8;
+      color: var(--awe-muted);
     }
 
     #awe-translate-bubble .awe-tb-loading.awe-show {
@@ -1069,7 +1113,7 @@
     }
 
     #awe-translate-bubble .awe-tb-btn-apply {
-      background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+      background: linear-gradient(135deg, var(--awe-header-start) 0%, var(--awe-header-end) 100%);
       color: white;
     }
 
@@ -1081,7 +1125,7 @@
     #awe-translate-bubble .awe-tb-btn-copy {
       background: rgba(99, 102, 241, 0.15);
       color: #a5b4fc;
-      border: 1px solid rgba(99, 102, 241, 0.3);
+      border: 1px solid color-mix(in srgb, var(--awe-accent) 30%, transparent);
     }
 
     #awe-translate-bubble .awe-tb-btn-copy:hover {
@@ -1090,8 +1134,8 @@
 
     #awe-translate-bubble .awe-tb-btn-close {
       background: rgba(100, 116, 139, 0.15);
-      color: #94a3b8;
-      border: 1px solid #2d2d4a;
+      color: var(--awe-muted);
+      border: 1px solid var(--awe-border);
     }
 
     #awe-translate-bubble .awe-tb-btn-close:hover {
@@ -1143,10 +1187,10 @@
 
     #awe-translate-bubble .awe-tb-lang-btn {
       padding: 4px 10px;
-      border: 1px solid #2d2d4a;
+      border: 1px solid var(--awe-border);
       border-radius: 16px;
       background: none;
-      color: #94a3b8;
+      color: var(--awe-muted);
       font-size: 11px;
       cursor: pointer;
       transition: all 0.15s;
@@ -1155,7 +1199,7 @@
     #awe-translate-bubble .awe-tb-lang-btn:hover {
       background: rgba(99, 102, 241, 0.15);
       color: #a5b4fc;
-      border-color: #6366f1;
+      border-color: var(--awe-accent);
     }
 
     /* Error message in bubble */
@@ -1185,7 +1229,7 @@
         ============================================================ */
      #awe-review-queue {
        border-top: 1px solid #2d2d4a;
-       background: #12122a;
+       background: var(--awe-tabs-bg);
        max-height: 300px;
        overflow-y: auto;
        transition: max-height 0.3s ease;
@@ -1205,7 +1249,7 @@
        padding: 8px 20px;
        background: none;
        border: none;
-       color: #94a3b8;
+       color: var(--awe-muted);
        font-size: 12px;
        font-weight: 600;
        cursor: pointer;
@@ -1213,7 +1257,7 @@
      }
 
      #awe-review-toggle-btn:hover {
-       background: rgba(99, 102, 241, 0.05);
+       background: color-mix(in srgb, var(--awe-accent) 5%, transparent);
        color: #c7d2fe;
      }
 
@@ -1231,13 +1275,13 @@
        justify-content: space-between;
        align-items: center;
        padding: 6px 20px;
-       border-bottom: 1px solid #2d2d4a;
-       background: #0f0f23;
+       border-bottom: 1px solid var(--awe-border);
+       background: var(--awe-body-bg);
      }
 
      #awe-review-toolbar .awe-review-count {
        font-size: 11px;
-       color: #6366f1;
+       color: var(--awe-accent);
        font-weight: 600;
      }
 
@@ -1248,7 +1292,7 @@
 
      #awe-review-bulk-btns button {
        padding: 3px 10px;
-       border: 1px solid #2d2d4a;
+       border: 1px solid var(--awe-border);
        border-radius: 4px;
        font-size: 11px;
        font-weight: 600;
@@ -1301,8 +1345,8 @@
      .awe-review-item-tag {
        font-family: monospace;
        font-size: 11px;
-       color: #6366f1;
-       background: rgba(99, 102, 241, 0.1);
+       color: var(--awe-accent);
+       background: color-mix(in srgb, var(--awe-accent) 10%, transparent);
        padding: 1px 6px;
        border-radius: 3px;
        font-weight: 600;
@@ -1310,22 +1354,22 @@
 
      .awe-review-item-index {
        font-size: 10px;
-       color: #475569;
+       color: var(--awe-muted-dim);
      }
 
      .awe-review-item-time {
        font-size: 10px;
-       color: #475569;
+       color: var(--awe-muted-dim);
        margin-left: auto;
      }
 
      .awe-review-item-preview {
-       background: #0f0f23;
-       border: 1px solid #2d2d4a;
+       background: var(--awe-body-bg);
+       border: 1px solid var(--awe-border);
        border-radius: 6px;
        padding: 8px 10px;
        font-size: 12px;
-       color: #94a3b8;
+       color: var(--awe-muted);
        line-height: 1.5;
        max-height: 60px;
        overflow-y: auto;
@@ -1353,7 +1397,7 @@
      .awe-review-item-label {
        font-size: 10px;
        font-weight: 600;
-       color: #94a3b8;
+       color: var(--awe-muted);
        text-transform: uppercase;
        letter-spacing: 0.5px;
        margin-bottom: 4px;
@@ -1397,7 +1441,7 @@
 
      .awe-review-btn-reject {
        background: rgba(100, 116, 139, 0.2);
-       color: #94a3b8;
+       color: var(--awe-muted);
        border: 1px solid #2d2d4a !important;
      }
 
@@ -1425,7 +1469,7 @@
        padding: 16px 20px;
        text-align: center;
        font-size: 12px;
-       color: #475569;
+       color: var(--awe-muted-dim);
      }
 
      /* Review badge on AI tab button */
@@ -1464,7 +1508,7 @@
        left: 0;
        right: 0;
        background: #1a1a2e;
-       border: 1px solid #2d2d4a;
+       border: 1px solid var(--awe-border);
        border-bottom: none;
        border-radius: 8px 8px 0 0;
        box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.3);
@@ -1487,10 +1531,10 @@
        padding: 8px 12px;
        font-size: 11px;
        font-weight: 600;
-       color: #94a3b8;
+       color: var(--awe-muted);
        text-transform: uppercase;
        letter-spacing: 0.5px;
-       border-bottom: 1px solid #2d2d4a;
+       border-bottom: 1px solid var(--awe-border);
        display: flex;
        justify-content: space-between;
        align-items: center;
@@ -1499,9 +1543,9 @@
      #awe-snippet-dropdown .awe-snippet-search {
        width: 100%;
        padding: 6px 10px;
-       background: #0f0f23;
+       background: var(--awe-body-bg);
        border: none;
-       border-bottom: 1px solid #2d2d4a;
+       border-bottom: 1px solid var(--awe-border);
        color: #e2e8f0;
        font-size: 12px;
        outline: none;
@@ -1509,7 +1553,7 @@
      }
 
      #awe-snippet-dropdown .awe-snippet-search::placeholder {
-       color: #475569;
+       color: var(--awe-muted-dim);
      }
 
      #awe-snippet-list {
@@ -1556,7 +1600,7 @@
 
      .awe-snippet-item .awe-snippet-content-preview {
        font-size: 10px;
-       color: #475569;
+       color: var(--awe-muted-dim);
        max-width: 200px;
        white-space: nowrap;
        overflow: hidden;
@@ -1566,7 +1610,7 @@
      .awe-snippet-item .awe-snippet-delete-btn {
        background: none;
        border: none;
-       color: #475569;
+       color: var(--awe-muted-dim);
        cursor: pointer;
        font-size: 12px;
        padding: 2px 4px;
@@ -1589,13 +1633,13 @@
        padding: 16px 12px;
        text-align: center;
        font-size: 12px;
-       color: #475569;
+       color: var(--awe-muted-dim);
      }
 
      /* Snippet button in input area */
      #awe-snippet-toggle-btn {
-       background: rgba(99, 102, 241, 0.1);
-       border: 1px solid rgba(99, 102, 241, 0.3);
+       background: color-mix(in srgb, var(--awe-accent) 10%, transparent);
+       border: 1px solid color-mix(in srgb, var(--awe-accent) 30%, transparent);
        color: #a5b4fc;
        width: 36px;
        height: 36px;
@@ -1611,13 +1655,13 @@
      }
 
      #awe-snippet-toggle-btn:hover {
-       background: rgba(99, 102, 241, 0.2);
+       background: color-mix(in srgb, var(--awe-accent) 20%, transparent);
        color: #c7d2fe;
      }
 
      #awe-snippet-toggle-btn.awe-snippet-active {
        background: rgba(99, 102, 241, 0.25);
-       border-color: #6366f1;
+       border-color: var(--awe-accent);
        color: #c7d2fe;
      }
 

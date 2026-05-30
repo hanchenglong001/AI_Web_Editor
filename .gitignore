@@ -1,21 +1,20 @@
-# Environment
-.env
-*.local
+# Dependencies
+node_modules/
+/.vscode/
+/.idea/
 
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
+# Generated files
+screenshots/*.png  # generated icons/screenshots from source
+screenshots/*.html # screenshot generation templates
+/*.ico
+!screenshots/README.txt
 
-# OS
+# OS files
 .DS_Store
 Thumbs.db
 
-# Generated icons (regenerate from SVG)
-icons/icon16.png
-icons/icon48.png
-icons/icon128.png
+# Logs
+*.log
 
-# Test files
-test-content.py
+# Local development
+.env.local

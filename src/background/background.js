@@ -162,36 +162,167 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 
   // ============================================================
-  // Apply All CSS Rules to Page (v1.6)
-  // ============================================================
-  if (message.action === 'apply-css-rules') {
-    chrome.storage.sync.get(['customCssRules'], function(result) {
-      var rules = result.customCssRules || [];
-      chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
-        if (tabs[0]) {
-          chrome.scripting.executeScript({
-            target: { tabId: tabs[0].id },
-            func: (rules) => {
-              rules.forEach(function(rule) {
-                try {
-                  var matches = document.querySelectorAll(rule.selector);
-                  matches.forEach(function(el) {
-                    el.setAttribute('style', (el.getAttribute('style') || '') + ' !important; ' + rule.css);
-                  });
-                } catch(e) {}
-              });
-            },
-            args: [rules],
-          });
-        }
-      });
-      sendResponse({ success: true, count: rules.length });
-    });
-    return true;
-  }
+   // Apply All CSS Rules to Page (v1.6)
+   // ============================================================
+   if (message.action === 'apply-css-rules') {
+     chrome.storage.sync.get(['customCssRules'], function(result) {
+       var rules = result.customCssRules || [];
+       chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
+         if (tabs[0]) {
+           chrome.scripting.executeScript({
+             target: { tabId: tabs[0].id },
+             func: (rules) => {
+               rules.forEach(function(rule) {
+                 try {
+                   var matches = document.querySelectorAll(rule.selector);
+                   matches.forEach(function(el) {
+                     el.setAttribute('style', (el.getAttribute('style') || '') + ' !important; ' + rule.css);
+                   });
+                 } catch(e) {}
+               });
+             },
+             args: [rules],
+           });
+         }
+       });
+       sendResponse({ success: true, count: rules.length });
+     });
+     return true;
+   }
 
-  return false;
-});
+   // ============================================================
+   // Apply Custom Theme (v1.9)
+   // ============================================================
+   if (message.action === 'apply-custom-theme') {
+     chrome.storage.sync.get(['customThemes', 'activeThemeName'], function(result) {
+       var themes = result.customThemes || [];
+       var activeName = result.activeThemeName;
+
+       // Find the active theme (built-in presets or custom)
+       var allThemes = getDefaultPresets().concat(themes);
+       var active = null;
+       if (activeName) {
+         for (var i = 0; i < allThemes.length; i++) {
+           if (allThemes[i].name === activeName) { active = allThemes[i]; break; }
+         }
+       }
+
+       // If no active theme found, fall back to first custom or default dark
+       if (!active && themes.length > 0) {
+         active = themes[themes.length - 1];
+       } else if (!active) {
+         active = getDefaultPresets()[0]; // Dark
+       }
+
+       chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
+         if (tabs[0]) {
+           chrome.scripting.executeScript({
+             target: { tabId: tabs[0].id },
+             func: (theme) => {
+               applyThemeToPanel(theme);
+             },
+             args: [active],
+           });
+         }
+       });
+
+       sendResponse({ success: true, themeName: active.name });
+     });
+     return true;
+   }
+
+   // ============================================================
+   // Get Active Theme (v1.9)
+   // ============================================================
+   if (message.action === 'get-active-theme') {
+     chrome.storage.sync.get(['customThemes', 'activeThemeName'], function(result) {
+       var themes = result.customThemes || [];
+       var activeName = result.activeThemeName;
+
+       var allThemes = getDefaultPresets().concat(themes);
+       var active = null;
+       if (activeName) {
+         for (var i = 0; i < allThemes.length; i++) {
+           if (allThemes[i].name === activeName) { active = allThemes[i]; break; }
+         }
+       }
+
+       if (!active && themes.length > 0) {
+         active = themes[themes.length - 1];
+       } else if (!active) {
+         active = getDefaultPresets()[0];
+       }
+
+       sendResponse({ theme: active, allThemes: allThemes, customThemes: themes, activeThemeName: activeName });
+     });
+     return true;
+   }
+
+   // ============================================================
+   // Save Custom Theme (v1.9)
+   // ============================================================
+   if (message.action === 'save-custom-theme') {
+     chrome.storage.sync.get(['customThemes'], function(result) {
+       var themes = result.customThemes || [];
+       var newTheme = message.theme;
+
+       // Check if updating existing custom theme by id
+       var idx = themes.findIndex(function(t) { return t._id === newTheme._id; });
+       if (idx >= 0) {
+         themes[idx] = newTheme;
+       } else {
+         themes.push(newTheme);
+       }
+
+       chrome.storage.sync.set({
+         customThemes: themes,
+         activeThemeName: newTheme.name
+       }, function() {
+         sendResponse({ success: true, themeName: newTheme.name });
+       });
+     });
+     return true;
+   }
+
+   // ============================================================
+   // Delete Custom Theme (v1.9)
+   // ============================================================
+   if (message.action === 'delete-custom-theme') {
+     chrome.storage.sync.get(['customThemes', 'activeThemeName'], function(result) {
+       var themes = (result.customThemes || []).filter(function(t) { return t._id !== message.themeId; });
+       var newActive = result.activeThemeName;
+
+       // If deleted theme was active, set to last remaining or default
+       if (newActive === message.activeThemeName) {
+         if (themes.length > 0) {
+           newActive = themes[themes.length - 1].name;
+         } else {
+           newActive = 'Dark'; // built-in preset
+         }
+       }
+
+       chrome.storage.sync.set({
+         customThemes: themes,
+         activeThemeName: newActive
+       }, function() {
+         sendResponse({ success: true, newActiveThemeName: newActive });
+       });
+     });
+     return true;
+   }
+
+   // ============================================================
+   // Set Active Theme (v1.9)
+   // ============================================================
+   if (message.action === 'set-active-theme') {
+     chrome.storage.sync.set({ activeThemeName: message.themeName }, function() {
+       sendResponse({ success: true });
+     });
+     return true;
+   }
+
+   return false;
+  });
 
 // Handle context menu clicks
 chrome.contextMenus.onClicked.addListener((info, tab) => {
@@ -383,3 +514,53 @@ async function handleTestConnection(apiKey, provider, baseUrl, sendResponse) {
     sendResponse({ success: false, error: err.message });
   }
 }
+
+// ============================================================
+// Theme Presets & Helpers (v1.9)
+// ============================================================
+
+function getDefaultPresets() {
+  return [
+    {
+      name: 'Dark',
+      isPreset: true,
+      colors: {
+        bg: '#1a1a2e', fg: '#e2e8f0', border: '#2d2d4a', accent: '#6366f1',
+        headerStart: '#6366f1', headerEnd: '#8b5cf6'
+      },
+      position: 'right-middle',
+      width: '380px'
+    },
+    {
+      name: 'Light',
+      isPreset: true,
+      colors: {
+        bg: '#ffffff', fg: '#1e293b', border: '#e2e8f0', accent: '#6366f1',
+        headerStart: '#6366f1', headerEnd: '#8b5cf6'
+      },
+      position: 'right-middle',
+      width: '380px'
+    },
+    {
+      name: 'Ocean Blue',
+      isPreset: true,
+      colors: {
+        bg: '#0c1929', fg: '#a5d6ff', border: '#1a3a5c', accent: '#0ea5e9',
+        headerStart: '#0369a1', headerEnd: '#0ea5e9'
+      },
+      position: 'right-middle',
+      width: '420px'
+    },
+    {
+      name: 'Green Terminal',
+      isPreset: true,
+      colors: {
+        bg: '#0a0f0a', fg: '#33ff33', border: '#1a2e1a', accent: '#22c55e',
+        headerStart: '#166534', headerEnd: '#22c55e'
+      },
+      position: 'right-middle',
+      width: '420px'
+    }
+  ];
+}
+

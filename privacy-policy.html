@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Web Editor - Privacy Policy</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 800px; margin: 40px auto; padding: 0 20px; line-height: 1.6; color: #333; }
+        h1 { color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px; }
+        h2 { color: #2c3e50; margin-top: 30px; }
+        p, li { color: #555; }
+        .highlight { background: #f0f7ff; padding: 15px; border-left: 4px solid #3498db; margin: 15px 0; }
+        code { background: #f5f5f5; padding: 2px 6px; border-radius: 3px; font-size: 0.9em; color: #e74c3c; }
+    </style>
+</head>
+<body>
+    <h1>AI Web Editor Privacy Policy</h1>
+    <p><strong>Last updated:</strong> 2026-05-30</p>
+    <p><strong>Extension version:</strong> 2.0.0</p>
+
+    <div class="highlight">
+        <strong>Key Point:</strong> AI Web Editor is a browser extension that operates entirely within your browser. 
+        We do not collect, store, or transmit any personal data to external servers beyond what is necessary 
+        to provide the AI editing functionality you request.
+    </div>
+
+    <h2>1. Data Collection</h2>
+    <p>AI Web Editor collects and processes the following types of information:</p>
+    
+    <h3>1.1 Page Content (Temporary Processing Only)</h3>
+    <ul>
+        <li><strong>What is collected:</strong> HTML, CSS, text content, and computed styles of selected DOM elements on web pages</li>
+        <li><strong>Why it is collected:</strong> To enable the AI-powered editing features (translation, shortening, custom styling, etc.)</li>
+        <li><strong>How long it is stored:</strong> ONLY while the extension is actively processing your request. Data is NEVER stored permanently or transmitted to third-party servers except through the configured AI model endpoint that you have explicitly selected.</li>
+    </ul>
+
+    <h3>1.2 User Preferences (Stored Locally)</h3>
+    <ul>
+        <li><strong>What is stored:</strong> Theme settings, keyboard shortcut preferences, custom themes, saved snippets</li>
+        <li><strong>Why it is stored:</strong> To remember your preferences across browser sessions</li>
+        <li><strong>How it is stored:</strong> Exclusively in Chrome's local storage (chrome.storage.local) and sync storage (chrome.storage.sync) on YOUR device. This data NEVER leaves your computer.</li>
+    </ul>
+
+    <h3>1.3 AI Model Communication</h3>
+    <ul>
+        <li><strong>What is sent:</strong> Selected page content and user commands to the configured AI model endpoint (e.g., qwen3.6)</li>
+        <li><strong>Why it is sent:</strong> To provide the AI editing functionality</li>
+        <li><strong>Third-party policy:</strong> The AI model provider (e.g., Alibaba Cloud / custom backend) may have their own privacy policies that apply to data transmitted through their API. Users are encouraged to review the privacy policy of the configured AI provider.</li>
+    </ul>
+
+    <h2>2. Permissions Used</h2>
+    <p>The extension requires the following Chrome permissions:</p>
+    <ul>
+        <li><code>activeTab</code> — Access to the current tab's DOM to enable element selection and editing</li>
+        <li><code>contextMenus</code> — Right-click context menu integration</li>
+        <li><code>storage</code> — Save user preferences and custom data locally</li>
+        <li><code>scripting</code> — Inject content scripts to enable the editor panel on web pages</li>
+        <li><code>tabs</code> — Open new tabs for AI editor panel when needed</li>
+    </ul>
+
+    <h2>3. Data Sharing</h2>
+    <p>AI Web Editor does NOT sell, trade, or rent user data to third parties. The only data transmission that occurs is:</p>
+    <ol>
+        <li>Selected page content sent to the configured AI model endpoint for processing (as explained in Section 1.3)</li>
+        <li>Chrome Web Store may collect anonymous usage statistics as required by Google</li>
+    </ol>
+
+    <h2>4. Children's Privacy</h2>
+    <p>AI Web Editor is not intentionally designed for or directed at children under 13 years of age. We do not knowingly collect personally identifiable information from children under 13.</p>
+
+    <h2>5. Changes to This Policy</h2>
+    <p>We may update our Privacy Policy from time to time. Any changes will be communicated through the Chrome Web Store listing and within the extension itself. We encourage users to periodically review this page for the latest information on our privacy practices.</p>
+
+    <h2>6. Contact Us</h2>
+    <p>If you have any questions about this Privacy Policy, please contact us through:</p>
+    <ul>
+        <li><strong>GitHub Issues:</strong> <a href="https://github.com/hanchenglong001/AI_Web_Editor/issues">https://github.com/hanchenglong001/AI_Web_Editor/issues</a></li>
+        <li><strong>GitHub Repository:</strong> <a href="https://github.com/hanchenglong001/AI_Web_Editor">https://github.com/hanchenglong001/AI_Web_Editor</a></li>
+    </ul>
+
+    <div class="highlight" style="margin-top: 40px;">
+        <strong>Your privacy matters.</strong> AI Web Editor is designed with privacy as a core principle. 
+        Your browsing data stays on your device, and any external communication is solely determined by your 
+        explicit commands to the extension.
+    </div>
+</body>
+</html>

@@ -1,0 +1,18 @@
+{
+  "name": "AI Web Editor",
+  "short_name": "AI Web Editor",
+  "version": "2.0.0",
+  "description": "Click any element on a webpage and use AI to modify its content or style in real-time.",
+  "author": "韩成龙 (hanchenglong001)",
+  "homepage_url": "https://github.com/hanchenglong001/AI_Web_Editor",
+  "privacy_policy_url": "https://github.com/hanchenglong001/AI_Web_Editor/blob/master/privacy-policy.html",
+  "permissions": ["activeTab", "storage", "contextMenus", "scripting"],
+  "host_permissions": ["<all_urls>"],
+  "categories": ["productivity", "developer-tools"],
+  "offline_enabled": false,
+  "icons": {
+    "16": "src/icons/icon16.png",
+    "48": "src/icons/icon48.png",
+    "128": "src/icons/icon128.png"
+  }
+}

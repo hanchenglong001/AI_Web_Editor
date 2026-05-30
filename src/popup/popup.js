@@ -572,4 +572,47 @@ document.addEventListener('DOMContentLoaded', () => {
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;');
   }
+}
+
+// ============================================================
+// Keyboard Shortcut Manager (v1.9)
+// ============================================================
+document.addEventListener('DOMContentLoaded', function() {
+  // Load current shortcut from storage and display it
+  chrome.storage.local.get(['awe-keyboard-shortcut'], function(storage) {
+    if (storage['awe-keyboard-shortcut']) {
+      var display = document.getElementById('kbd-shortcut-display');
+      if (display) {
+        display.textContent = storage['awe-keyboard-shortcut'];
+      }
+    }
+  });
+
+  // Handle "Record Shortcut" button click
+  var recBtn = document.getElementById('rec-kbd-shortcut-btn');
+  if (recBtn) {
+    recBtn.addEventListener('click', function() {
+      // Notify content script to start listening for the new shortcut
+      chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
+        if (tabs.length > 0) {
+          chrome.tabs.sendMessage(tabs[0].id, {
+            action: 'start-kbd-shortcut-recording'
+          });
+          recBtn.textContent = 'Press shortcut...';
+          recBtn.disabled = true;
+
+          // Set timeout to reset button
+          setTimeout(function() {
+            chrome.tabs.sendMessage(tabs[0].id, {
+              action: 'stop-kbd-shortcut-recording'
+            });
+            recBtn.textContent = '📝 Record Shortcut';
+            recBtn.disabled = false;
+          }, 5000);
+        }
+      });
+    });
+  }
+});
+
 });
