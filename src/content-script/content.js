@@ -7,18 +7,450 @@
   window.__awe_injected = true;
 
   let selectedElement = null;
-    let isSelectingMode = false;
-    let isOpen = false;
+     let isSelectingMode = false;
+     let isOpen = false;
 
-    // ============================================================
-    // Conversation Mode (v1.5)
-    // ============================================================
-    var conversationHistory = []; // [{role: 'user' | 'assistant', content: string}]
+     // ============================================================
+        // Element Selector History (v1.8)
+        // ============================================================
+        var selectedElementHistory = []; // [{tagName, className, textContent, selector, timestamp}]
+        var _historyDropdownOpen = false;
 
-    // ============================================================
-    // Batch Editing (v1.3)
-    // ============================================================
-    var batchSelectedElements = []; // Array of DOM elements for multi-select
+        function loadElementHistory() {
+          chrome.storage.sync.get(['selectedElementHistory'], function(result) {
+            if (result.selectedElementHistory && Array.isArray(result.selectedElementHistory)) {
+              selectedElementHistory = result.selectedElementHistory.slice(0, 10);
+            } else {
+              selectedElementHistory = [];
+            }
+          });
+        }
+
+        function saveElementHistory() {
+          chrome.storage.sync.set({ selectedElementHistory: selectedElementHistory.slice(0, 10) }, function() {
+            renderElementHistoryDropdown();
+          });
+        }
+
+        function buildSelector(el) {
+          if (!el) return '';
+          var parts = [];
+          var current = el;
+          var depth = 0;
+          while (current && current.nodeType === Node.ELEMENT_NODE && depth < 6) {
+            var tag = current.tagName.toLowerCase() || '';
+            var cls = (current.className && typeof current.className === 'string') ? current.className.trim().split(/\s+/).filter(Boolean)[0] : '';
+            var id = current.id || '';
+            if (id) {
+              parts.unshift('#' + id);
+              break;
+            } else if (cls) {
+              parts.unshift(tag + '.' + cls);
+            } else {
+              parts.unshift(tag);
+            }
+            current = current.parentElement;
+            depth++;
+          }
+          return parts.join(' > ');
+        }
+
+        function recordSelectedElement(el) {
+          if (!el) return;
+          var tagName = (el.tagName || '').toLowerCase();
+          var className = '';
+          if (el.className && typeof el.className === 'string') {
+            className = el.className.trim().split(/\s+/).filter(Boolean).join('.');
+          }
+          var textContent = (el.textContent || '').trim().substring(0, 50);
+          var selector = buildSelector(el);
+
+          var entry = {
+            tagName: tagName,
+            className: className,
+            textContent: textContent,
+            selector: selector,
+            timestamp: Date.now()
+          };
+
+          // Remove if already exists (re-insert at front)
+          selectedElementHistory = selectedElementHistory.filter(function(h) {
+            return h.selector !== entry.selector;
+          });
+
+          // Add to front
+          selectedElementHistory.unshift(entry);
+
+          // Keep only 10
+          if (selectedElementHistory.length > 10) {
+            selectedElementHistory = selectedElementHistory.slice(0, 10);
+          }
+
+          saveElementHistory();
+        }
+
+        function restoreFromHistory(selector) {
+          try {
+            var el = document.querySelector(selector);
+            if (el && !el.closest('#awe-editor-panel') && !el.closest('#awe-selection-overlay') && !el.closest('#awe-trigger-btn')) {
+              selectedElement = el;
+              highlightElement(el);
+              updatePreview(el);
+              openPanel();
+              showToast('Restored element: <' + el.tagName.toLowerCase() + '>', 'success');
+            } else {
+              // Try fallback: use className as querySelector
+              var parts = selector.split(/\s+/);
+              for (var i = 0; i < parts.length; i++) {
+                if (parts[i].includes('.')) {
+                  el = document.querySelector(parts[i]);
+                  break;
+                }
+              }
+              if (el && !el.closest('#awe-editor-panel') && !el.closest('#awe-selection-overlay')) {
+                selectedElement = el;
+                highlightElement(el);
+                updatePreview(el);
+                openPanel();
+                showToast('Restored element: <' + el.tagName.toLowerCase() + '>', 'success');
+              } else {
+                showToast('Could not find this element anymore.', 'error');
+              }
+            }
+          } catch (err) {
+            showToast('Selector error: ' + err.message, 'error');
+          }
+        }
+
+        function renderElementHistoryDropdown() {
+          if (!selectedElementHistory || selectedElementHistory.length === 0) return;
+
+          var btn = document.getElementById('awe-element-history-btn');
+          if (!btn) return;
+
+          var listEl = document.getElementById('awe-element-history-list');
+          if (!listEl) return;
+
+          var html = '';
+          for (var i = 0; i < selectedElementHistory.length; i++) {
+            var h = selectedElementHistory[i];
+            var displayText = h.textContent || '(empty)';
+            if (displayText.length > 40) displayText = displayText.substring(0, 40) + '...';
+            var classLabel = h.className ? '.' + h.className : '';
+            html += '<div class="awe-history-entry" data-index="' + i + '" title="' + escapeHtml(h.selector) + '">' +
+              '<span class="awe-history-entry-tag">&lt;' + h.tagName + '&gt;</span>' +
+              '<span class="awe-history-entry-class">' + escapeHtml(classLabel) + '</span>' +
+              '<span class="awe-history-entry-text">"' + escapeHtml(displayText) + '"</span>' +
+              '</div>';
+          }
+          listEl.innerHTML = html;
+
+          // Attach click handlers
+          listEl.querySelectorAll('.awe-history-entry').forEach(function(entry) {
+            entry.addEventListener('click', function(e) {
+              e.stopPropagation();
+              var idx = parseInt(this.dataset.index);
+              if (selectedElementHistory[idx]) {
+                restoreFromHistory(selectedElementHistory[idx].selector);
+                toggleHistoryDropdown(false); // close dropdown
+              }
+            });
+          });
+        }
+
+        function toggleHistoryDropdown(forceState) {
+          var btn = document.getElementById('awe-element-history-btn');
+          var listEl = document.getElementById('awe-element-history-list');
+          if (!btn || !listEl) return;
+
+          var isOpen = forceState !== undefined ? forceState : !_historyDropdownOpen;
+          _historyDropdownOpen = isOpen;
+
+          if (isOpen) {
+            // Position dropdown below the button
+            var rect = btn.getBoundingClientRect();
+            listEl.style.left = rect.left + 'px';
+            listEl.style.top = (rect.bottom + 4) + 'px';
+            listEl.style.display = 'block';
+          } else {
+            listEl.style.display = 'none';
+          }
+        }
+
+        // Clear element history
+        function clearElementHistory() {
+          selectedElementHistory = [];
+          chrome.storage.sync.remove('selectedElementHistory', function() {});
+          renderElementHistoryDropdown();
+          toggleHistoryDropdown(false);
+          showToast('Element history cleared.', 'success');
+        }
+
+     // ============================================================
+        // Conversation Mode (v1.5)
+        // ============================================================
+        var conversationHistory = []; // [{role: 'user' | 'assistant', content: string}]
+
+       // ============================================================
+       // Diff Preview System (v1.7)
+       // ============================================================
+       var diffPendingElement = null;   // DOM element waiting for user confirm
+       var diffPendingNewContent = null;  // AI-proposed new content string
+       var diffPendingOldContent = null;  // original text before modification
+
+       function clearDiffPreview() {
+         var panel = document.getElementById('awe-diff-preview-panel');
+         if (panel) panel.classList.remove('active');
+         diffPendingElement = null;
+         diffPendingNewContent = null;
+         diffPendingOldContent = null;
+       }
+
+       // Simple word-level diff: returns an array of { type: 'same'|'del'|'ins', value: string }
+       function computeWordDiff(oldText, newText) {
+         var oldWords = (oldText || '').split(/(\s+)/);
+         var newWords = (newText || '').split(/(\s+)/);
+         // LCS-based word diff (simple dynamic programming for short texts)
+         var m = oldWords.length;
+         var n = newWords.length;
+         if (m === 0 && n === 0) return [];
+         if (n === 0) {
+           return oldWords.map(function(w) { return { type: 'del', value: w }; });
+         }
+         if (m === 0) {
+           return newWords.map(function(w) { return { type: 'ins', value: w }; });
+         }
+
+         // Build LCS table (limited to short texts for performance)
+         var maxDim = Math.min(m, n, 200);
+         var lcs = [];
+         for (var i = 0; i <= maxDim; i++) {
+           lcs[i] = [];
+           for (var j = 0; j <= maxDim; j++) {
+             if (i === 0 || j === 0) lcs[i][j] = 0;
+             else if (oldWords[i - 1] === newWords[j - 1]) lcs[i][j] = lcs[i - 1][j - 1] + 1;
+             else lcs[i][j] = Math.max(lcs[i - 1][j], lcs[i][j - 1]);
+           }
+         }
+
+         // Backtrack to produce diff ops
+         var result = [];
+         var i = m, j = n;
+         while (i > 0 || j > 0) {
+           if (i > 0 && j > 0 && oldWords[i - 1] === newWords[j - 1]) {
+             // Check bounds for LCS table access
+             var ci = Math.min(i, maxDim);
+             var cj = Math.min(j, maxDim);
+             if (lcs[ci][cj] === lcs[ci - 1 ? ci - 1 : 0][cj - 1 ? cj - 1 : 0] + 1) {
+               result.unshift({ type: 'same', value: oldWords[i - 1] });
+               i--; j--;
+               continue;
+             }
+           }
+           if (j > 0 && (i === 0 || (lcs[Math.min(i, maxDim)][Math.min(j - 1, maxDim)] >= lcs[Math.min(i - 1 ? i - 1 : 0, maxDim)][Math.min(j, maxDim)]))) {
+             result.unshift({ type: 'ins', value: newWords[j - 1] });
+             j--;
+           } else if (i > 0) {
+             result.unshift({ type: 'del', value: oldWords[i - 1] });
+             i--;
+           } else {
+             break;
+           }
+         }
+         return result;
+       }
+
+       // Render a diff ops array into HTML markup
+       function renderDiffHTML(diffOps) {
+         var html = '';
+         var hasChanges = false;
+         for (var i = 0; i < diffOps.length; i++) {
+           var op = diffOps[i];
+           if (op.type === 'del') {
+             html += '<mark class="awe-diff-delete">' + escapeHtml(op.value) + '</mark>';
+             hasChanges = true;
+           } else if (op.type === 'ins') {
+             html += '<mark class="awe-diff-insert">' + escapeHtml(op.value) + '</mark>';
+             hasChanges = true;
+           } else {
+             html += escapeHtml(op.value);
+           }
+         }
+         return { html: html, hasChanges: hasChanges };
+       }
+
+       // Build the diff preview panel and show it
+       function showDiffPreview(oldContent, newContent, targetElement) {
+         var oldDisplay = (oldContent || '').trim();
+         var newDisplay = (newContent || '').trim();
+
+         // If both are very short (<10 words), use inline word diff
+         var isShort = oldDisplay.split(/\s+/).length < 10 && newDisplay.split(/\s+/).length < 10;
+         var diffResult, rendered;
+
+         if (isShort) {
+           diffResult = computeWordDiff(oldDisplay, newDisplay);
+           rendered = renderDiffHTML(diffResult);
+         } else {
+           // For longer texts, use line-based diff
+           var oldLines = oldDisplay.split('\n');
+           var newLines = newDisplay.split('\n');
+           var lcsSize = Math.min(oldLines.length, newLines.length, 100);
+           var lcsTable = [];
+           for (var i = 0; i <= lcsSize; i++) {
+             lcsTable[i] = [];
+             for (var j = 0; j <= lcsSize; j++) {
+               if (i === 0 || j === 0) lcsTable[i][j] = 0;
+               else if (oldLines[i - 1] === newLines[j - 1]) lcsTable[i][j] = lcsTable[i - 1][j - 1] + 1;
+               else lcsTable[i][j] = Math.max(lcsTable[i - 1][j], lcsTable[i][j - 1]);
+             }
+           }
+           // Backtrack
+           var diffOps = [];
+           var oi = oldLines.length, ni = newLines.length;
+           while (oi > 0 || ni > 0) {
+             if (oi > 0 && ni > 0 && oldLines[oi - 1] === newLines[ni - 1]) {
+               diffOps.unshift({ type: 'same', value: oldLines[oi - 1] });
+               oi--; ni--;
+             } else if (ni > 0 && (oi === 0 || lcsTable[Math.min(oi, lcsSize)][Math.max(ni - 1, 0)] >= lcsTable[Math.max(oi - 1, 0)][Math.min(ni, lcsSize)])) {
+               diffOps.unshift({ type: 'ins', value: newLines[ni - 1] });
+               ni--;
+             } else if (oi > 0) {
+               diffOps.unshift({ type: 'del', value: oldLines[oi - 1] });
+               oi--;
+             } else { break; }
+           }
+           rendered = renderDiffHTML(diffOps);
+         }
+
+         // Build panel HTML only if there are actual changes
+         var bodyHtml = '';
+         if (rendered.hasChanges) {
+           // Show old content with deletions highlighted
+           var oldHtml = '<div class="diff-section-label diff-old-label">Original</div>';
+           if (isShort || oldDisplay.split('\n').length <= 15) {
+             oldHtml += '<div class="diff-text-wrap">' + rendered.html + '</div>';
+           } else {
+             // For long text, show full-line diff
+             var lineHtml = '';
+             for (var i = 0; i < diffOps.length; i++) {
+               var dOp = diffOps[i];
+               if (dOp.type === 'del') {
+                 lineHtml += '<span class="diff-deleted-line">' + escapeHtml(dOp.value) + '</span>';
+               } else if (dOp.type === 'ins') {
+                 lineHtml += '<span class="diff-inserted-line">' + escapeHtml(dOp.value) + '</span>';
+               } else {
+                 lineHtml += '<span class="diff-unchanged">' + escapeHtml(dOp.value) + '</span>';
+               }
+             }
+             oldHtml += '<div class="diff-text-wrap">' + lineHtml + '</div>';
+           }
+
+           // Show new content with insertions highlighted
+           var newHtml = '<div class="diff-section-label diff-new-label">New Content</div>';
+           if (isShort || newDisplay.split('\n').length <= 15) {
+             newHtml += '<div class="diff-text-wrap">' + rendered.html + '</div>';
+           } else {
+             var lineHtml2 = '';
+             for (var i = 0; i < diffOps.length; i++) {
+               var dOp2 = diffOps[i];
+               if (dOp2.type === 'del') {
+                 lineHtml2 += '<span class="diff-deleted-line">' + escapeHtml(dOp2.value) + '</span>';
+               } else if (dOp2.type === 'ins') {
+                 lineHtml2 += '<span class="diff-inserted-line">' + escapeHtml(dOp2.value) + '</span>';
+               } else {
+                 lineHtml2 += '<span class="diff-unchanged">' + escapeHtml(dOp2.value) + '</span>';
+               }
+             }
+             newHtml += '<div class="diff-text-wrap">' + lineHtml2 + '</div>';
+           }
+
+           bodyHtml = oldHtml + newHtml;
+         } else {
+           bodyHtml = '<p style="color:#94a3b8;text-align:center;padding:16px 0;">No changes detected in the content.</p>';
+         }
+
+         var panel = document.getElementById('awe-diff-preview-panel');
+         if (!panel) {
+           panel = document.createElement('div');
+           panel.id = 'awe-diff-preview-panel';
+           panel.innerHTML = '<div id="awe-diff-header"><h3>✦ AI Diff Preview</h3><button id="awe-diff-close-btn">×</button></div><div id="awe-diff-body">' + bodyHtml + '</div><div id="awe-diff-footer"><button id="awe-diff-discard-btn">Discard</button><button id="awe-diff-apply-btn">Apply Changes</button></div>';
+           document.body.appendChild(panel);
+         } else {
+           panel.querySelector('#awe-diff-body').innerHTML = bodyHtml;
+         }
+
+         // Store pending data
+         diffPendingElement = targetElement;
+         diffPendingNewContent = newContent;
+         diffPendingOldContent = oldDisplay;
+
+         panel.classList.add('active');
+
+         // Remove old listeners to avoid duplicates
+         var applyBtn = document.getElementById('awe-diff-apply-btn');
+         var discardBtn = document.getElementById('awe-diff-discard-btn');
+         var closeBtn = document.getElementById('awe-diff-close-btn');
+         if (applyBtn) {
+           var newApplyBtn = applyBtn.cloneNode(true);
+           applyBtn.parentNode.replaceChild(newApplyBtn, applyBtn);
+           newApplyBtn.addEventListener('click', function(e) { e.stopPropagation(); applyDiffPreview(); });
+         }
+         if (discardBtn) {
+           var newDiscardBtn = discardBtn.cloneNode(true);
+           discardBtn.parentNode.replaceChild(newDiscardBtn, discardBtn);
+           newDiscardBtn.addEventListener('click', function(e) { e.stopPropagation(); discardDiffPreview(); });
+         }
+         if (closeBtn) {
+           var newCloseBtn = closeBtn.cloneNode(true);
+           closeBtn.parentNode.replaceChild(newCloseBtn, closeBtn);
+           newCloseBtn.addEventListener('click', function(e) { e.stopPropagation(); discardDiffPreview(); });
+         }
+
+         showStatus('Review changes below. Click Apply or Discard.', '');
+       }
+
+       // User confirmed: apply the diff to DOM
+       function applyDiffPreview() {
+         if (!diffPendingElement || !diffPendingNewContent) return;
+         var el = diffPendingElement;
+         var newContent = diffPendingNewContent;
+         clearDiffPreview();
+
+         if (el.childNodes.length === 0 || (el.childNodes.length === 1 && el.firstChild.nodeType === Node.TEXT_NODE)) {
+           el.textContent = newContent;
+         } else {
+           var walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+           var firstText = walker.nextNode();
+           if (firstText) { firstText.textContent = newContent; }
+           else {
+             var span = document.createElement('span');
+             span.innerHTML = newContent;
+             el.innerHTML = '';
+             el.appendChild(span);
+           }
+         }
+
+         updatePreview(el);
+         showStatus('AI modification applied!', 'success');
+       }
+
+       // User rejected: restore old content via undo snapshot
+       function discardDiffPreview() {
+         clearDiffPreview();
+         // Restore the element to its state before AI change (undo)
+         if (undoStack.length > 0 && diffPendingElement) {
+           var lastEntry = undoStack.pop();
+           if (lastEntry) diffPendingElement.innerHTML = lastEntry.html;
+           updatePreview(diffPendingElement);
+         }
+         showStatus('Changes discarded.', '');
+       }
+
+       // ============================================================
+       // Batch Editing (v1.3)
+       // ============================================================
+       var batchSelectedElements = []; // Array of DOM elements for multi-select
     var isBatchMode = false;        // true when in batch mode
 
     function clearBatchSelection() {
@@ -68,37 +500,37 @@
     }
 
     async function applyToAll() {
-      if (batchSelectedElements.length === 0) return;
-      var cmd = document.getElementById('awe-command-input').value.trim();
-      if (!cmd) { showStatus('Enter a command first!', 'error'); return; }
-      showStatus('Applying to ' + batchSelectedElements.length + ' elements...', '');
-      for (var i = 0; i < batchSelectedElements.length; i++) {
-        var el = batchSelectedElements[i];
-        selectedElement = el;
-        updatePreview(el);
-        try {
-          await chrome.runtime.sendMessage({
-            action: 'ai-modify',
-            command: cmd,
-            elementText: el.textContent?.trim() || '',
-            elementTag: el.tagName?.toLowerCase() || 'div',
-          }, function(response) {
-            if (response && response.success && response.newContent) {
-              if (el.childNodes.length === 0 || (el.childNodes.length === 1 && el.firstChild.nodeType === Node.TEXT_NODE)) {
-                el.textContent = response.newContent;
-              } else {
-                var walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
-                var firstText = walker.nextNode();
-                if (firstText) { firstText.textContent = response.newContent; }
-              }
-            }
-          });
-        } catch (err) { console.error('[Batch] Error on element ' + (i+1) + ':', err); }
-        // Delay between requests to avoid rate limiting
-        await new Promise(function(r) { setTimeout(r, 200); });
-      }
-      showStatus('Applied to all ' + batchSelectedElements.length + ' elements!', 'success');
-    }
+       if (batchSelectedElements.length === 0) return;
+       var cmd = document.getElementById('awe-command-input').value.trim();
+       if (!cmd) { showStatus('Enter a command first!', 'error'); return; }
+       showStatus('Applying to ' + batchSelectedElements.length + ' elements...', '');
+       for (var i = 0; i < batchSelectedElements.length; i++) {
+         var el = batchSelectedElements[i];
+         selectedElement = el;
+         updatePreview(el);
+         try {
+           await new Promise(function(resolve) {
+             chrome.runtime.sendMessage({
+               action: 'ai-modify',
+               command: cmd,
+               elementText: el.textContent?.trim() || '',
+               elementTag: el.tagName?.toLowerCase() || 'div',
+             }, function(response) {
+               // v1.7: show diff preview for batch items too
+               if (response && response.success && response.newContent) {
+                 var oldText = response.oldContent || (el.textContent?.trim() || '');
+                 saveSnapshot();
+                 showDiffPreview(oldText, response.newContent, el);
+               }
+               resolve(response);
+             });
+           });
+         } catch (err) { console.error('[Batch] Error on element ' + (i+1) + ':', err); }
+         // Delay between requests to avoid rate limiting
+         await new Promise(function(r) { setTimeout(r, 200); });
+       }
+       showStatus('Applied to all ' + batchSelectedElements.length + ' elements! Review in diff panel.', 'success');
+     }
 
     function exportFullPageHTML() {
       var clone = document.documentElement.cloneNode(true);
@@ -264,17 +696,18 @@
     panel.id = 'awe-editor-panel';
     panel.innerHTML = `
       <div id="awe-panel-header">
-         <h3>✦ AI Web Editor</h3>
-         <div id="awe-toolbar-btns">
-            <button id="awe-undo-btn" title="Undo (Ctrl+Z)">↩</button>
-            <button id="awe-redo-btn" title="Redo (Ctrl+Y)">↪</button>
-            <button id="awe-theme-btn" title="Toggle Theme">◑</button>
-            <button id="awe-export-btn" title="Export HTML/CSS">⬇</button>
-            <button id="awe-copy-btn" title="Copy HTML to Clipboard">📋</button>
-            <button id="awe-batch-apply-btn" title="Apply AI to all selected elements" style="display:none;">⇩ Apply All</button>
-          </div>
-         <button id="awe-close-btn" title="Close">×</button>
-       </div>
+          <h3>✦ AI Web Editor</h3>
+          <div id="awe-toolbar-btns">
+             <button id="awe-element-history-btn" title="Element Selection History">◰</button>
+             <button id="awe-undo-btn" title="Undo (Ctrl+Z)">↩</button>
+             <button id="awe-redo-btn" title="Redo (Ctrl+Y)">↪</button>
+             <button id="awe-theme-btn" title="Toggle Theme">◑</button>
+             <button id="awe-export-btn" title="Export HTML/CSS">⬇</button>
+             <button id="awe-copy-btn" title="Copy HTML to Clipboard">📋</button>
+             <button id="awe-batch-apply-btn" title="Apply AI to all selected elements" style="display:none;">⇩ Apply All</button>
+           </div>
+          <button id="awe-close-btn" title="Close">×</button>
+        </div>
       <div id="awe-element-preview">
         <span id="awe-element-tag">&lt;div&gt;</span>
         <div id="awe-element-text">Click an element to select it</div>
@@ -387,13 +820,23 @@
             </div>
           </div>
           <div class="awe-style-group">
-            <label>Margin (px)</label>
-            <div class="awe-style-row">
-              <input type="number" id="awe-style-margin" class="awe-style-input" value="0" min="-50" max="100">
-              <button class="awe-apply-btn" data-action="setMargin">Apply</button>
-            </div>
+             <label>Margin (px)</label>
+             <div class="awe-style-row">
+               <input type="number" id="awe-style-margin" class="awe-style-input" value="0" min="-50" max="100">
+               <button class="awe-apply-btn" data-action="setMargin">Apply</button>
+             </div>
+           </div>
+
+           <!-- CSS Rules Sub-section (v1.6) -->
+           <div id="css-rules-panel" style="margin-top:12px; padding-top:12px; border-top:1px solid #2d2d4a;">
+             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+               <label style="font-size:12px; color:#94a3b8; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; margin:0;">CSS Rules</label>
+               <button id="css-rules-apply-all-btn" class="awe-apply-btn" style="padding:4px 12px; font-size:11px;">Apply All</button>
+             </div>
+             <div id="css-rules-list-content" style="max-height:120px; overflow-y:auto;"></div>
+           </div>
+
           </div>
-        </div>
         <!-- HTML Editor Tab -->
         <div class="awe-tab-panel" id="tab-html">
           <textarea id="awe-html-editor" rows="12" style="width:100%; font-family:monospace; background:#0f0f23; color:#e2e8f0; border:1px solid #2d2d4a; padding:8px; border-radius:6px; resize:vertical; font-size:12px;" spellcheck="false"></textarea>
@@ -407,7 +850,9 @@
         </div>
       </div>
       <div id="awe-status-msg"></div>
-       <div id="awe-usage-stats" style="font-size:12px; color:#475569; text-align:center; padding:6px 0; border-top:1px solid #2d2d4a;">Today: loading...</div>
+        <div id="awe-usage-stats" style="font-size:12px; color:#475569; text-align:center; padding:6px 0; border-top:1px solid #2d2d4a;">Today: loading...</div>
+        <!-- Element History Dropdown -->
+        <div id="awe-element-history-list" style="display:none; position:absolute; z-index:2147483647; background:#1a1a2e; border:1px solid #2d2d4a; border-radius:8px; padding:4px 0; min-width:280px; box-shadow:0 8px 24px rgba(0,0,0,0.5); max-height:360px; overflow-y:auto;"></div>
       `;
     document.body.appendChild(panel);
   }
@@ -453,14 +898,15 @@
      }
 
      selectedElement = target;
-     highlightElement(target);
-     updatePreview(target);
-     isSelectingMode = false;
-     document.getElementById('awe-selection-overlay').classList.remove('active');
-     document.getElementById('awe-trigger-btn').classList.remove('active');
-     document.getElementById('awe-trigger-btn').innerHTML = '✦';
-     openPanel();
-   }
+      highlightElement(target);
+      updatePreview(target);
+      recordSelectedElement(target);
+      isSelectingMode = false;
+      document.getElementById('awe-selection-overlay').classList.remove('active');
+      document.getElementById('awe-trigger-btn').classList.remove('active');
+      document.getElementById('awe-trigger-btn').innerHTML = '✦';
+      openPanel();
+     }
 
   function handleElementHover(e) {
     if (!isSelectingMode) return;
@@ -578,21 +1024,33 @@
       }
 
       // Batch Apply to All button (v1.3)
-      if (e.target.id === 'awe-batch-apply-btn') {
-        applyToAll();
-        return;
-      }
+       if (e.target.id === 'awe-batch-apply-btn') {
+         applyToAll();
+         return;
+       }
+
+      // Element History button — toggle dropdown
+       if (e.target.id === 'awe-element-history-btn') {
+         e.stopPropagation();
+         toggleHistoryDropdown();
+         return;
+       }
 
     // Tab buttons
-    var tabBtn = e.target.closest('.awe-tab-btn');
-    if (tabBtn) {
-      document.querySelectorAll('.awe-tab-btn').forEach(function(b) { b.classList.remove('active'); });
-      document.querySelectorAll('.awe-tab-panel').forEach(function(p) { p.classList.remove('active'); });
-      tabBtn.classList.add('active');
-      var tabId = 'tab-' + tabBtn.dataset.tab;
-      document.getElementById(tabId).classList.add('active');
-      return;
-    }
+     var tabBtn = e.target.closest('.awe-tab-btn');
+     if (tabBtn) {
+       document.querySelectorAll('.awe-tab-btn').forEach(function(b) { b.classList.remove('active'); });
+       document.querySelectorAll('.awe-tab-panel').forEach(function(p) { p.classList.remove('active'); });
+       tabBtn.classList.add('active');
+       var tabId = 'tab-' + tabBtn.dataset.tab;
+       document.getElementById(tabId).classList.add('active');
+
+       // Refresh CSS rules when Style tab is opened (v1.6)
+       if (tabBtn.dataset.tab === 'style') {
+         refreshCssRulesPanel();
+       }
+       return;
+     }
 
     // Quick command buttons
       var quickBtn = e.target.closest('.awe-quick-btn');
@@ -606,12 +1064,12 @@
           'shorter': 'Make this content much shorter and concise.',
           'tone-professional': 'Rewrite in a professional, formal tone.',
           'funnier': 'Make this content funnier and more entertaining.',
-          // Translations (v1.2)
-          'translate-es': 'Traduce este texto al español.',
-          'translate-fr': "Traduis ce texte en français.",
-          'translate-ja': 'このテキストを日本語に翻訳してください。',
-          'translate-ko': '이 텍스트를 한국어로 번역해주세요.',
-          'translate-de': 'Übersetzen Sie diesen Text ins Deutsche.',
+             // Translations (v1.2) — use English instructions for universal AI processing
+              'translate-es': 'Translate this text to Spanish.',
+              'translate-fr': 'Translate this text to French.',
+              'translate-ja': 'Translate this text to Japanese.',
+              'translate-ko': 'Translate this text to Korean.',
+              'translate-de': 'Translate this text to German.',
           // Email/Professional (v1.2)
           'email-professional': 'Write a professional, formal business email based on this content.',
           'fix-grammar': 'Fix all grammar and spelling errors while preserving the original meaning.',
@@ -761,43 +1219,28 @@
        var response = await chrome.runtime.sendMessage(messagePayload);
 
        if (response.success && response.newContent) {
-            // Increment daily usage counter
-            chrome.runtime.sendMessage({ action: 'increment-usage' }, function(usageResp) {
-              updateUsageStats();
-            });
+             // Increment daily usage counter
+             chrome.runtime.sendMessage({ action: 'increment-usage' }, function(usageResp) {
+               updateUsageStats();
+             });
 
-            // Check if limit exceeded after increment
-            chrome.runtime.sendMessage({ action: 'get-daily-usage' }, function(limitResp) {
-              if (limitResp && limitResp.count >= limitResp.limit) {
-                showStatus('⚠️ Daily usage limit reached (' + limitResp.count + '/' + limitResp.limit + ')', 'error');
-              }
-            });
+             // Check if limit exceeded after increment
+             chrome.runtime.sendMessage({ action: 'get-daily-usage' }, function(limitResp) {
+               if (limitResp && limitResp.count >= limitResp.limit) {
+                 showStatus('⚠️ Daily usage limit reached (' + limitResp.count + '/' + limitResp.limit + ')', 'error');
+               }
+             });
 
-            // For text content modifications
-         if (selectedElement.childNodes.length === 0 || (selectedElement.childNodes.length === 1 && selectedElement.firstChild.nodeType === Node.TEXT_NODE)) {
-           selectedElement.textContent = response.newContent;
-         } else {
-           // For complex elements, try innerText replacement on first text node
-           var walker = document.createTreeWalker(selectedElement, NodeFilter.SHOW_TEXT);
-           var firstText = walker.nextNode();
-           if (firstText) {
-             firstText.textContent = response.newContent;
-           } else {
-             // Fallback: create a new span with the content
-             var span = document.createElement('span');
-             span.innerHTML = response.newContent;
-             selectedElement.innerHTML = '';
-             selectedElement.appendChild(span);
-           }
-         }
+             // v1.7: Show diff preview instead of direct apply
+             var oldText = response.oldContent || (selectedElement.textContent?.trim() || '');
+             showDiffPreview(oldText, response.newContent, selectedElement);
 
-         // v1.5: Update conversation history and render log
-         conversationHistory.push({ role: 'user', content: cmd, timestamp: Date.now() });
-         conversationHistory.push({ role: 'assistant', content: response.newContent, newContent: response.newContent, timestamp: Date.now() });
-         renderConversationLog();
+             // v1.5: Update conversation history and render log
+             conversationHistory.push({ role: 'user', content: cmd, timestamp: Date.now() });
+             conversationHistory.push({ role: 'assistant', content: response.newContent, newContent: response.newContent, timestamp: Date.now() });
+             renderConversationLog();
 
-         showStatus('AI modification applied!', 'success');
-         addToHistory(cmd, 'ai', JSON.stringify({ newContent: response.newContent }));
+             addToHistory(cmd, 'ai-pending', JSON.stringify({ newContent: response.newContent, oldContent: oldText }));
        } else {
          // API not configured or failed — show local fallback
          applyLocalModification(selectedElement, cmd);
@@ -1036,9 +1479,342 @@
   }
 
   // ============================================================
-  // Context Menu Submenu (v1.3) — "Quick Edit with AI Web Editor"
-  // ============================================================
-  function createContextMenu() {
+   // Quick Translate Overlay Bubble (v1.9)
+   // ============================================================
+   var translateBubble = null;       // The bubble DOM element
+   var translateTargetEl = null;     // The element whose text was selected
+   var translateOriginalText = '';   // Original text before translation
+   var translateCurrentResult = '';  // Current translation result
+   var translateHoverTimer = null;   // Delayed hide timer
+   var _translateBubbleActive = false;
+
+   function createTranslateBubble() {
+     if (translateBubble) return;
+     translateBubble = document.createElement('div');
+     translateBubble.id = 'awe-translate-bubble';
+     translateBubble.innerHTML = '\
+       <div class="awe-tb-header">\
+         <p class="awe-tb-source-text"></p>\
+       </div>\
+       <div class="awe-tb-body">\
+         <div class="awe-tb-translation-label">Translation</div>\
+         <p class="awe-tb-translation-text"></p>\
+       </div>\
+       <div class="awe-tb-loading">\
+         <span class="awe-spinner"></span> Translating...\
+       </div>\
+       <div class="awe-tb-actions">\
+         <button class="awe-tb-btn awe-tb-btn-translate-zh" id="awe-tb-trans-zh">🌐 Translate to Chinese</button>\
+         <button class="awe-tb-btn awe-tb-btn-translate-other" id="awe-tb-lang-picker">📝 Other Languages</button>\
+       </div>\
+       <div class="awe-tb-lang-selector">\
+         <button class="awe-tb-lang-btn" data-lang="English">EN</button>\
+         <button class="awe-tb-lang-btn" data-lang="Japanese">日本語</button>\
+         <button class="awe-tb-lang-btn" data-lang="Korean">한국어</button>\
+         <button class="awe-tb-lang-btn" data-lang="French">Français</button>\
+         <button class="awe-tb-lang-btn" data-lang="Spanish">Español</button>\
+         <button class="awe-tb-lang-btn" data-lang="German">Deutsch</button>\
+         <button class="awe-tb-lang-btn" data-lang="Russian">Русский</button>\
+         <button class="awe-tb-lang-btn" data-lang="Portuguese">Português</button>\
+         <button class="awe-tb-lang-btn" data-lang="Arabic">العربية</button>\
+       </div>\
+       <div class="awe-tb-footer">\
+         <button class="awe-tb-btn awe-tb-btn-apply" id="awe-tb-apply">✓ Apply to Element</button>\
+         <button class="awe-tb-btn awe-tb-btn-copy" id="awe-tb-copy">📋 Copy</button>\
+         <button class="awe-tb-btn awe-tb-btn-close" id="awe-tb-close">×</button>\
+       </div>\
+       <div class="awe-tb-error"></div>\
+     ';
+
+     // Hide initially
+     translateBubble.style.display = 'none';
+     document.body.appendChild(translateBubble);
+
+     // ---- Action button clicks (shown after translation) ----
+     var applyBtn = translateBubble.querySelector('#awe-tb-apply');
+     if (applyBtn) {
+       applyBtn.addEventListener('click', function(e) {
+         e.stopPropagation();
+         applyTranslateResult();
+       });
+     }
+
+     var copyBtn = translateBubble.querySelector('#awe-tb-copy');
+     if (copyBtn) {
+       copyBtn.addEventListener('click', function(e) {
+         e.stopPropagation();
+         copyTranslationResult();
+       });
+     }
+
+     var closeBtn = translateBubble.querySelector('#awe-tb-close');
+     if (closeBtn) {
+       closeBtn.addEventListener('click', function(e) {
+         e.stopPropagation();
+         hideTranslateBubble(false);
+       });
+     }
+
+     // ---- Translate buttons (shown before translation) ----
+     var transZh = translateBubble.querySelector('#awe-tb-trans-zh');
+     if (transZh) {
+       transZh.addEventListener('click', function(e) {
+         e.stopPropagation();
+         hideLangSelector();
+         performTranslate('Translate this text to Chinese (简体中文).');
+       });
+     }
+
+     var langPicker = translateBubble.querySelector('#awe-tb-lang-picker');
+     if (langPicker) {
+       langPicker.addEventListener('click', function(e) {
+         e.stopPropagation();
+         toggleLangSelector();
+       });
+     }
+
+     // ---- Language selector clicks ----
+     translateBubble.querySelectorAll('.awe-tb-lang-btn').forEach(function(btn) {
+       btn.addEventListener('click', function(e) {
+         e.stopPropagation();
+         var lang = this.dataset.lang;
+         hideLangSelector();
+         performTranslate('Translate this text to ' + lang + '.');
+       });
+     });
+
+     // ---- Mouse enter/leave for auto-hide (delayed) ----
+     translateBubble.addEventListener('mouseenter', function() {
+       if (translateHoverTimer) { clearTimeout(translateHoverTimer); translateHoverTimer = null; }
+     });
+
+     translateBubble.addEventListener('mouseleave', function() {
+       hideTranslateBubble(true);
+     });
+   }
+
+   function showTranslateBubble(sourceText, targetElement, mouseX, mouseY) {
+     createTranslateBubble();
+
+     translateTargetEl = targetElement;
+     translateOriginalText = sourceText || '';
+     translateCurrentResult = '';
+
+     // Reset bubble state
+     translateBubble.style.display = '';
+     translateBubble.className = 'awe-hiding';  // start hidden for animation
+
+     var sourceEl = translateBubble.querySelector('.awe-tb-source-text');
+     if (sourceEl) {
+       sourceEl.textContent = sourceText;
+     }
+
+     // Hide translation result, loading, error
+     var body = translateBubble.querySelector('.awe-tb-body');
+     if (body) body.classList.remove('awe-has-result');
+     var loading = translateBubble.querySelector('.awe-tb-loading');
+     if (loading) loading.classList.remove('awe-show');
+     var error = translateBubble.querySelector('.awe-tb-error');
+     if (error) { error.textContent = ''; error.classList.remove('awe-show'); }
+
+     // Show translation buttons, hide lang selector
+     var actions = translateBubble.querySelector('.awe-tb-actions');
+     if (actions) actions.classList.remove('awe-hidden');
+     hideLangSelector();
+
+     // Position bubble near the mouse / selection
+     positionTranslateBubble(mouseX, mouseY);
+
+     // Force reflow then show
+     requestAnimationFrame(function() {
+       requestAnimationFrame(function() {
+         translateBubble.className = 'awe-visible';
+         _translateBubbleActive = true;
+       });
+     });
+   }
+
+   function positionTranslateBubble(mouseX, mouseY) {
+     var rect = translateBubble.getBoundingClientRect();
+     var bubbleW = rect.width || 320;
+     var bubbleH = rect.height || 180;
+     var padding = 12;
+
+     var x = mouseX - bubbleW / 2;
+     var y = mouseY - bubbleH - 16; // above cursor
+
+     // Keep within viewport
+     if (x < padding) x = padding;
+     if (x + bubbleW > window.innerWidth - padding) x = window.innerWidth - bubbleW - padding;
+     if (y < padding) {
+       // If not enough space above, show below
+       y = mouseY + 16;
+       translateBubble.style.setProperty('--arrow-pos', 'top');
+     } else {
+       translateBubble.style.setProperty('--arrow-pos', 'bottom');
+     }
+
+     translateBubble.style.left = x + 'px';
+     translateBubble.style.top = y + 'px';
+     translateBubble.style.right = '';
+     translateBubble.style.bottom = '';
+   }
+
+   function hideTranslateBubble(delayed) {
+     if (delayed) {
+       // Schedule hide after delay to avoid accidental dismissal
+       if (translateHoverTimer) clearTimeout(translateHoverTimer);
+       translateHoverTimer = setTimeout(function() {
+         doHideTranslateBubble();
+       }, 200);
+     } else {
+       doHideTranslateBubble();
+     }
+   }
+
+   function doHideTranslateBubble() {
+     if (translateHoverTimer) { clearTimeout(translateHoverTimer); translateHoverTimer = null; }
+     translateBubble.className = 'awe-hiding';
+     _translateBubbleActive = false;
+     // Wait for animation to finish before hiding completely
+     setTimeout(function() {
+       translateBubble.style.display = 'none';
+       translateTargetEl = null;
+       translateCurrentResult = '';
+       if (translateTargetEl) {
+         translateTargetEl.classList.remove('awe-element-translating');
+       }
+     }, 260);
+   }
+
+   function toggleLangSelector() {
+     var sel = translateBubble.querySelector('.awe-tb-lang-selector');
+     if (!sel) return;
+     if (sel.classList.contains('awe-show')) {
+       hideLangSelector();
+     } else {
+       sel.classList.add('awe-show');
+       // Re-hide actions
+       var actions = translateBubble.querySelector('.awe-tb-actions');
+       if (actions) actions.classList.add('awe-hidden');
+     }
+   }
+
+   function hideLangSelector() {
+     var sel = translateBubble.querySelector('.awe-tb-lang-selector');
+     if (sel) sel.classList.remove('awe-show');
+     var actions = translateBubble.querySelector('.awe-tb-actions');
+     if (actions) actions.classList.remove('awe-hidden');
+   }
+
+   async function performTranslate(command) {
+     if (!translateTargetEl) return;
+
+     var sourceText = translateOriginalText || (translateTargetEl.textContent || '').trim();
+     if (!sourceText) { hideTranslateBubble(false); return; }
+
+     // UI: show loading, hide buttons
+     var body = translateBubble.querySelector('.awe-tb-body');
+     var loading = translateBubble.querySelector('.awe-tb-loading');
+     var actions = translateBubble.querySelector('.awe-tb-actions');
+     var error = translateBubble.querySelector('.awe-tb-error');
+
+     if (actions) actions.classList.add('awe-hidden');
+     if (loading) loading.classList.add('awe-show');
+     if (body) body.classList.remove('awe-has-result');
+     if (error) { error.textContent = ''; error.classList.remove('awe-show'); }
+
+     try {
+       var response = await chrome.runtime.sendMessage({
+         action: 'ai-modify',
+         command: command,
+         elementText: sourceText,
+         elementTag: translateTargetEl.tagName?.toLowerCase() || 'div',
+       });
+
+       loading.classList.remove('awe-show');
+
+       if (response.success && response.newContent) {
+         translateCurrentResult = response.newContent;
+         var transText = translateBubble.querySelector('.awe-tb-translation-text');
+         var transLabel = translateBubble.querySelector('.awe-tb-translation-label');
+         if (transText) transText.textContent = response.newContent;
+         if (transLabel) {
+           var isZh = /chinese|zh|中文/i.test(command);
+           transLabel.textContent = isZh ? 'Chinese (简体中文)' : response.newContent;
+         }
+         if (body) body.classList.add('awe-has-result');
+
+         // Highlight the target element briefly
+         translateTargetEl.classList.add('awe-element-translating');
+       } else {
+         throw new Error(response.error || 'Translation failed');
+       }
+     } catch (err) {
+       loading.classList.remove('awe-show');
+       console.error('[Translate Bubble] Error:', err);
+
+       // Local fallback for translation
+       if (/chinese|zh|中文/i.test(command)) {
+         translateCurrentResult = '（AI翻译：' + sourceText.substring(0, 50) + (sourceText.length > 50 ? '...' : '') + '）';
+       } else {
+         translateCurrentResult = '[Translation] ' + sourceText;
+       }
+
+       var transText2 = translateBubble.querySelector('.awe-tb-translation-text');
+       if (transText2) transText2.textContent = translateCurrentResult;
+       if (body) body.classList.add('awe-has-result');
+     }
+   }
+
+   function applyTranslateResult() {
+     if (!translateTargetEl || !translateCurrentResult) return;
+
+     saveSnapshot();
+
+     // Apply translation to the element's text content
+     if (translateTargetEl.childNodes.length === 1 && translateTargetEl.firstChild.nodeType === Node.TEXT_NODE) {
+       translateTargetEl.textContent = translateCurrentResult;
+     } else {
+       // For elements with mixed children, replace first text node or wrap
+       var walker = document.createTreeWalker(translateTargetEl, NodeFilter.SHOW_TEXT);
+       var firstText = walker.nextNode();
+       if (firstText) {
+         firstText.textContent = translateCurrentResult;
+       } else {
+         // No text node found — clear and set new content
+         translateTargetEl.innerHTML = '';
+         var span = document.createElement('span');
+         span.textContent = translateCurrentResult;
+         translateTargetEl.appendChild(span);
+       }
+     }
+
+     updatePreview(translateTargetEl);
+     showToast('Translation applied!', 'success');
+     hideTranslateBubble(false);
+   }
+
+   function copyTranslationResult() {
+     if (!translateCurrentResult) return;
+     navigator.clipboard.writeText(translateCurrentResult).then(function() {
+       showToast('Translation copied!', 'success');
+     }).catch(function() {
+       // Fallback
+       var ta = document.createElement('textarea');
+       ta.value = translateCurrentResult;
+       document.body.appendChild(ta);
+       ta.select();
+       document.execCommand('copy');
+       document.body.removeChild(ta);
+       showToast('Translation copied!', 'success');
+     });
+   }
+
+   // ============================================================
+   // Context Menu Submenu (v1.3) — "Quick Edit with AI Web Editor"
+   // ============================================================
+   function createContextMenu() {
     var menu = document.createElement('div');
     menu.id = 'awe-context-menu';
     menu.style.cssText = 'display:none; position:fixed; z-index:2147483647; background:#1a1a2e; border:1px solid #2d2d4a; border-radius:8px; padding:4px; min-width:200px; box-shadow:0 8px 24px rgba(0,0,0,0.5);';
@@ -1064,86 +1840,116 @@
     document.addEventListener('click', function() { menu.style.display = 'none'; });
 
     // Menu item clicks — select the element and apply action
-    var actions = {
-      'awe-ctx-select': 'select',
-      'awe-ctx-translate': 'translate',
-      'awe-ctx-simplify': 'simplify',
-      'awe-ctx-longer': 'longer',
-      'awe-ctx-shorter': 'shorter',
-      'awe-ctx-professional': 'professional',
-      'awe-ctx-html': 'html-copy',
-      'awe-ctx-css': 'css-export',
-    };
+     var contextTarget = null; // Store target element when menu opens
+     var openMenuData = {};    // Store click coordinates
 
-    Object.keys(actions).forEach(function(btnId) {
-      document.getElementById(btnId).addEventListener('click', function(e) {
-        e.stopPropagation();
-        menu.style.display = 'none';
-        // Target is the element at the contextmenu click position
-        var targetEl = document.elementFromPoint(e.clientX, e.clientY);
-        if (!targetEl || targetEl.closest('#awe-context-menu') || targetEl.closest('#awe-editor-panel')) return;
+     Object.keys(actions).forEach(function(btnId) {
+       document.getElementById(btnId).addEventListener('click', function(e) {
+         e.stopPropagation();
+         menu.style.display = 'none';
 
-        selectedElement = targetEl;
-        highlightElement(targetEl);
+         var targetEl = contextTarget;
+         if (!targetEl || targetEl.closest('#awe-context-menu') || targetEl.closest('#awe-editor-panel')) return;
 
-        var action = actions[btnId];
-        if (action === 'select') {
-          openPanel();
-          updatePreview(targetEl);
-        } else if (action === 'translate') {
-          saveSnapshot();
-          targetEl.textContent = '[AI-Translated] ' + targetEl.textContent;
-          addToHistory('Translate to Chinese', 'ai-local', null);
-          showToast('Translation applied!', 'success');
-        } else if (action === 'simplify') {
-          applyLocalModification(targetEl, 'simplify text');
-          addToHistory('Simplify', 'ai-local', null);
-          showToast('Simplified!', 'success');
-        } else if (action === 'longer') {
-          applyLocalModification(targetEl, 'make longer');
-          addToHistory('Make Longer', 'ai-local', null);
-          showToast('Expanded!', 'success');
-        } else if (action === 'shorter') {
-          applyLocalModification(targetEl, 'make shorter');
-          addToHistory('Make Shorter', 'ai-local', null);
-          showToast('Shortened!', 'success');
-        } else if (action === 'professional') {
-          applyLocalModification(targetEl, 'rewrite in professional tone');
-          addToHistory('Professional Tone', 'ai-local', null);
-          showToast('Rewritten professionally!', 'success');
-        } else if (action === 'html-copy') {
-          navigator.clipboard.writeText(targetEl.outerHTML);
-          showToast('HTML copied!', 'success');
-        } else if (action === 'css-export') {
-          var cs = window.getComputedStyle(targetEl);
-          var css = targetEl.tagName.toLowerCase() + ' {\n';
-          for (var i = 0; i < cs.length; i++) {
-            var prop = cs[i];
-            if (prop.startsWith('-webkit') || prop === 'content' || prop === 'all') continue;
-            var val = cs.getPropertyValue(prop);
-            css += '  ' + prop + ': ' + val + ';\n';
-          }
-          css += '}';
-          navigator.clipboard.writeText(css);
-          showToast('CSS copied!', 'success');
+         selectedElement = targetEl;
+         highlightElement(targetEl);
+
+         var action = actions[btnId];
+         if (action === 'select') {
+           openPanel();
+           updatePreview(targetEl);
+         } else if (action === 'translate') {
+           saveSnapshot();
+           // Send to AI API for real translation instead of local placeholder
+           handleAIModifyFromContext(targetEl, 'Translate this text to Chinese (简体中文). Keep the same format and tone.');
+           addToHistory('Translate to Chinese', 'ai', null);
+           showToast('Translation requested!', 'success');
+         } else if (action === 'simplify') {
+           handleAIModifyFromContext(targetEl, 'Simplify the text so it is easier to understand.');
+           addToHistory('Simplify', 'ai', null);
+           showToast('Simplifying...', 'success');
+         } else if (action === 'longer') {
+           handleAIModifyFromContext(targetEl, 'Expand and make this content longer and more detailed.');
+           addToHistory('Make Longer', 'ai', null);
+           showToast('Expanding...', 'success');
+         } else if (action === 'shorter') {
+           handleAIModifyFromContext(targetEl, 'Make this content much shorter and concise.');
+           addToHistory('Make Shorter', 'ai', null);
+           showToast('Shortening...', 'success');
+         } else if (action === 'professional') {
+           handleAIModifyFromContext(targetEl, 'Rewrite in a professional, formal tone.');
+           addToHistory('Professional Tone', 'ai', null);
+           showToast('Rewriting professionally...', 'success');
+         } else if (action === 'html-copy') {
+           navigator.clipboard.writeText(targetEl.outerHTML).then(function() {
+             showToast('HTML copied!', 'success');
+           }).catch(function() {
+             showToast('Failed to copy', 'error');
+           });
+         } else if (action === 'css-export') {
+           var cs = window.getComputedStyle(targetEl);
+           var css = targetEl.tagName.toLowerCase() + ' {\n';
+           for (var i = 0; i < cs.length; i++) {
+             var prop = cs[i];
+             if (prop.startsWith('-webkit') || prop === 'content' || prop === 'all') continue;
+             var val = cs.getPropertyValue(prop);
+             css += '  ' + prop + ': ' + val + ';\n';
+           }
+           css += '}';
+           navigator.clipboard.writeText(css).then(function() {
+             showToast('CSS copied!', 'success');
+           }).catch(function() {
+             showToast('Failed to copy', 'error');
+           });
+         }
+        });
+        });
+
+        // Show menu on right-click on page elements
+        document.addEventListener('contextmenu', function(e) {
+        if (e.target.closest('#awe-context-menu') || e.target.closest('#awe-editor-panel')) return;
+        var targetEl = e.target;
+        if (!targetEl || targetEl.closest('#awe-trigger-btn') || targetEl.closest('#awe-selection-overlay')) return;
+
+        // Store the clicked element for later use by menu buttons
+        contextTarget = targetEl;
+
+        // Show context menu at mouse position
+        e.preventDefault();
+        var menu = document.getElementById('awe-context-menu');
+        menu.style.display = 'block';
+        menu.style.left = Math.min(e.clientX, window.innerWidth - 220) + 'px';
+        menu.style.top = Math.min(e.clientY, window.innerHeight - 350) + 'px';
+        });
         }
-      });
-    });
 
-    // Show menu on right-click on page elements
-    document.addEventListener('contextmenu', function(e) {
-      if (e.target.closest('#awe-context-menu') || e.target.closest('#awe-editor-panel')) return;
-      var targetEl = e.target;
-      if (!targetEl || targetEl.closest('#awe-trigger-btn') || targetEl.closest('#awe-selection-overlay')) return;
+        // ============================================================
+        // Helper: Send AI modify from context menu (bypasses main handler)
+        // ============================================================
+        async function handleAIModifyFromContext(el, command) {
+         try {
+         var response = await chrome.runtime.sendMessage({
+          action: 'ai-modify',
+          command: command,
+          elementText: el.textContent?.trim() || '',
+          elementTag: el.tagName?.toLowerCase() || 'div',
+         });
 
-      // Show context menu at mouse position, but not if inside our own UI
-      e.preventDefault();
-      var menu = document.getElementById('awe-context-menu');
-      menu.style.display = 'block';
-      menu.style.left = Math.min(e.clientX, window.innerWidth - 220) + 'px';
-      menu.style.top = Math.min(e.clientY, window.innerHeight - 350) + 'px';
-    });
-  }
+         if (response.success && response.newContent) {
+          // v1.7: show diff preview instead of direct apply
+          var oldText = response.oldContent || (el.textContent?.trim() || '');
+          saveSnapshot();
+          showDiffPreview(oldText, response.newContent, el);
+         } else {
+          applyLocalModification(el, command);
+          showStatus('API not connected. Applied local modification.', '');
+         }
+         } catch (err) {
+         console.error('[Context] AI Error:', err);
+         applyLocalModification(el, command);
+         showStatus('API not available. Applied local modification.', '');
+         }
+         }
 
   // ============================================================
   // Keyboard shortcuts (v1.1: added Undo/Redo)
@@ -1179,18 +1985,18 @@
 
    // ============================================================
     // Template Application (v1.5) — from popup via background relay
+    // Use a custom event to avoid conflict with background.js listener
     // ============================================================
 
-    chrome.runtime.onMessage.addListener(function(message, sender, sendResponse) {
-      if (message.action === 'apply-template' && message.prompt && selectedElement) {
-        document.getElementById('awe-command-input').value = message.prompt;
-        // Switch to AI tab
+    document.addEventListener('awe-apply-template', function(e) {
+      var msg = e.detail;
+      if (msg.prompt && selectedElement) {
+        document.getElementById('awe-command-input').value = msg.prompt;
         document.querySelectorAll('.awe-tab-btn').forEach(function(b) { b.classList.remove('active'); });
         document.querySelectorAll('.awe-tab-panel').forEach(function(p) { p.classList.remove('active'); });
         document.querySelector('.awe-tab-btn[data-tab="ai"]').classList.add('active');
         document.getElementById('tab-ai').classList.add('active');
         if (!isOpen) openPanel();
-        sendResponse({ success: true });
       }
     });
 
@@ -1209,6 +2015,158 @@
     updateUsageStats();
 
    // Create context menu (v1.3)
-   createContextMenu();
+    createContextMenu();
 
-  })();
+   // Close element history dropdown when clicking outside
+    document.addEventListener('click', function(e) {
+      if (_historyDropdownOpen && !e.target.closest('#awe-element-history-btn') && !e.target.closest('#awe-element-history-list')) {
+        toggleHistoryDropdown(false);
+      }
+      // Also close translate bubble on any click outside it
+      if (_translateBubbleActive && !e.target.closest('#awe-translate-bubble')) {
+        hideTranslateBubble(true);
+      }
+    });
+
+    // ============================================================
+    // Quick Translate: detect text selection via mouseup / contextmenu
+    // ============================================================
+    document.addEventListener('mouseup', function(e) {
+      // Don't trigger on our own elements
+      if (e.target.closest('#awe-translate-bubble') ||
+          e.target.closest('#awe-editor-panel') ||
+          e.target.closest('#awe-trigger-btn')) return;
+
+      var selection = window.getSelection();
+      if (!selection || selection.isCollapsed) return;
+
+      var selectedText = selection.toString().trim();
+      if (!selectedText || selectedText.length < 1) return;
+
+      // Don't trigger on input/textarea elements (user is typing)
+      var tag = e.target.tagName ? e.target.tagName.toLowerCase() : '';
+      if (tag === 'input' || tag === 'textarea' || tag === 'select' ||
+          e.target.closest('input') || e.target.closest('textarea') ||
+          selection.anchorNode && selection.anchorNode.nodeType === Node.TEXT_NODE &&
+          selection.anchorNode.parentElement &&
+          (selection.anchorNode.parentElement.isContentEditable)) return;
+
+      // Show translate bubble at selection location
+      var targetEl = findNearestBlockElement(selection.anchorNode);
+      showTranslateBubble(selectedText, targetEl, e.clientX, e.clientY);
+    });
+
+    // Also trigger from contextmenu (right-click) when text is selected
+    document.addEventListener('contextmenu', function(e) {
+      // Check if there's a selection
+      var selection = window.getSelection();
+      if (!selection || selection.isCollapsed) return;
+
+      var selectedText = selection.toString().trim();
+      if (!selectedText || selectedText.length < 1) return;
+
+      var tag = e.target.tagName ? e.target.tagName.toLowerCase() : '';
+      if (tag === 'input' || tag === 'textarea' || tag === 'select' ||
+          e.target.closest('input') || e.target.closest('textarea')) return;
+
+      var targetEl = findNearestBlockElement(selection.anchorNode);
+      showTranslateBubble(selectedText, targetEl, e.clientX, e.clientY);
+
+      // Let the normal context menu also show (user can choose original menu or bubble)
+      // Don't preventDefault — we want both to be usable
+    });
+
+    function findNearestBlockElement(node) {
+      if (!node) return document.body;
+      var el = node.nodeType === Node.TEXT_NODE ? node.parentElement : node;
+      while (el && !el.closest('#awe-editor-panel') && !el.closest('#awe-translate-bubble')) {
+        if (el.tagName && ['P', 'DIV', 'SPAN', 'A', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6',
+          'LI', 'TD', 'TH', 'BUTTON', 'LABEL', 'STRONG', 'EM', 'B', 'I', 'U', 'MARK', 'CODE'].includes(el.tagName)) {
+          return el;
+        }
+        if (el === document.body) break;
+        el = el.parentElement;
+      }
+      return el || document.body;
+    }
+
+   // Load persisted element history on init
+    loadElementHistory();
+
+    // ============================================================
+    // CSS Rules Panel (v1.6) — render and apply saved rules
+    // ============================================================
+    function refreshCssRulesPanel() {
+      chrome.runtime.sendMessage({ action: 'get-css-rules' }, function(response) {
+        var rules = response && response.rules ? response.rules : [];
+        var container = document.getElementById('css-rules-list-content');
+        if (!container) return;
+
+        if (rules.length === 0) {
+          container.innerHTML = '<p style="text-align:center;font-size:12px;color:#475569;padding:8px 0;">No custom CSS rules saved. Open the extension popup to create some.</p>';
+          return;
+        }
+
+        var html = '';
+        for (var i = 0; i < rules.length; i++) {
+          var r = rules[i];
+          var enabled = r.enabled !== false;
+          var selectorText = escapeHtml((r.selector || '').substring(0, 45));
+          var nameText = escapeHtml(r.name || 'Unnamed Rule');
+          html += '<div class="css-rule-panel-item" data-id="' + r.id + '" style="display:flex;align-items:center;gap:6px;padding:5px 8px;background:#0f0f23;border:1px solid #2d2d4a;border-radius:6px;margin-bottom:4px;font-size:12px;">' +
+            '<label class="toggle-switch" style="flex-shrink:0;" title="' + (enabled ? 'Enabled' : 'Disabled') + '">' +
+              '<input type="checkbox"' + (enabled ? ' checked' : '') + ' data-action="panel-toggle-rule" data-id="' + r.id + '">' +
+              '<span class="toggle-slider"></span>' +
+            '</label>' +
+            '<span style="flex:1;color:#e2e8f0;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="' + escapeHtml(r.name || '') + '">' + nameText + '</span>' +
+            '<span style="color:#94a3b8;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100px;" title="' + selectorText + '">' + selectorText + '</span>' +
+            '<button class="btn-icon" title="Delete rule" data-action="panel-delete-rule" data-id="' + r.id + '" style="flex-shrink:0;">🗑</button>' +
+          '</div>';
+        }
+        container.innerHTML = html;
+
+        // Attach toggle handlers
+        container.querySelectorAll('[data-action="panel-toggle-rule"]').forEach(function(cb) {
+          cb.addEventListener('change', function(e) {
+            e.stopPropagation();
+            var ruleId = this.dataset.id;
+            chrome.runtime.sendMessage({ action: 'get-css-rules' }, function(resp) {
+              var rules = resp && resp.rules ? resp.rules : [];
+              for (var j = 0; j < rules.length; j++) {
+                if (rules[j].id === ruleId) {
+                  rules[j].enabled = this.checked;
+                  break;
+                }
+              }
+              chrome.storage.sync.set({ customCssRules: rules }, function() {});
+            }.bind({ checked: this.checked }));
+          });
+        });
+
+        // Attach delete handlers
+        container.querySelectorAll('[data-action="panel-delete-rule"]').forEach(function(btn) {
+          btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            var ruleId = this.dataset.id;
+            chrome.runtime.sendMessage({ action: 'delete-css-rule', ruleId: ruleId }, function() {
+              refreshCssRulesPanel();
+            });
+          });
+        });
+      });
+    }
+
+    // Apply All button in content panel (v1.6)
+    document.addEventListener('click', function(e) {
+      if (e.target.id === 'css-rules-apply-all-btn') {
+        chrome.runtime.sendMessage({ action: 'apply-css-rules' }, function(resp) {
+          if (resp && resp.success) {
+            showToast('Applied ' + (resp.count || 0) + ' CSS rule(s) to the page!', 'success');
+          } else {
+            showToast('Failed to apply CSS rules.', 'error');
+          }
+        });
+      }
+    });
+
+    })();

@@ -45,13 +45,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   // ============================================================
   if (message.action === 'get-daily-usage') {
     chrome.storage.sync.get(['dailyUsage', 'lastResetDate', 'dailyLimit'], function(result) {
-      var today = new Date().toISOString().substring(0, 10); // YYYY-MM-DD
+      var today = new Date().toISOString().substring(0, 10);
       var lastDate = result.lastResetDate || '';
       var count = 0;
       if (result.dailyUsage !== undefined && lastDate === today) {
         count = result.dailyUsage;
       } else if (lastDate !== today) {
-        // Day changed — reset counter
         chrome.storage.sync.set({ dailyUsage: 0, lastResetDate: today }, function() {});
         count = 0;
       }
@@ -68,7 +67,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       var limit = result.dailyLimit || 50;
 
       if (lastDate !== today) {
-        // Reset if new day
         chrome.storage.sync.set({ dailyUsage: 1, lastResetDate: today }, function() {});
         sendResponse({ count: 1, limit: limit, exceeded: false });
       } else if (count >= limit) {
@@ -104,6 +102,90 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === 'save-daily-limit') {
     chrome.storage.sync.set({ dailyLimit: message.limit }, function() {
       sendResponse({ success: true });
+    });
+    return true;
+  }
+
+  // ============================================================
+  // Template Apply (v1.5) — dispatch to active tab
+  // ============================================================
+  if (message.action === 'apply-template') {
+    chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
+      if (tabs[0]) {
+        handleApplyTemplate(tabs[0].id, message.prompt);
+      }
+    });
+    sendResponse({ success: true });
+    return true;
+  }
+
+  // ============================================================
+  // Save Custom CSS Rules (v1.6)
+  // ============================================================
+  if (message.action === 'save-css-rule') {
+    chrome.storage.sync.get(['customCssRules'], function(result) {
+      var rules = result.customCssRules || [];
+      var existingIdx = rules.findIndex(function(r) { return r.id === message.rule.id; });
+      if (existingIdx >= 0) {
+        rules[existingIdx] = message.rule;
+      } else {
+        rules.push(message.rule);
+      }
+      chrome.storage.sync.set({ customCssRules: rules }, function() {
+        sendResponse({ success: true });
+      });
+    });
+    return true;
+  }
+
+  // ============================================================
+  // Get Custom CSS Rules (v1.6)
+  // ============================================================
+  if (message.action === 'get-css-rules') {
+    chrome.storage.sync.get(['customCssRules'], function(result) {
+      sendResponse({ rules: result.customCssRules || [] });
+    });
+    return true;
+  }
+
+  // ============================================================
+  // Delete Custom CSS Rule (v1.6)
+  // ============================================================
+  if (message.action === 'delete-css-rule') {
+    chrome.storage.sync.get(['customCssRules'], function(result) {
+      var rules = (result.customCssRules || []).filter(function(r) { return r.id !== message.ruleId; });
+      chrome.storage.sync.set({ customCssRules: rules }, function() {
+        sendResponse({ success: true });
+      });
+    });
+    return true;
+  }
+
+  // ============================================================
+  // Apply All CSS Rules to Page (v1.6)
+  // ============================================================
+  if (message.action === 'apply-css-rules') {
+    chrome.storage.sync.get(['customCssRules'], function(result) {
+      var rules = result.customCssRules || [];
+      chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
+        if (tabs[0]) {
+          chrome.scripting.executeScript({
+            target: { tabId: tabs[0].id },
+            func: (rules) => {
+              rules.forEach(function(rule) {
+                try {
+                  var matches = document.querySelectorAll(rule.selector);
+                  matches.forEach(function(el) {
+                    el.setAttribute('style', (el.getAttribute('style') || '') + ' !important; ' + rule.css);
+                  });
+                } catch(e) {}
+              });
+            },
+            args: [rules],
+          });
+        }
+      });
+      sendResponse({ success: true, count: rules.length });
     });
     return true;
   }
@@ -153,17 +235,27 @@ async function handleAIModify(command, elementText, elementTag, conversationHist
     } else if (provider === 'google') {
       response = await callGoogleGenerativeAI(command, elementText, conversationHistory, apiKey, apiModel);
     } else {
-      // Default to openai-compatible with baseUrl or OpenAI
       const targetUrl = baseUrl ? buildEndpointUrl(baseUrl) : 'https://api.openai.com/v1';
       response = await callOpenAICompatible(command, elementText, conversationHistory, targetUrl, apiKey, apiModel);
     }
 
     const content = extractAIContent(response);
-    sendResponse({ success: true, newContent: content });
+     // Pass oldContent for diff preview support
+     sendResponse({ success: true, newContent: content, oldContent: elementText || '' });
   } catch (err) {
     console.error('[AI Web Editor] API Error:', err);
     sendResponse({ success: false, error: err.message || 'API request failed', needsApiKey: true });
   }
+}
+
+async function handleApplyTemplate(tabId, prompt) {
+  chrome.scripting.executeScript({
+    target: { tabId: tabId },
+    func: (prompt) => {
+      document.dispatchEvent(new CustomEvent('awe-apply-template', { detail: { prompt } }));
+    },
+    args: [prompt],
+  });
 }
 
 function buildEndpointUrl(baseUrl) {
@@ -189,17 +281,14 @@ Do NOT explain your changes — just give me the modified text.`;
   const modelName = model || 'gpt-4o-mini';
   console.log(`[AI Web Editor] Calling API: ${apiUrl} with model: ${modelName}`);
 
-  // Build messages array with conversation history (v1.5)
   const messages = [{ role: 'system', content: systemPrompt }];
   if (conversationHistory && conversationHistory.length > 0) {
     for (var i = 0; i < conversationHistory.length; i++) {
       var msg = conversationHistory[i];
-      // Convert to valid OpenAI format roles
       if (msg.role === 'user') {
         messages.push({ role: 'user', content: `Command: "${command}"\n\nCurrent content:\n${elementText || '(empty element)'}\n\nPlease rewrite this according to the command.` });
       } else if (msg.role === 'assistant') {
         // Assistant responses are already applied, so we use them as context
-        // The next turn will provide updated elementText in a real app
       }
     }
   }
@@ -232,7 +321,6 @@ async function callGoogleGenerativeAI(command, elementText, conversationHistory,
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
   console.log(`[AI Web Editor] Calling Google Gemini API with model: ${modelName}`);
 
-  // Build contents with conversation history (v1.5)
   const parts = [
     { text: systemPrompt },
     { text: `Command: "${command}". Current content:\n${elementText || '(empty element)'}` }
@@ -286,7 +374,6 @@ async function handleTestConnection(apiKey, provider, baseUrl, sendResponse) {
     } else if (provider === 'custom' && baseUrl) {
       await callOpenAICompatible('test', 'test', null, buildEndpointUrl(baseUrl), apiKey, 'gpt-4o-mini');
     } else {
-      // No URL to test, just verify key format
       sendResponse({ success: true, message: 'Settings saved — will be used in extension' });
       return;
     }

@@ -9,6 +9,306 @@ document.addEventListener('DOMContentLoaded', () => {
   const saveBtn = document.getElementById('saveBtn');
   const statusEl = document.getElementById('apiStatus');
 
+  // ============================================================
+  // CSS Rules Management (v1.6)
+  // ============================================================
+  let editingRuleId = null;
+
+  const addRuleBtn = document.getElementById('add-rule-btn');
+  const applyAllCssBtn = document.getElementById('apply-all-css-btn');
+  const cssRulesListEl = document.getElementById('css-rules-list');
+  const cssRulesSection = document.getElementById('css-rules-section');
+  const cssRulesDivider = document.getElementById('css-rules-divider');
+  const modalOverlay = document.getElementById('css-rule-modal-overlay');
+  const modalTitle = document.getElementById('css-rule-modal-title');
+  const ruleNameInput = document.getElementById('rule-name-input');
+  const ruleSelectorInput = document.getElementById('rule-selector-input');
+  const ruleCssInput = document.getElementById('rule-css-input');
+  const saveRuleBtn = document.getElementById('save-rule-btn');
+  const cancelRuleBtn = document.getElementById('cancel-rule-btn');
+
+  // Load and render CSS rules
+  function loadCssRules() {
+    chrome.runtime.sendMessage({ action: 'get-css-rules' }, function(response) {
+      var rules = response && response.rules ? response.rules : [];
+      renderCssRulesList(rules);
+    });
+  }
+
+  function renderCssRulesList(rules) {
+    // Show/hide section based on whether there are rules
+    if (!rules || rules.length === 0) {
+      cssRulesSection.style.display = 'none';
+      cssRulesDivider.style.display = 'none';
+      return;
+    }
+    cssRulesSection.style.display = 'block';
+    cssRulesDivider.style.display = 'block';
+
+    var html = '';
+    for (var i = 0; i < rules.length; i++) {
+      var r = rules[i];
+      var enabled = r.enabled !== false;
+      var selectorText = escapeHtml((r.selector || '').substring(0, 50));
+      var nameText = escapeHtml(r.name || 'Unnamed Rule');
+      html += '<div class="css-rule-item" data-id="' + r.id + '">' +
+        '<span class="rule-name" title="' + escapeHtml(r.name || '') + '" data-action="edit-rule">' + nameText + '</span>' +
+        '<span class="rule-selector" title="' + selectorText + '">' + selectorText + '</span>' +
+        '<div class="rule-actions">' +
+          '<label class="toggle-switch" title="' + (enabled ? 'Enabled' : 'Disabled') + '">' +
+            '<input type="checkbox" data-action="toggle-rule" data-id="' + r.id + '"' + (enabled ? ' checked' : '') + '>' +
+            '<span class="toggle-slider"></span>' +
+          '</label>' +
+          '<button class="btn-icon" title="Delete rule" data-action="delete-rule" data-id="' + r.id + '">🗑</button>' +
+        '</div>' +
+      '</div>';
+    }
+    cssRulesListEl.innerHTML = html;
+
+    // Attach event listeners to toggle switches
+    cssRulesListEl.querySelectorAll('input[type="checkbox"]').forEach(function(cb) {
+      cb.addEventListener('change', function(e) {
+        e.stopPropagation();
+        var ruleId = this.dataset.id;
+        chrome.runtime.sendMessage({ action: 'get-css-rules' }, function(resp) {
+          var rules = resp && resp.rules ? resp.rules : [];
+          for (var j = 0; j < rules.length; j++) {
+            if (rules[j].id === ruleId) {
+              rules[j].enabled = this.checked;
+              break;
+            }
+          }
+          chrome.storage.sync.set({ customCssRules: rules }, function() {});
+        }.bind({ checked: this.checked }));
+      });
+    });
+
+    // Click on name to edit
+    cssRulesListEl.querySelectorAll('.rule-name').forEach(function(el) {
+      el.addEventListener('click', function(e) {
+        e.stopPropagation();
+        var ruleId = this.closest('.css-rule-item').dataset.id;
+        openEditModal(ruleId);
+      });
+    });
+
+    // Delete buttons
+    cssRulesListEl.querySelectorAll('[data-action="delete-rule"]').forEach(function(btn) {
+      btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        var ruleId = this.dataset.id;
+        chrome.runtime.sendMessage({ action: 'delete-css-rule', ruleId: ruleId }, function(resp) {
+          loadCssRules();
+        });
+      });
+    });
+  }
+
+  // Open modal for new rule or editing
+  function openEditModal(ruleId) {
+    if (ruleId) {
+      // Edit existing
+      chrome.runtime.sendMessage({ action: 'get-css-rules' }, function(resp) {
+        var rules = resp && resp.rules ? resp.rules : [];
+        var rule = null;
+        for (var i = 0; i < rules.length; i++) {
+          if (rules[i].id === ruleId) { rule = rules[i]; break; }
+        }
+        if (rule) {
+          editingRuleId = rule.id;
+          modalTitle.textContent = 'Edit CSS Rule';
+          ruleNameInput.value = rule.name || '';
+          ruleSelectorInput.value = rule.selector || '';
+          ruleCssInput.value = rule.css || '';
+          modalOverlay.classList.add('active');
+        }
+      });
+    } else {
+      // New rule
+      editingRuleId = null;
+      modalTitle.textContent = 'New CSS Rule';
+      ruleNameInput.value = '';
+      ruleSelectorInput.value = '';
+      ruleCssInput.value = '';
+      modalOverlay.classList.add('active');
+    }
+    setTimeout(function() { ruleNameInput.focus(); }, 100);
+  }
+
+  function closeEditModal() {
+    modalOverlay.classList.remove('active');
+    editingRuleId = null;
+  }
+
+  addRuleBtn.addEventListener('click', function() { openEditModal(null); });
+  cancelRuleBtn.addEventListener('click', closeEditModal);
+  modalOverlay.addEventListener('click', function(e) {
+    if (e.target === modalOverlay) closeEditModal();
+  });
+
+  saveRuleBtn.addEventListener('click', function() {
+    var name = ruleNameInput.value.trim();
+    var selector = ruleSelectorInput.value.trim();
+    var css = ruleCssInput.value.trim();
+    if (!name || !selector || !css) {
+      alert('Please fill in all fields: Name, Selector, and CSS.');
+      return;
+    }
+
+    var rule = {
+      id: editingRuleId || ('rule_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5)),
+      name: name,
+      selector: selector,
+      css: css,
+      enabled: true
+    };
+
+    chrome.runtime.sendMessage({ action: 'save-css-rule', rule: rule }, function(resp) {
+      closeEditModal();
+      loadCssRules();
+      showToast('Rule saved!', true);
+    });
+  });
+
+  // Apply all rules to current page
+  applyAllCssBtn.addEventListener('click', function() {
+    chrome.runtime.sendMessage({ action: 'apply-css-rules' }, function(resp) {
+      if (resp && resp.success) {
+        showToast('Applied ' + (resp.count || 0) + ' CSS rule(s) to the page!', true);
+      } else {
+        showToast('Failed to apply CSS rules.', false);
+      }
+    });
+  });
+
+  // Initial load
+  loadCssRules();
+
+  // ============================================================
+  // Template Management (v1.5)
+  // ============================================================
+  const newTemplateBtn = document.getElementById('newTemplateBtn');
+  const templateModal = document.getElementById('template-modal');
+  const templateNameInput = document.getElementById('templateNameInput');
+  const templatePromptInput = document.getElementById('templatePromptInput');
+  const saveTemplateBtn = document.getElementById('saveTemplateBtn');
+  const cancelTemplateBtn = document.getElementById('cancelTemplateBtn');
+  let editingTemplateId = null;
+
+  function loadTemplates() {
+    chrome.storage.sync.get(['customTemplates'], function(result) {
+      var templates = result.customTemplates || [];
+      var html = '';
+      for (var i = 0; i < templates.length; i++) {
+        var t = templates[i];
+        var nameDisplay = escapeHtml(t.name || 'Unnamed');
+        html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 8px;background:#0f0f23;border:1px solid #2d2d4a;border-radius:6px;margin-bottom:4px;font-size:12px;">' +
+          '<span style="flex:1;color:#e2e8f0;cursor:pointer;" class="template-name" data-id="' + t.id + '">' + nameDisplay + '</span>' +
+          '<button style="background:none;border:1px solid #2d2d4a;color:#94a3b8;width:22px;height:22px;border-radius:4px;cursor:pointer;font-size:12px;padding:0;" class="template-edit-btn" data-id="' + t.id + '">✏</button>' +
+          '<button style="background:none;border:1px solid #2d2d4a;color:#94a3b8;width:22px;height:22px;border-radius:4px;cursor:pointer;font-size:12px;padding:0;" class="template-delete-btn" data-id="' + t.id + '">🗑</button>' +
+        '</div>';
+      }
+      if (templates.length === 0) {
+        html = '<p style="text-align:center;font-size:12px;color:#475569;padding:10px 0;">No templates yet. Click "+ New Template" to create one.</p>';
+      }
+      document.getElementById('template-list').innerHTML = html;
+
+      // Attach handlers
+      document.querySelectorAll('.template-name').forEach(function(el) {
+        el.addEventListener('click', function() {
+          chrome.storage.sync.get(['customTemplates'], function(r2) {
+            var tpls = r2.customTemplates || [];
+            var tpl = null;
+            for (var i = 0; i < tpls.length; i++) {
+              if (tpls[i].id === el.dataset.id) { tpl = tpls[i]; break; }
+            }
+            if (tpl) {
+              chrome.runtime.sendMessage({ action: 'apply-template', prompt: tpl.prompt }, function(resp) {});
+              showToast('Template "' + tpl.name + '" applied!', true);
+            }
+          });
+        });
+      });
+
+      document.querySelectorAll('.template-edit-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          chrome.storage.sync.get(['customTemplates'], function(r2) {
+            var tpls = r2.customTemplates || [];
+            var tpl = null;
+            for (var i = 0; i < tpls.length; i++) {
+              if (tpls[i].id === btn.dataset.id) { tpl = tpls[i]; break; }
+            }
+            if (tpl) {
+              editingTemplateId = tpl.id;
+              templateNameInput.value = tpl.name || '';
+              templatePromptInput.value = tpl.prompt || '';
+              saveTemplateBtn.textContent = 'Update';
+              templateModal.style.display = 'block';
+            }
+          });
+        });
+      });
+
+      document.querySelectorAll('.template-delete-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          chrome.storage.sync.get(['customTemplates'], function(r2) {
+            var tpls = (r2.customTemplates || []).filter(function(t) { return t.id !== btn.dataset.id; });
+            chrome.storage.sync.set({ customTemplates: tpls }, function() { loadTemplates(); });
+          });
+        });
+      });
+    });
+  }
+
+  newTemplateBtn.addEventListener('click', function() {
+    editingTemplateId = null;
+    templateNameInput.value = '';
+    templatePromptInput.value = '';
+    saveTemplateBtn.textContent = 'Save';
+    templateModal.style.display = 'block';
+    setTimeout(function() { templateNameInput.focus(); }, 100);
+  });
+
+  cancelTemplateBtn.addEventListener('click', function() {
+    templateModal.style.display = 'none';
+    editingTemplateId = null;
+  });
+
+  saveTemplateBtn.addEventListener('click', function() {
+    var name = templateNameInput.value.trim();
+    var prompt = templatePromptInput.value.trim();
+    if (!name || !prompt) {
+      alert('Please fill in both Name and Prompt.');
+      return;
+    }
+    chrome.storage.sync.get(['customTemplates'], function(result) {
+      var templates = result.customTemplates || [];
+      if (editingTemplateId) {
+        for (var i = 0; i < templates.length; i++) {
+          if (templates[i].id === editingTemplateId) {
+            templates[i].name = name;
+            templates[i].prompt = prompt;
+            break;
+          }
+        }
+      } else {
+        templates.push({ id: 'tpl_' + Date.now(), name: name, prompt: prompt });
+      }
+      chrome.storage.sync.set({ customTemplates: templates }, function() {
+        templateModal.style.display = 'none';
+        editingTemplateId = null;
+        loadTemplates();
+      });
+    });
+  });
+
+  // Load initial templates
+  loadTemplates();
+
+  // ============================================================
+  // Main API settings logic
+  // ============================================================
+
   // Load saved settings
   chrome.storage.sync.get(['apiKey', 'apiProvider', 'apiBaseUrl', 'apiModel', 'dailyLimit'], (result) => {
     if (result.apiProvider) providerSelect.value = result.apiProvider;
@@ -114,5 +414,17 @@ document.addEventListener('DOMContentLoaded', () => {
     `;
     document.body.appendChild(toast);
     setTimeout(() => toast.remove(), 2000);
+  }
+
+  // ============================================================
+  // Utility
+  // ============================================================
+  function escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
   }
 });
