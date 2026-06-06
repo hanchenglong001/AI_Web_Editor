@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>拼音组合探索器</title>
+<style>
+:root {
+  --bg:#f5f7fa;--surface:#fff;--text:#1a1a2e;--text-secondary:#6b7280;
+  --matrix-bg:#e8f5e9;--matrix-hover:#c8e6c9;--matrix-active:#4caf50;
+  --invalid-bg:#f3f4f6;--border:#e5e7eb;--shadow:0 2px 12px rgba(0,0,0,.08);
+  --accent:#3b82f6;--header-bg:#37474f;--search-bg:#fff;
+}
+[data-theme="dark"]{
+  --bg:#1a1a2e;--surface:#16213e;--text:#e0e0e0;--text-secondary:#9ca3af;
+  --matrix-bg:#1b5e20;--matrix-hover:#2e7d32;--matrix-active:#66bb6a;
+  --invalid-bg:#2d2d44;--border:#374151;--shadow:0 2px 12px rgba(0,0,0,.3);
+  --accent:#60a5fa;--header-bg:#0f3460;--search-bg:#1e293b;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--text);min-height:100vh;transition:background .3s,color .3s}
+.header{display:flex;justify-content:space-between;align-items:center;padding:12px 20px;background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100}
+.header h1{font-size:1.3rem;font-weight:700}
+.search-box{display:flex;gap:8px;align-items:center}
+.search-box input{padding:8px 14px;border:2px solid var(--border);border-radius:8px;font-size:14px;width:260px;background:var(--search-bg);color:var(--text);outline:none;transition:border-color .3s}
+.search-box input:focus{border-color:var(--accent)}
+.theme-toggle{width:40px;height:40px;border-radius:50%;border:2px solid var(--border);background:var(--surface);cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;transition:all .3s}
+.theme-toggle:hover{border-color:var(--accent);transform:rotate(20deg)}
+.stats-bar{display:flex;gap:16px;padding:8px 20px;font-size:.8rem;color:var(--text-secondary);background:var(--surface);border-bottom:1px solid var(--border);flex-wrap:wrap}
+.legend{padding:12px 20px;display:flex;gap:16px;font-size:.8rem;color:var(--text-secondary);flex-wrap:wrap}
+.legend-item{display:flex;align-items:center;gap:4px}
+.legend-color{width:16px;height:16px;border-radius:3px}
+.matrix-container{padding:16px 20px;overflow-x:auto}
+.matrix-wrapper{min-width:900px;display:grid;grid-template-columns:72px repeat(35,minmax(48px,1fr));gap:1px;background:var(--border);border-radius:10px;overflow:hidden}
+.matrix-header{padding:10px 4px;text-align:center;font-size:13px;font-weight:700;color:#fff;background:var(--header-bg);display:flex;align-items:center;justify-content:center;line-height:1.2}
+.matrix-corner{background:var(--header-bg)}
+.matrix-row-label{padding:8px 6px;font-size:13px;font-weight:700;text-align:center;color:#fff;background:var(--header-bg);display:flex;align-items:center;justify-content:center;line-height:1.2}
+.matrix-cell{padding:6px 2px;text-align:center;cursor:default;font-size:13px;display:flex;align-items:center;justify-content:center;line-height:1.2;min-height:40px;transition:all .15s}
+.matrix-cell.invalid{background:var(--invalid-bg);cursor:not-allowed;color:#bbb}
+.matrix-cell.valid{background:var(--matrix-bg);cursor:pointer;color:#fff;font-weight:600}
+.matrix-cell.valid:hover{background:var(--matrix-hover);transform:scale(1.05);z-index:2;box-shadow:inset 0 0 0 2px var(--accent)}
+.matrix-cell.valid.active{background:var(--matrix-active);transform:scale(1.08);z-index:3;box-shadow:0 0 0 2px var(--text)}
+.matrix-cell .pinyin-syllable{font-size:12px;line-height:1.1}
+.detail-panel{padding:0 20px 20px}
+.detail-inner{background:var(--surface);border-radius:12px;box-shadow:var(--shadow);padding:20px;margin-top:4px;border:2px solid transparent;transition:border .3s}
+.detail-inner.active{border-color:var(--accent)}
+.empty-state{text-align:center;padding:40px 20px;color:var(--text-secondary)}
+.empty-state .icon{font-size:3rem;margin-bottom:12px}
+.detail-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--border)}
+.detail-title{font-size:2rem;font-weight:800;color:var(--accent)}
+.detail-close{width:32px;height:32px;border-radius:50%;border:none;background:var(--invalid-bg);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:all .2s}
+.detail-close:hover{background:#ef4444;color:#fff}
+.tone-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:16px}
+.tone-card{background:var(--bg);border-radius:8px;padding:14px;border-left:4px solid transparent}
+.tone-card[data-tone="1"]{border-left-color:#ef4444}
+.tone-card[data-tone="2"]{border-left-color:#f59e0b}
+.tone-card[data-tone="3"]{border-left-color:#3b82f6}
+.tone-card[data-tone="4"]{border-left-color:#10b981}
+.tone-card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.tone-label{font-size:.75rem;color:var(--text-secondary);font-weight:600}
+.speak-btn{width:32px;height:32px;border-radius:50%;border:none;background:var(--accent);color:#fff;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:all .2s}
+.speak-btn:hover{transform:scale(1.15);box-shadow:0 2px 8px rgba(59,130,246,.4)}
+.tone-syllable{font-size:1.8rem;font-weight:700;margin-bottom:4px}
+.words-section h3{font-size:.85rem;color:var(--text-secondary);margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em}
+.words-list{display:flex;flex-wrap:wrap;gap:6px}
+.word-tag{padding:4px 12px;background:var(--bg);border-radius:16px;font-size:.9rem;cursor:pointer;transition:all .2s;border:1px solid var(--border)}
+.word-tag:hover{background:var(--accent);color:#fff;border-color:var(--accent);transform:scale(1.05)}
+.cell-tooltip{position:fixed;background:var(--header-bg);color:#fff;padding:6px 12px;border-radius:6px;font-size:13px;pointer-events:none;z-index:999;opacity:0;transition:opacity .15s;max-width:240px;white-space:nowrap;box-shadow:0 4px 12px rgba(0,0,0,.3)}
+.cell-tooltip.visible{opacity:1}
+@media(max-width:768px){.header{flex-direction:column;gap:10px}.search-box input{width:200px}.tone-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🔤 拼音组合探索器</h1>
+  <div class="search-box">
+    <input type="text" id="searchInput" placeholder="搜索拼音或汉字（如：ba、八）...">
+    <button class="theme-toggle" id="themeToggle" title="切换深色模式">🌙</button>
+  </div>
+</div>
+
+<div class="stats-bar">
+  <span>✅ 有效音节: <strong id="validCount">0</strong></span>
+  <span>❌ 无效组合: <strong id="invalidCount">0</strong></span>
+  <span>📊 矩阵: 23声母 × 35韵母 = 805格</span>
+</div>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-color" style="background:var(--matrix-bg)"></div>有效组合（可点击）</div>
+  <div class="legend-item"><div class="legend-color" style="background:var(--invalid-bg)"></div>无效组合</div>
+  <div class="legend-item">💡 点击格子查看详情 + 听发音</div>
+</div>
+
+<div class="matrix-container">
+  <div class="matrix-wrapper" id="matrixWrapper"></div>
+</div>
+
+<div class="detail-panel">
+  <div class="detail-inner" id="detailPanel">
+    <div class="empty-state" id="emptyState">
+      <div class="icon">🎯</div>
+      <p>点击矩阵中的绿色格子<br>查看该音节的四声读法和常用词语</p>
+    </div>
+    <div id="detailContent" style="display:none;"></div>
+  </div>
+</div>
+
+<div class="cell-tooltip" id="tooltip"></div>
+
+<script>
+var SHENMUS=['b','p','m','f','d','t','n','l','g','k','h','j','q','x','zh','ch','sh','r','z','c','s','y','w'];
+var YUNMUS=['a','o','e','i','u','ü','ia','iao','iu','ian','iang','in','ing','iong','ie','üe','ai','ei','ao','ou','an','en','ang','eng','ong','er','ua','uo','uai','ui','uan','un','ue','üan','ün'];
+
+var D={
+"ba":{tones:[{c:"八",t:"bā"},{c:"巴",t:"bā"},{c:"拔",t:"bá"},{c:"坝",t:"bà"},{c:"爸",t:"bà"}],words:["八宝","八字","巴黎","拔河","把关","爸爸","炸弹","八卦"]},
+"bai":{tones:[{c:"百",t:"bǎi"},{c:"摆",t:"bǎi"},{c:"败",t:"bài"}],words:["百万","百姓","白菜","白天","摆放","打败","拜年"]},
+"ban":{tones:[{c:"班",t:"bān"},{c:"办",t:"bàn"}],words:["办法","班级","班长","办理","帮忙","花瓣","搬迁","背叛"]},
+"bang":{tones:[{c:"帮",t:"bāng"},{c:"绑",t:"bǎng"}],words:["帮助","帮忙","方面","棒球","报答","拜访","绑架","榜样"]},
+"bao":{tones:[{c:"包",t:"bāo"},{c:"保",t:"bǎo"},{c:"报",t:"bào"}],words:["保证","包围","报名","包子","包含","报告","包括","宝贝"]},
+"bei":{tones:[{c:"杯",t:"bēi"},{c:"被",t:"bèi"},{c:"背",t:"bèi"}],words:["北方","北京","准备","背部","杯子","本来","彼此","背景"]},
+"ben":{tones:[{c:"本",t:"běn"},{c:"笨",t:"bèn"}],words:["本来","本子","本领","本地","笨蛋","版本"]},
+"beng":{tones:[{c:"崩",t:"bēng"},{c:"蹦",t:"bèng"}],words:["本领","蹦蹦","崩溃","捧场"]},
+"bi":{tones:[{c:"比",t:"bǐ"},{c:"必",t:"bì"},{c:"笔",t:"bǐ"}],words:["比较","比例","比如","必定","笔记","必然","表情"]},
+"bian":{tones:[{c:"边",t:"biān"},{c:"变",t:"biàn"}],words:["旁边","变化","方便","偏见","身边","无边"]},
+"biao":{tones:[{c:"标",t:"biāo"},{c:"表",t:"biǎo"}],words:["标准","表达","表演","表格","标本","漂亮"]},
+"bie":{tones:[{c:"别",t:"bié"},{c:"憋",t:"biē"}],words:["别人","分别","区别","差别","告别"]},
+"bing":{tones:[{c:"冰",t:"bīng"},{c:"病",t:"bìng"}],words:["冰雪","并且","命令","病情","病毒"]},
+"bu":{tones:[{c:"不",t:"bù"}],words:["不会","不用","不变","不足","部分","不必","不同","不断","不能"]},
+"pa":{tones:[{c:"怕",t:"pà"},{c:"帕",t:"pà"}],words:["害怕","可怕","怕黑","不怕"]},
+"pai":{tones:[{c:"排",t:"pái"},{c:"牌",t:"pái"}],words:["排队","排除","批准","平衡","跑步"]},
+"pan":{tones:[{c:"盘",t:"pán"},{c:"盼",t:"pàn"}],words:["盘子","盘旋","判断","谈判","面板"]},
+"pang":{tones:[{c:"旁",t:"páng"},{c:"胖",t:"pàng"}],words:["旁边","旁人","偏旁"]},
+"pao":{tones:[{c:"跑",t:"pǎo"},{c:"泡",t:"pào"}],words:["跑步","逃跑","泡沫","炮弹","泡面"]},
+"pei":{tones:[{c:"培",t:"péi"},{c:"陪",t:"péi"},{c:"配",t:"pèi"}],words:["配合","培训","陪伴","培养","佩服"]},
+"pen":{tones:[{c:"喷",t:"pēn"}],words:["喷泉","喷洒","花盆"]},
+"peng":{tones:[{c:"朋",t:"péng"},{c:"碰",t:"pèng"}],words:["朋友","碰撞","碰见","碰巧"]},
+"ma":{tones:[{c:"妈",t:"mā"},{c:"马",t:"mǎ"},{c:"吗",t:"ma"}],words:["妈妈","马上","马路","麻烦","木马","蚂蚁"]},
+"man":{tones:[{c:"满",t:"mǎn"},{c:"慢",t:"màn"}],words:["满意","满足","完全","慢慢","满月"]},
+"meng":{tones:[{c:"梦",t:"mèng"},{c:"蒙",t:"méng"}],words:["梦想","做梦","梦见","启蒙"]},
+"fa":{tones:[{c:"发",t:"fā"},{c:"法",t:"fǎ"},{c:"罚",t:"fá"}],words:["发现","发展","方法","头发","法律","发生"]},
+"fan":{tones:[{c:"反",t:"fǎn"},{c:"饭",t:"fàn"}],words:["反对","发现","方便","风险","分类"]},
+"fang":{tones:[{c:"方",t:"fāng"},{c:"放",t:"fàng"}],words:["地方","方向","方面","方法","放心","放松"]},
+"fei":{tones:[{c:"飞",t:"fēi"},{c:"非",t:"fēi"},{c:"费",t:"fèi"}],words:["飞行","非常","费用","失败","奋斗"]},
+"fen":{tones:[{c:"分",t:"fēn"},{c:"粉",t:"fěn"}],words:["分析","分开","分钟","附近","粉笔"]},
+"da":{tones:[{c:"大",t:"dà"},{c:"打",t:"dǎ"}],words:["大家","大地","大学","大小","大海"]},
+"dai":{tones:[{c:"带",t:"dài"},{c:"代",t:"dài"}],words:["带来","代表","单位","当地","代替"]},
+"dan":{tones:[{c:"但",t:"dàn"},{c:"单",t:"dān"}],words:["但是","大胆","担心","单独","简单"]},
+"dang":{tones:[{c:"当",t:"dāng"},{c:"党",t:"dǎng"}],words:["当然","当时","当地","挡住","答应"]},
+"dao":{tones:[{c:"到",t:"dào"},{c:"道",t:"dào"}],words:["到达","道路","得到","迟到","道理"]},
+"de":{tones:[{c:"的",t:"de"},{c:"得",t:"dé"}],words:["我的","你的","好的","对的","得到"]},
+"deng":{tones:[{c:"等",t:"děng"},{c:"灯",t:"dēng"}],words:["等待","等于","等级","灯泡","灯光"]},
+"di":{tones:[{c:"地",t:"dì"},{c:"第",t:"dì"},{c:"低",t:"dī"}],words:["地方","地面","地铁","第一","低头"]},
+"dian":{tones:[{c:"电",t:"diàn"},{c:"点",t:"diǎn"}],words:["电视","电脑","电话","电影","点心","电子"]},
+"die":{tones:[{c:"跌",t:"diē"},{c:"叠",t:"dié"}],words:["跌倒","跌落","叠被子","重叠"]},
+"ding":{tones:[{c:"定",t:"dìng"},{c:"订",t:"dìng"}],words:["一定","决定","定义","安定","坚定"]},
+"dong":{tones:[{c:"动",t:"dòng"},{c:"东",t:"dōng"}],words:["东西","动力","动物","动作","活动"]},
+"du":{tones:[{c:"读",t:"dú"},{c:"度",t:"dù"}],words:["读书","阅读","独立","度过","温度"]},
+"dui":{tones:[{c:"对",t:"duì"}],words:["对于","对面","对方","对立","对比"]},
+"ta":{tones:[{c:"他",t:"tā"},{c:"她",t:"tā"},{c:"它",t:"tā"}],words:["他们","她们","它们"]},
+"tai":{tones:[{c:"太",t:"tài"},{c:"台",t:"tái"}],words:["太平","台湾","天台","台风","台上"]},
+"tan":{tones:[{c:"谈",t:"tán"},{c:"探",t:"tàn"}],words:["谈话","谈判","讨论","弹琴","探索"]},
+"tao":{tones:[{c:"逃",t:"táo"},{c:"桃",t:"táo"},{c:"套",t:"tào"}],words:["逃跑","桃子","番茄","套餐","套上"]},
+"te":{tones:[{c:"特",t:"tè"}],words:["特别","特色","特殊","特地","特征"]},
+"teng":{tones:[{c:"疼",t:"téng"},{c:"腾",t:"téng"}],words:["疼痛","疼爱","腾飞","奔腾"]},
+"na":{tones:[{c:"那",t:"nà"},{c:"哪",t:"nǎ"}],words:["那里","哪儿","哪些","那么","那时"]},
+"nai":{tones:[{c:"奶",t:"nǎi"}],words:["奶奶","牛奶","奶粉","奶酪","奶牛"]},
+"nan":{tones:[{c:"男",t:"nán"},{c:"难",t:"nán"}],words:["男人","男女","南方","南北","困难"]},
+"nao":{tones:[{c:"脑",t:"nǎo"},{c:"闹",t:"nào"}],words:["大脑","电脑","脑袋","闹钟","热闹"]},
+"ne":{tones:[{c:"呢",t:"ne"}],words:["你呢","为什么呢"]},
+"nei":{tones:[{c:"内",t:"nèi"}],words:["内心","内外","内容","内部","内地"]},
+"ni":{tones:[{c:"你",t:"nǐ"},{c:"泥",t:"ní"}],words:["你好","你们","你的","泥土"]},
+"nian":{tones:[{c:"年",t:"nián"},{c:"念",t:"niàn"}],words:["年轻","年代","年龄","去年","每年"]},
+"niu":{tones:[{c:"牛",t:"niú"},{c:"扭",t:"niǔ"}],words:["牛奶","牛皮","扭转","扭头"]},
+"nong":{tones:[{c:"农",t:"nóng"},{c:"弄",t:"nòng"}],words:["农民","农业","农村","弄明白"]},
+"la":{tones:[{c:"拉",t:"lā"},{c:"啦",t:"la"}],words:["喇叭","拉力","拉开","拉链"]},
+"lai":{tones:[{c:"来",t:"lái"}],words:["来自","从来","看来","后来","本来"]},
+"lan":{tones:[{c:"蓝",t:"lán"}],words:["蓝色","蓝天","蓝莓","兰州"]},
+"lang":{tones:[{c:"朗",t:"lǎng"}],words:["朗读","晴朗","明朗","朗诵"]},
+"lao":{tones:[{c:"老",t:"lǎo"},{c:"捞",t:"lāo"}],words:["老师","老板","老虎","老鼠","老天"]},
+"le":{tones:[{c:"了",t:"le"},{c:"乐",t:"lè"}],words:["走了","快乐","音乐","乐观"]},
+"lei":{tones:[{c:"雷",t:"léi"},{c:"累",t:"lěi"}],words:["雷雨","雷电","累计","劳累"]},
+"li":{tones:[{c:"里",t:"lǐ"},{c:"力",t:"lì"}],words:["里面","那里","这里","力气","力量"]},
+"lian":{tones:[{c:"连",t:"lián"},{c:"脸",t:"liǎn"}],words:["连续","连接","连忙","联合","洗脸"]},
+"liang":{tones:[{c:"两",t:"liǎng"},{c:"亮",t:"liàng"}],words:["两个","两者","光亮","明亮"]},
+"liao":{tones:[{c:"料",t:"liào"},{c:"了",t:"liǎo"}],words:["材料","肥料","了解","了不起"]},
+"lie":{tones:[{c:"列",t:"liè"},{c:"烈",t:"liè"}],words:["列车","列表","分裂","热烈","烈焰"]},
+"lin":{tones:[{c:"林",t:"lín"},{c:"临",t:"lín"}],words:["森林","树林","淋雨","临时","临近"]},
+"liu":{tones:[{c:"六",t:"liù"},{c:"流",t:"liú"}],words:["六个","六月","流量","流行","流利"]},
+"long":{tones:[{c:"龙",t:"lóng"},{c:"隆",t:"lóng"}],words:["龙眼","龙头","龙王","恐龙"]},
+"gai":{tones:[{c:"该",t:"gāi"},{c:"改",t:"gǎi"}],words:["应该","改正","改变"]},
+"gan":{tones:[{c:"干",t:"gàn"},{c:"赶",t:"gǎn"}],words:["干净","干部","赶上","赶快"]},
+"gang":{tones:[{c:"刚",t:"gāng"},{c:"钢",t:"gāng"}],words:["刚才","刚刚","刚好","钢铁"]},
+"gao":{tones:[{c:"高",t:"gāo"},{c:"搞",t:"gǎo"}],words:["高兴","高大","高中","高手","高山"]},
+"ge":{tones:[{c:"个",t:"gè"},{c:"哥",t:"gē"}],words:["个人","各个","每个","各位","各种"]},
+"gei":{tones:[{c:"给",t:"gěi"}],words:["给你","给我","给他","送给"]},
+"gen":{tones:[{c:"跟",t:"gēn"},{c:"根",t:"gēn"}],words:["跟着","跟进","根据","根本"]},
+"geng":{tones:[{c:"更",t:"gèng"},{c:"耕",t:"gēng"}],words:["更加","更新","更好","耕地"]},
+"kai":{tones:[{c:"开",t:"kāi"}],words:["开始","开门","开车","开心","开放","开发"]},
+"kan":{tones:[{c:"看",t:"kàn"}],words:["看见","看书","看好","看看"]},
+"kang":{tones:[{c:"抗",t:"kàng"},{c:"康",t:"kāng"}],words:["健康","康复","抵抗","空调"]},
+"kao":{tones:[{c:"考",t:"kǎo"},{c:"靠",t:"kào"}],words:["考试","考生","靠山","依靠","可靠"]},
+"ke":{tones:[{c:"可",t:"kě"},{c:"科",t:"kē"}],words:["可是","可以","可能","可爱","科学"]},
+"keng":{tones:[{c:"坑",t:"kēng"}],words:["水坑","土坑","挖坑"]},
+"hai":{tones:[{c:"海",t:"hǎi"},{c:"还",t:"hái"}],words:["大海","海洋","海岸","海水","还有"]},
+"han":{tones:[{c:"汉",t:"hàn"},{c:"喊",t:"hǎn"}],words:["汉语","汉字","呼喊","呐喊"]},
+"hao":{tones:[{c:"好",t:"hǎo"},{c:"号",t:"hào"}],words:["好人","好事","好像","好奇","号码"]},
+"he":{tones:[{c:"和",t:"hé"},{c:"河",t:"hé"}],words:["和平","合作","合理","河流","和气"]},
+"hen":{tones:[{c:"很",t:"hěn"},{c:"恨",t:"hèn"}],words:["很好","很多","很大","仇恨","怨恨"]},
+"heng":{tones:[{c:"横",t:"héng"}],words:["横幅","横梁","永恒"]},
+"hong":{tones:[{c:"红",t:"hóng"},{c:"轰",t:"hōng"}],words:["红色","红旗","红花","彩虹"]},
+"hou":{tones:[{c:"后",t:"hòu"},{c:"候",t:"hòu"}],words:["后来","后面","后台","后果","以后"]},
+"hua":{tones:[{c:"花",t:"huā"},{c:"画",t:"huà"}],words:["画画","画家","图画","花纹","花生"]},
+"huai":{tones:[{c:"坏",t:"huài"},{c:"怀",t:"huái"}],words:["坏人","坏事","破坏","怀念","胸怀"]},
+"huan":{tones:[{c:"欢",t:"huān"},{c:"换",t:"huàn"}],words:["欢迎","环境","循环","欢快","交换"]},
+"huang":{tones:[{c:"黄",t:"huáng"},{c:"晃",t:"huàng"}],words:["黄色","黄花","黄河","黄金","黄昏"]},
+"hui":{tones:[{c:"回",t:"huí"},{c:"会",t:"huì"}],words:["回来","回去","回答","会议","不会"]},
+"hun":{tones:[{c:"魂",t:"hún"},{c:"混",t:"hùn"}],words:["灵魂","魂魄","混蛋","混乱"]},
+"huo":{tones:[{c:"火",t:"huǒ"},{c:"活",t:"huó"}],words:["火车","火山","火花","活力","生活"]},
+"jia":{tones:[{c:"家",t:"jiā"},{c:"加",t:"jiā"}],words:["大家","家人","回家","家里","人家"]},
+"jian":{tones:[{c:"间",t:"jiān"},{c:"见",t:"jiàn"}],words:["房间","中间","时间","空间","看见"]},
+"jiang":{tones:[{c:"江",t:"jiāng"},{c:"讲",t:"jiǎng"}],words:["长江","江南","江河","讲解","将来"]},
+"jiao":{tones:[{c:"叫",t:"jiào"},{c:"角",t:"jiǎo"}],words:["叫做","叫声","叫我","角度","豆角"]},
+"jie":{tones:[{c:"姐",t:"jiě"},{c:"解",t:"jiě"}],words:["姐姐","小姐","解决","解答","解析"]},
+"jin":{tones:[{c:"进",t:"jìn"},{c:"今",t:"jīn"}],words:["进来","进行","进步","进口","今天"]},
+"jing":{tones:[{c:"经",t:"jīng"},{c:"静",t:"jìng"}],words:["经过","经常","经理","经验","安静"]},
+"jiu":{tones:[{c:"就",t:"jiù"},{c:"九",t:"jiǔ"}],words:["就是","就位","九天","九个"]},
+"qian":{tones:[{c:"前",t:"qián"},{c:"钱",t:"qián"}],words:["前面","前进","前方","前景","金钱"]},
+"qiang":{tones:[{c:"强",t:"qiáng"},{c:"枪",t:"qiāng"}],words:["强大","强化","强烈","强力","枪支"]},
+"qiao":{tones:[{c:"桥",t:"qiáo"},{c:"敲",t:"qiāo"}],words:["大桥","石桥","天桥","桥梁"]},
+"qin":{tones:[{c:"亲",t:"qīn"},{c:"勤",t:"qín"}],words:["亲人","亲戚","亲近","亲切","勤劳"]},
+"qing":{tones:[{c:"情",t:"qíng"},{c:"请",t:"qǐng"}],words:["情况","情感","情怀","情商","请问"]},
+"qiu":{tones:[{c:"秋",t:"qiū"},{c:"球",t:"qiú"}],words:["秋天","秋季","地球","足球","篮球"]},
+"xia":{tones:[{c:"下",t:"xià"}],words:["下来","下去","下面","下午","下雨"]},
+"xian":{tones:[{c:"先",t:"xiān"},{c:"现",t:"xiàn"}],words:["先进","先生","现在","现象","现代"]},
+"xiang":{tones:[{c:"想",t:"xiǎng"},{c:"相",t:"xiāng"}],words:["想想","想法","想象","想念","梦想"]},
+"xiao":{tones:[{c:"小",t:"xiǎo"},{c:"笑",t:"xiào"}],words:["小孩","小学","大小","小心","小鸟"]},
+"xie":{tones:[{c:"写",t:"xiě"},{c:"谢",t:"xiè"}],words:["写字","描写","写信","谢谢","感谢"]},
+"xin":{tones:[{c:"新",t:"xīn"},{c:"心",t:"xīn"}],words:["新闻","新鲜","新年","信心","心里"]},
+"xing":{tones:[{c:"行",t:"xíng"},{c:"星",t:"xīng"}],words:["银行","行为","行走","星星","星空"]},
+"xiu":{tones:[{c:"休",t:"xiū"}],words:["休息","休假","休闲","退休"]},
+"zhai":{tones:[{c:"摘",t:"zhāi"},{c:"宅",t:"zhái"}],words:["摘要","采摘","住宅"]},
+"zhan":{tones:[{c:"站",t:"zhàn"},{c:"战",t:"zhàn"}],words:["站立","车站","站台","网站"]},
+"zhang":{tones:[{c:"张",t:"zhāng"},{c:"长",t:"zhǎng"}],words:["张开","一张","纸张","章节","文章"]},
+"zhao":{tones:[{c:"找",t:"zhǎo"},{c:"照",t:"zhào"}],words:["找到","找人","找回","照亮","照片"]},
+"zhe":{tones:[{c:"这",t:"zhè"},{c:"着",t:"zhe"}],words:["这里","这个","看着","想着"]},
+"zhen":{tones:[{c:"真",t:"zhēn"},{c:"针",t:"zhēn"}],words:["真的","真正","真实","真心","针灸"]},
+"zheng":{tones:[{c:"正",t:"zhèng"},{c:"争",t:"zhēng"}],words:["正好","正确","正常","正式","争取"]},
+"zhi":{tones:[{c:"知",t:"zhī"},{c:"只",t:"zhǐ"}],words:["知道","知识","只有","只是"]},
+"zhong":{tones:[{c:"中",t:"zhōng"},{c:"种",t:"zhǒng"}],words:["中间","中国","中心","中午","种子"]},
+"zhou":{tones:[{c:"州",t:"zhōu"}],words:["广州","神州","九州","苏州","杭州"]},
+"zhu":{tones:[{c:"猪",t:"zhū"},{c:"竹",t:"zhú"}],words:["猪肉","小猪","野猪","竹子","竹林"]},
+"chai":{tones:[{c:"差",t:"chà"},{c:"拆",t:"chāi"}],words:["差不多","差劲","拆开","拆除"]},
+"chan":{tones:[{c:"产",t:"chǎn"}],words:["产生","产业","生产","产品"]},
+"chang":{tones:[{c:"长",t:"cháng"},{c:"常",t:"cháng"}],words:["长大","长久","长江","常常","日常"]},
+"chao":{tones:[{c:"超",t:"chāo"},{c:"抄",t:"chāo"}],words:["超越","超市","超级","抄袭","抄写"]},
+"che":{tones:[{c:"车",t:"chē"}],words:["汽车","火车","电车","车站"]},
+"chen":{tones:[{c:"陈",t:"chén"},{c:"沉",t:"chén"}],words:["陈旧","陈列","沉默","沉浸"]},
+"cheng":{tones:[{c:"成",t:"chéng"},{c:"城",t:"chéng"}],words:["成功","成为","成长","成绩","城市"]},
+"chi":{tones:[{c:"吃",t:"chī"},{c:"池",t:"chí"}],words:["吃饭","吃亏","池塘","水池","电池"]},
+"chong":{tones:[{c:"冲",t:"chōng"},{c:"重",t:"zhòng"}],words:["冲水","冲出","冲动","重新","重复"]},
+"chou":{tones:[{c:"抽",t:"chōu"},{c:"丑",t:"chǒu"}],words:["抽打","抽水","抽烟","丑陋","出丑"]},
+"chu":{tones:[{c:"出",t:"chū"},{c:"除",t:"chú"}],words:["出来","出去","出现","出生","除去"]},
+"shan":{tones:[{c:"山",t:"shān"},{c:"闪",t:"shǎn"}],words:["山上","山下","山里","山水","闪电"]},
+"shang":{tones:[{c:"上",t:"shàng"}],words:["上面","上街","上海","上午","上升"]},
+"shao":{tones:[{c:"少",t:"shǎo"},{c:"烧",t:"shāo"}],words:["多少","少年","少数","少见","烧烤"]},
+"she":{tones:[{c:"社",t:"shè"},{c:"射",t:"shè"}],words:["社会","社区","注射","射击","反射"]},
+"shen":{tones:[{c:"什",t:"shén"},{c:"身",t:"shēn"},{c:"深",t:"shēn"}],words:["什么","身体","身上","身边","深度"]},
+"sheng":{tones:[{c:"生",t:"shēng"},{c:"声",t:"shēng"}],words:["生活","生命","生日","生气","声音"]},
+"shi":{tones:[{c:"十",t:"shí"},{c:"是",t:"shì"}],words:["十个","十六","十七","十八","是的"]},
+"ran":{tones:[{c:"然",t:"rán"},{c:"燃",t:"rán"}],words:["然后","自然","果然","突然"]},
+"rang":{tones:[{c:"让",t:"ràng"}],words:["让路","让步","让位"]},
+"ren":{tones:[{c:"人",t:"rén"},{c:"认",t:"rèn"}],words:["人生","人们","人口","认真","认为"]},
+"ri":{tones:[{c:"日",t:"rì"}],words:["日子","日光","日常","日本","日期"]},
+"rong":{tones:[{c:"容",t:"róng"},{c:"融",t:"róng"}],words:["容易","容忍","容纳","融合","融化"]},
+"rou":{tones:[{c:"肉",t:"ròu"},{c:"柔",t:"róu"}],words:["猪肉","牛肉","羊肉","温柔","柔和"]},
+"ru":{tones:[{c:"如",t:"rú"},{c:"入",t:"rù"}],words:["如果","如今","如意","入门","入口"]},
+"zai":{tones:[{c:"再",t:"zài"},{c:"在",t:"zài"}],words:["再见","再来","再生","再三"]},
+"za":{tones:[{c:"杂",t:"zá"}],words:["杂志","复杂","杂草"]},
+"cai":{tones:[{c:"才",t:"cái"},{c:"菜",t:"cài"}],words:["人才","才能","白菜","菠菜","香菜"]},
+"can":{tones:[{c:"餐",t:"cān"},{c:"参",t:"cān"}],words:["餐厅","晚餐","早餐","参观","参加"]},
+"cang":{tones:[{c:"藏",t:"cáng"}],words:["隐藏","西藏","宝藏"]},
+"cao":{tones:[{c:"草",t:"cǎo"},{c:"操",t:"cāo"}],words:["草地","小草","草原","操场","体操"]},
+"ce":{tones:[{c:"测",t:"cè"},{c:"侧",t:"cè"}],words:["测试","测量","侧身","侧面"]},
+"ceng":{tones:[{c:"层",t:"céng"}],words:["层次","楼层","云层","表层"]},
+"sai":{tones:[{c:"塞",t:"sāi"},{c:"赛",t:"sài"}],words:["塞子","比赛","赛跑"]},
+"san":{tones:[{c:"三",t:"sān"}],words:["三个","三月","三天","三角","三国"]},
+"sang":{tones:[{c:"丧",t:"sàng"},{c:"桑",t:"sāng"}],words:["丧失","桑叶","桑树"]},
+"sa":{tones:[{c:"撒",t:"sā"},{c:"洒",t:"sǎ"}],words:["撒娇","喷洒","洒脱"]},
+"sao":{tones:[{c:"扫",t:"sǎo"}],words:["打扫","扫除","扫地"]},
+"ya":{tones:[{c:"压",t:"yā"},{c:"牙",t:"yá"}],words:["压力","牙齿","门牙","拔牙"]},
+"yan":{tones:[{c:"眼",t:"yǎn"},{c:"言",t:"yán"}],words:["眼睛","眼光","语言","发言","言语"]},
+"yang":{tones:[{c:"样",t:"yàng"},{c:"羊",t:"yáng"}],words:["一样","样子","阳光","山羊","海洋"]},
+"yao":{tones:[{c:"要",t:"yào"},{c:"药",t:"yào"}],words:["不要","要是","必要","药品","吃药"]},
+"ye":{tones:[{c:"也",t:"yě"},{c:"夜",t:"yè"}],words:["也是","也许","日夜","夜晚","深夜"]},
+"yi":{tones:[{c:"一",t:"yī"},{c:"已",t:"yǐ"}],words:["一个","一天","一年","一旦","一起"]},
+"yin":{tones:[{c:"因",t:"yīn"},{c:"音",t:"yīn"}],words:["因为","音乐","声音","语音","音符"]},
+"yong":{tones:[{c:"用",t:"yòng"},{c:"永",t:"yǒng"}],words:["有用","用心","永远","永久","应用"]},
+"you":{tones:[{c:"有",t:"yǒu"},{c:"又",t:"yòu"}],words:["有了","有人","有趣","有名","有力"]},
+"yu":{tones:[{c:"与",t:"yǔ"},{c:"鱼",t:"yú"}],words:["与其","参与","金鱼","小鱼","鲤鱼"]},
+"yuan":{tones:[{c:"原",t:"yuán"},{c:"远",t:"yuǎn"}],words:["原来","原因","远方","远大","远景"]},
+"yue":{tones:[{c:"月",t:"yuè"},{c:"乐",t:"yuè"}],words:["月亮","月光","岁月","音乐","快乐"]},
+"yun":{tones:[{c:"云",t:"yún"},{c:"运",t:"yùn"}],words:["白云","云朵","运动","运气","运输"]},
+"wa":{tones:[{c:"挖",t:"wā"},{c:"娃",t:"wá"}],words:["挖宝","娃娃","山娃"]},
+"wai":{tones:[{c:"外",t:"wài"}],words:["外国","外交","外来","外卖","外貌"]},
+"wan":{tones:[{c:"万",t:"wàn"},{c:"玩",t:"wán"}],words:["万一","万能","万事","万岁","玩耍"]},
+"wang":{tones:[{c:"王",t:"wáng"},{c:"往",t:"wǎng"}],words:["国王","王子","来往","往往","往来"]},
+"wei":{tones:[{c:"为",t:"wèi"},{c:"位",t:"wèi"}],words:["为了","为何","一位","单位","位置"]},
+"wen":{tones:[{c:"文",t:"wén"},{c:"问",t:"wèn"}],words:["文字","文化","中文","问题","访问"]},
+"wo":{tones:[{c:"我",t:"wǒ"},{c:"窝",t:"wō"}],words:["我们","我的","我是","我自己","我国"]},
+"wu":{tones:[{c:"无",t:"wú"},{c:"五",t:"wǔ"}],words:["无法","无论","无数","五个","五月"]}
+};
+
+var wrapper=document.getElementById('matrixWrapper');
+var validCount=0,invalidCount=0;
+
+function buildMatrix(){
+  var c=document.createElement('div');c.className='matrix-header matrix-corner';wrapper.appendChild(c);
+  YUNMUS.forEach(function(y){var h=document.createElement('div');h.className='matrix-header';h.textContent=y;wrapper.appendChild(h)});
+  SHENMUS.forEach(function(sm){
+    var lbl=document.createElement('div');lbl.className='matrix-row-label';lbl.textContent=sm;wrapper.appendChild(lbl);
+    YUNMUS.forEach(function(ym){
+      var combo=sm+ym,cell=document.createElement('div'),data=D[combo];
+      if(data&&data.tones){
+        cell.className='matrix-cell valid';cell.dataset.syllable=combo;
+        var ft=data.tones[0];
+        cell.innerHTML='<span class="pinyin-syllable">'+ft.t+'<br><small>'+ft.c+'</small></span>';
+        (function(sy,el){el.addEventListener('click',function(){showDetail(sy,el)});el.addEventListener('mouseenter',function(e){showTooltip(e,sy)});el.addEventListener('mouseleave',hideTooltip)})(combo,cell);
+        validCount++;
+      } else {cell.className='matrix-cell invalid';cell.innerHTML='<span style="opacity:.3">—</span>';invalidCount++}
+      wrapper.appendChild(cell);
+    });
+  });
+  document.getElementById('validCount').textContent=validCount;
+  document.getElementById('invalidCount').textContent=invalidCount;
+}
+
+function showDetail(syllable,cellEl){
+  document.querySelectorAll('.matrix-cell.valid').forEach(function(c){c.classList.remove('active')});
+  cellEl.classList.add('active');
+  var data=D[syllable];if(!data||!data.tones){showEmpty();return}
+  var panel=document.getElementById('detailPanel'),empty=document.getElementById('emptyState'),content=document.getElementById('detailContent');
+  empty.style.display='none';content.style.display='block';panel.classList.add('active');
+  var labels=['一声（阴平）','二声（阳平）','三声（上声）','四声（去声）'],html='<div class="detail-header"><span class="detail-title">'+syllable+'</span><button class="detail-close" onclick="hideDetail()">✕</button></div><div class="tone-grid">';
+  data.tones.forEach(function(to,i){var tn=(i%4)+1;
+    var tstr=to.t.replace(/'/g,"\\'");
+    html+='<div class="tone-card" data-tone="'+tn+'"><div class="tone-card-header"><span class="tone-label">'+labels[tn-1]+'</span><button class="speak-btn" onclick="speak(\''+tstr+'\')">🔊</button></div><div class="tone-syllable">'+to.c+' '+to.t+'</div>';
+    html+='<div class="words-list" style="margin-top:6px">';
+    data.words.forEach(function(w){var wstr=w.replace(/'/g,"\\'");html+='<span class="word-tag" onclick="speakWord(\''+wstr+'\')">'+w+'</span>'});
+    html+='</div></div>';
+  });
+  html+='</div><div class="words-section"><h3>📖 完整词语列表</h3><div class="words-list">';
+  data.words.forEach(function(w){var wstr=w.replace(/'/g,"\\'");html+='<span class="word-tag" onclick="speakWord(\''+wstr+'\')">'+w+'</span>'});
+  html+='</div></div>';content.innerHTML=html;
+  if(window.innerWidth<768)panel.scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function showEmpty(){document.getElementById('emptyState').style.display='block';document.getElementById('detailContent').style.display='none';document.getElementById('detailPanel').classList.remove('active')}
+
+function speak(text){
+  if(!window.speechSynthesis){alert('浏览器不支持语音功能');return}
+  window.speechSynthesis.cancel();var u=new SpeechSynthesisUtterance(text);u.lang='zh-CN';u.rate=0.8;
+  var voices=window.speechSynthesis.getVoices(),zh=null;
+  for(var i=0;i<voices.length;i++){if(voices[i].lang.startsWith('zh')){zh=voices[i];break}}
+  if(zh)u.voice=zh;
+  window.speechSynthesis.speak(u);
+}
+function speakWord(w){speak(w)}
+
+var tooltip=document.getElementById('tooltip');
+function showTooltip(e,syl){
+  var data=D[syl];if(!data||!data.tones)return;var ft=data.tones[0],tip=syl+': '+ft.c+' ('+ft.t+')';
+  if(data.words&&data.words.length)tip+=' | '+data.words.slice(0,3).join('、');
+  tooltip.textContent=tip;tooltip.classList.add('visible');var r=e.target.getBoundingClientRect();
+  tooltip.style.left=r.left+'px';tooltip.style.top=(r.bottom+4)+'px';
+}
+function hideTooltip(){tooltip.classList.remove('visible')}
+
+document.getElementById('searchInput').addEventListener('input',function(e){
+  var q=e.target.value.trim().toLowerCase();
+  document.querySelectorAll('.matrix-cell.valid').forEach(function(cell){cell.style.opacity='';cell.style.boxShadow=''});
+  if(!q)return;
+  Object.keys(D).forEach(function(syl){
+    var cell=document.querySelector('[data-syllable="'+syl+'"]');if(!cell)return;
+    var data=D[syl],match=syl.indexOf(q)>=0;
+    if(!match&&data)match=data.tones.some(function(t){return t.c.indexOf(q)>=0||t.t.toLowerCase().indexOf(q)>=0});
+    if(!match&&data&&data.words)match=data.words.some(function(w){return w.indexOf(q)>=0});
+    if(match){cell.style.opacity='1';cell.style.boxShadow='0 0 0 3px #fbbf24'}
+    else{cell.style.opacity='0.25';cell.style.boxShadow=''}
+  });
+});
+
+var themeBtn=document.getElementById('themeToggle');
+var saved=localStorage.getItem('pinyin-theme')||'light';
+function setTheme(t){document.documentElement.setAttribute('data-theme',t);themeBtn.textContent=t==='dark'?'☀️':'🌙';localStorage.setItem('pinyin-theme',t)}
+setTheme(saved);
+themeBtn.addEventListener('click',function(){setTheme(document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark')});
+
+buildMatrix();
+if(window.speechSynthesis)window.speechSynthesis.getVoices();
+</script>
+</body>
+</html>
